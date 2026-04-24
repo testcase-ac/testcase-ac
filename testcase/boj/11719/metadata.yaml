@@ -1,0 +1,7 @@
+title: "그대로 출력하기 2"
+externalLink: "https://www.acmicpc.net/problem/11719"
+timeLimitMs: 1000
+memoryLimitMb: 256
+isSpecialJudge: false
+codes:
+  correct_4706.c: c99

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>testcase.ac</title>
+    <script>
+      // Restore the original SPA URL after the GitHub Pages 404 fallback.
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var path = params.get("__tc_path");
+        if (path === null) return;
+
+        var basePath = "%BASE_URL%";
+        if (!basePath.startsWith("/")) basePath = "/" + basePath;
+        if (!basePath.endsWith("/")) basePath += "/";
+        var basePrefix = basePath === "/" ? "" : basePath.slice(0, -1);
+
+        var nextUrl = basePrefix + path;
+        var originalSearch = params.get("__tc_search");
+        if (originalSearch) nextUrl += "?" + originalSearch;
+        var originalHash = params.get("__tc_hash");
+        if (originalHash) nextUrl += "#" + originalHash;
+
+        window.history.replaceState(null, "", nextUrl);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // Apply persisted theme and locale before React mounts to avoid a flash.
+      (function () {
+        try {
+          var t = localStorage.getItem("testcase-ac.theme");
+          if (t === "dark") document.documentElement.classList.add("dark");
+          var l = localStorage.getItem("testcase-ac.locale");
+          if (l === "en" || l === "ko") document.documentElement.lang = l;
+        } catch (e) {
+          // storage unavailable; defaults apply.
+        }
+      })();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

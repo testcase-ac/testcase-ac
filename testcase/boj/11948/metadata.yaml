@@ -1,0 +1,7 @@
+title: "과목선택"
+externalLink: "https://www.acmicpc.net/problem/11948"
+timeLimitMs: 2000
+memoryLimitMb: 512
+isSpecialJudge: false
+codes:
+  correct_4746.c: c99

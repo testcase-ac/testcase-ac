@@ -1,0 +1,275 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
+	"syscall"
+	"unicode/utf8"
+
+	"github.com/testcase-ac/testcase-ac/backend/contracts"
+)
+
+const diskCleanupThresholdPercent = 60.0
+
+type ResponseError struct {
+	errorType contracts.ErrorType
+	details   map[string]any
+}
+
+func NewResponseError(errorType contracts.ErrorType, details map[string]any) *ResponseError {
+	if details == nil {
+		details = map[string]any{}
+	}
+	return &ResponseError{errorType: errorType, details: details}
+}
+
+func (e *ResponseError) Error() string {
+	payload, _ := json.Marshal(e.details)
+	return fmt.Sprintf("%s: %s", e.errorType, string(payload))
+}
+
+func (e *ResponseError) ToResponse(requestID string) contracts.StressResult {
+	return contracts.StressResult{
+		RequestID: requestID,
+		Error:     true,
+		ErrorType: e.errorType,
+		Message:   truncateTestcase(mustJSON(e.details), 4000, 40),
+	}
+}
+
+func intInFirstLine(s string) []int {
+	if s == "" {
+		return nil
+	}
+	if newline := strings.IndexByte(s, '\n'); newline >= 0 {
+		s = s[:newline]
+	}
+	out := []int{}
+	for _, field := range strings.Fields(s) {
+		if n, err := strconv.Atoi(field); err == nil {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+func truncateTestcase(testcase string, maxLength int, maxLine int) string {
+	lines := strings.Split(testcase, "\n")
+	lineTruncated := len(lines) > maxLine
+	truncatedByLines := testcase
+	if lineTruncated {
+		truncatedByLines = strings.Join(lines[:maxLine], "\n")
+	}
+	charTruncated := utf8.RuneCountInString(truncatedByLines) > maxLength
+	finalResult := truncatedByLines
+	if charTruncated {
+		finalResult = firstNRunes(truncatedByLines, maxLength)
+	}
+	if lineTruncated || charTruncated {
+		testcaseLen := utf8.RuneCountInString(strings.TrimSuffix(testcase, "\n"))
+		lineLen := len(lines)
+		if strings.HasSuffix(testcase, "\n") && lineLen > 0 {
+			lineLen--
+		}
+		return fmt.Sprintf("%s(...truncated, total %d characters, %d lines)", finalResult, testcaseLen, lineLen)
+	}
+	return testcase
+}
+
+func textWithMetadata(s string, maxLength int, maxLine int) contracts.TextWithMetadata {
+	totalLength := utf8.RuneCountInString(s)
+	totalLines := countOutputLines(s)
+	metadata := contracts.OutputTextMetadata{
+		CharacterCount: totalLength,
+		LineCount:      totalLines,
+	}
+
+	lines := strings.Split(s, "\n")
+	lineCut := -1
+	if totalLines > maxLine {
+		lineCut = utf8.RuneCountInString(strings.Join(lines[:maxLine], "\n"))
+	}
+
+	charCut := -1
+	if totalLength > maxLength {
+		charCut = maxLength
+	}
+	if lineCut < 0 && charCut < 0 {
+		return contracts.TextWithMetadata{Text: s, Metadata: metadata}
+	}
+
+	truncatedAt := minPositive(lineCut, charCut)
+	truncatedBy := contracts.TruncationKindCharacter
+	truncatedAtLine := (*int)(nil)
+	if lineCut >= 0 && lineCut <= truncatedAt {
+		truncatedBy = contracts.TruncationKindLine
+		truncatedAtLine = intPtr(maxLine)
+	}
+	metadata.Truncated = true
+	metadata.TruncatedBy = truncationKindPtr(truncatedBy)
+	metadata.TruncatedAtCharacter = intPtr(truncatedAt)
+	metadata.TruncatedAtLine = truncatedAtLine
+
+	return contracts.TextWithMetadata{
+		Text:     firstNRunes(s, truncatedAt),
+		Metadata: metadata,
+	}
+}
+
+func countOutputLines(s string) int {
+	if s == "" {
+		return 0
+	}
+	lineCount := len(strings.Split(s, "\n"))
+	if strings.HasSuffix(s, "\n") {
+		lineCount--
+	}
+	return lineCount
+}
+
+func truncationKindPtr(value contracts.TruncationKind) *contracts.TruncationKind {
+	return &value
+}
+
+var tmpPathRegex = regexp.MustCompile(`/tmp/.*/([A-Za-z]+\.[a-z]{1,3})`)
+
+func shortenPathsToFilenames(s string) string {
+	if s == "" {
+		return ""
+	}
+	return tmpPathRegex.ReplaceAllString(s, `$1`)
+}
+
+func cleanStdout(output string, trailingNewline string) string {
+	trimmed := strings.TrimRight(output, "\n\r\t ")
+	if trimmed == "" {
+		if trailingNewline == "always" {
+			return "\n"
+		}
+		return ""
+	}
+	lines := strings.Split(trimmed, "\n")
+	for i, line := range lines {
+		lines[i] = strings.TrimRight(line, " \t\r")
+	}
+	cleaned := strings.Join(lines, "\n")
+	switch trailingNewline {
+	case "always":
+		return cleaned + "\n"
+	}
+	return cleaned
+}
+
+func compareOutput(a, b string) bool {
+	a = strings.TrimRight(a, "\n\r\t ")
+	b = strings.TrimRight(b, "\n\r\t ")
+	if strings.ReplaceAll(a, "\n", " ") == strings.ReplaceAll(b, "\n", " ") {
+		return true
+	}
+	return strings.ReplaceAll(a, " \n", "\n") == strings.ReplaceAll(b, " \n", "\n")
+}
+
+func checkAndCleanTmp() error {
+	var stat syscall.Statfs_t
+	if err := syscall.Statfs("/tmp", &stat); err != nil {
+		return err
+	}
+	total := float64(stat.Blocks) * float64(stat.Bsize)
+	available := float64(stat.Bavail) * float64(stat.Bsize)
+	used := total - available
+	usagePercent := (used / total) * 100
+	if usagePercent <= diskCleanupThresholdPercent {
+		log.Printf("Disk usage at %.1f%%", usagePercent)
+		return nil
+	}
+
+	log.Printf("Disk usage at %.1f%%, cleaning /tmp", usagePercent)
+	entries, err := os.ReadDir("/tmp")
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		path := filepath.Join("/tmp", entry.Name())
+		if err := os.RemoveAll(path); err != nil {
+			log.Printf("failed to remove %s: %v", path, err)
+		}
+	}
+	var after syscall.Statfs_t
+	if err := syscall.Statfs("/tmp", &after); err == nil {
+		usedAfter := (float64(after.Blocks) - float64(after.Bavail)) * float64(after.Bsize)
+		freedMB := (used - usedAfter) / (1024 * 1024)
+		log.Printf("Cleaned /tmp, freed %.1f MB", freedMB)
+	}
+	return nil
+}
+
+func logTmpUsage() {
+	var stat syscall.Statfs_t
+	if err := syscall.Statfs("/tmp", &stat); err != nil {
+		log.Printf("Error reading /tmp usage: %v", err)
+		return
+	}
+	total := float64(stat.Blocks) * float64(stat.Bsize)
+	available := float64(stat.Bavail) * float64(stat.Bsize)
+	used := total - available
+	usagePercent := (used / total) * 100
+	log.Printf("log_tmp_usage: %.1f%%", usagePercent)
+}
+
+func mustJSON(value any) string {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return "{}"
+	}
+	return string(data)
+}
+
+func runCommand(dir string, name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.Dir = dir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func intPtr(value int) *int {
+	return &value
+}
+
+func stringPtr(value string) *string {
+	return &value
+}
+
+func minPositive(values ...int) int {
+	best := -1
+	for _, value := range values {
+		if value < 0 {
+			continue
+		}
+		if best < 0 || value < best {
+			best = value
+		}
+	}
+	return best
+}
+
+func firstNRunes(s string, n int) string {
+	if n <= 0 {
+		return ""
+	}
+	runeCount := 0
+	for i := range s {
+		if runeCount == n {
+			return s[:i]
+		}
+		runeCount++
+	}
+	return s
+}

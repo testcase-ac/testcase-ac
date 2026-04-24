@@ -1,0 +1,7 @@
+title: "사다리"
+externalLink: "https://www.acmicpc.net/problem/2022"
+timeLimitMs: 2000
+memoryLimitMb: 128
+isSpecialJudge: true
+codes:
+  correct_5903.c: c99

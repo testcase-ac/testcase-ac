@@ -1,0 +1,7 @@
+title: "흔한 수열 문제"
+externalLink: "https://www.acmicpc.net/problem/2787"
+timeLimitMs: 1000
+memoryLimitMb: 128
+isSpecialJudge: true
+codes:
+  correct_5983.cpp: cpp14

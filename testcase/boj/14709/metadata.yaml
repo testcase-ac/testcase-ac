@@ -1,0 +1,7 @@
+title: "여우 사인"
+externalLink: "https://www.acmicpc.net/problem/14709"
+timeLimitMs: 500
+memoryLimitMb: 512
+isSpecialJudge: false
+codes:
+  correct_4025.c: c99

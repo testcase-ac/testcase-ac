@@ -1,0 +1,7 @@
+title: "새로운 과일"
+externalLink: "https://www.acmicpc.net/problem/6574"
+timeLimitMs: 1000
+memoryLimitMb: 128
+isSpecialJudge: true
+codes:
+  correct_6105.cpp: cpp14

@@ -1,0 +1,7 @@
+title: "놀이 공원"
+externalLink: "https://www.acmicpc.net/problem/1561"
+timeLimitMs: 2000
+memoryLimitMb: 128
+isSpecialJudge: false
+codes:
+  correct_2757.c: c99

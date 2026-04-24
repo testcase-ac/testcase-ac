@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 1rem;
+
+  @media (width >= --theme(--breakpoint-sm)) {
+    max-width: none;
+    padding-inline: 1.5rem;
+  }
+
+  @media (width >= 1180px) {
+    max-width: 1180px;
+  }
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border, currentColor);
+  }
+
+  :root {
+    color-scheme: light;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 214 28% 93%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 214 28% 93%;
+    --muted-foreground: 215 18% 40%;
+    --accent: 214 28% 92%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 24% 87%;
+    --input: 214 24% 87%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --background: 222 20% 6%;
+    --foreground: 210 40% 98%;
+    --card: 222 18% 10%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 18% 10%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217 18% 20%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 18% 18%;
+    --muted-foreground: 215 18% 70%;
+    --accent: 217 18% 24%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 18% 24%;
+    --input: 217 18% 24%;
+    --ring: 224.3 76.3% 48%;
+  }
+
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply m-0 bg-background text-foreground antialiased;
+  }
+
+  a {
+    @apply text-primary underline-offset-4;
+  }
+
+  a:hover {
+    @apply underline;
+  }
+
+  code,
+  pre,
+  .font-mono {
+    font-family: var(--mono);
+  }
+
+  :lang(ko) {
+    word-break: keep-all;
+  }
+}
+
+@layer components {
+  .code-editor-cm {
+    @apply overflow-hidden rounded-md border border-input bg-background text-[15px];
+  }
+
+  .code-editor-cm .cm-editor {
+    outline: none;
+  }
+
+  .code-editor-cm .cm-scroller {
+    font-family: var(--mono);
+  }
+}

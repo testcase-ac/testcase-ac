@@ -1,0 +1,47 @@
+# Node
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# tsc -b emits these for vite.config.ts despite noEmit
+frontend/vite.config.d.ts
+frontend/vite.config.js
+
+# Env
+.env
+.env.local
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Local database dumps
+*.db
+*.db-wal
+*.db-shm
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.lock.info
+*.tfvars
+*.tfvars.json
+*.tfplan
+
+.gstack/
+.claude/
+
+# Local tooling
+.scripts/
