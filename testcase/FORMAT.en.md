@@ -4,7 +4,6 @@
 
 A problem is a directory at `testcase/<problemType>/<externalId>/`. The
 `problemType` namespace is open; whatever contributors add is what exists.
-V1 ships with `boj` only.
 
 ## Files
 
