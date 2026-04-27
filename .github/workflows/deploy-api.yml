@@ -1,0 +1,63 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "deploy/api.sh"
+      - "deploy/build-author-index.go"
+      - "testcase/**"
+      - ".github/workflows/deploy-api.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: testcase-ac-prod
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: Test API packages
+        working-directory: backend
+        run: go test ./api ./contracts ./internal/loader
+
+      - name: Configure SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          DEPLOY_HOST="${DEPLOY_HOST:-testcase-ac-api}"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${DEPLOY_SSH_PRIVATE_KEY}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p 22 "${DEPLOY_HOST}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy API
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          STRESSER_LAMBDA_FUNCTION_NAME: ${{ secrets.STRESSER_LAMBDA_FUNCTION_NAME }}
+          DEPLOY_AWS_REGION: ${{ secrets.DEPLOY_AWS_REGION }}
+          DEPLOY_AWS_ACCESS_KEY_ID: ${{ secrets.DEPLOY_AWS_ACCESS_KEY_ID }}
+          DEPLOY_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEPLOY_AWS_SECRET_ACCESS_KEY }}
+          DEPLOY_AWS_SESSION_TOKEN: ${{ secrets.DEPLOY_AWS_SESSION_TOKEN }}
+        run: ./deploy/api.sh

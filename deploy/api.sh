@@ -5,6 +5,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 STRESSER_TERRAFORM_DIR="${REPO_ROOT}/deploy/terraform/stresser"
 
+# Shared local helpers used by both the regular deploy path and the temporary
+# bootstrap/provisioning blocks below.
+
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Missing required command: $1" >&2
@@ -108,7 +111,7 @@ Type=simple
 User=${DEPLOY_APP_USER}
 Group=${DEPLOY_APP_USER}
 WorkingDirectory=${DEPLOY_APP_DIR}/backend
-EnvironmentFile=${DEPLOY_ENV_PATH}.${slot}
+EnvironmentFile=${DEPLOY_ENV_PREFIX}.${slot}
 ExecStart=${DEPLOY_APP_DIR}/backend/${DEPLOY_BINARY_NAME}
 Restart=always
 RestartSec=5
@@ -134,13 +137,34 @@ ${API_DOMAIN} {
 EOF
 }
 
+# BOOTSTRAP / PROVISIONING SECTION
+#
+# This heredoc still mixes one-time host setup with the blue/green deploy steps
+# that run every release. It is intentionally labeled so it can later be split
+# into a real bootstrap script plus a smaller remote deploy script.
+#
+# Bootstrap-only work in this script:
+# - install OS packages such as curl, rsync, and caddy
+# - create or normalize the system app user
+# - create application, env, and Caddy config directories
+# - remove legacy service/Caddy names
+# - ensure the top-level Caddyfile imports Caddyfile.d snippets
+# - install or refresh systemd service unit files
+#
+# Regular deploy work in this script:
+# - choose the inactive blue/green slot
+# - sync testcase data and author index
+# - install the new backend binary and slot env files
+# - restart and health-check the inactive slot
+# - switch Caddy to the healthy slot
+# - mark the active slot and stop the previous service
 remote_provision_script() {
   cat <<'EOF'
 set -euo pipefail
 
 APP_DIR="${DEPLOY_APP_DIR}"
 APP_USER="${DEPLOY_APP_USER}"
-ENV_PATH="${DEPLOY_ENV_PATH}"
+ENV_PREFIX="${DEPLOY_ENV_PREFIX}"
 SERVICE_NAME="${DEPLOY_SERVICE_NAME}"
 CADDY_SNIPPET="${DEPLOY_CADDY_SNIPPET}"
 BINARY_NAME="${DEPLOY_BINARY_NAME}"
@@ -205,7 +229,7 @@ else
 fi
 
 sudo mkdir -p "${APP_DIR}" "${APP_DIR}/backend" "${APP_DIR}/testcase" \
-  "$(dirname "${ENV_PATH}")" "$(dirname "${CADDY_SNIPPET}")"
+  "$(dirname "${ENV_PREFIX}")" "$(dirname "${CADDY_SNIPPET}")"
 sudo find "${APP_DIR}" -mindepth 1 -maxdepth 1 \
   ! -name backend ! -name testcase ! -name "${ACTIVE_SLOT_BASENAME}" -exec rm -rf {} +
 
@@ -225,7 +249,7 @@ printf 'Deploying inactive API slot %s on port %s; current active slot is %s\n' 
 sudo rsync -a --delete "${INCOMING_TESTCASE_DIR}/" "${APP_DIR}/testcase/"
 sudo install -o "${APP_USER}" -g "${APP_USER}" -m 0644 "${STAGING_DIR}/author-index.json" "${APP_DIR}/testcase/.author-index.json"
 for slot in blue green; do
-  slot_env="${ENV_PATH}.${slot}"
+  slot_env="${ENV_PREFIX}.${slot}"
   slot_port_value="$(slot_port "${slot}")"
   sudo install -o root -g root -m 0600 "${STAGING_DIR}/backend.env" "${slot_env}"
   printf 'HTTP_ADDR=127.0.0.1:%s\n' "${slot_port_value}" | sudo tee -a "${slot_env}" >/dev/null
@@ -283,23 +307,21 @@ require_command mktemp
 require_command go
 require_command git
 
+# REGULAR DEPLOY CONFIGURATION
+#
+# Stresser/Lambda credentials are supplied by the caller, or resolved from
+# Terraform outputs for local deploys that have the stresser Terraform state.
+# ${DEPLOY_ENV_PREFIX} is a filename prefix; only ${DEPLOY_ENV_PREFIX}.blue
+# and ${DEPLOY_ENV_PREFIX}.green are used as env files. The unsuffixed prefix
+# path is intentionally not used as a source of truth.
+
 set_default DEPLOY_HOST "testcase-ac-api"
 set_default API_DOMAIN "api.testcase.ac"
-resolve_from_terraform STRESSER_LAMBDA_FUNCTION_NAME lambda_function_name
-resolve_from_terraform DEPLOY_AWS_ACCESS_KEY_ID access_key_id
-resolve_from_terraform DEPLOY_AWS_SECRET_ACCESS_KEY secret_access_key
-
-require_env DEPLOY_HOST
-require_env API_DOMAIN
-require_env STRESSER_LAMBDA_FUNCTION_NAME
-require_env DEPLOY_AWS_ACCESS_KEY_ID
-require_env DEPLOY_AWS_SECRET_ACCESS_KEY
-
 DEPLOY_SSH_USER="${DEPLOY_SSH_USER:-ubuntu}"
 DEPLOY_SSH_PORT="${DEPLOY_SSH_PORT:-22}"
 DEPLOY_APP_USER="${DEPLOY_APP_USER:-testcase-ac}"
 DEPLOY_APP_DIR="${DEPLOY_APP_DIR:-/srv/testcase-ac}"
-DEPLOY_ENV_PATH="${DEPLOY_ENV_PATH:-/etc/testcase-ac/backend.env}"
+DEPLOY_ENV_PREFIX="${DEPLOY_ENV_PREFIX:-${DEPLOY_ENV_PATH:-/etc/testcase-ac/backend.env}}"
 DEPLOY_SERVICE_NAME="${DEPLOY_SERVICE_NAME:-testcase-ac-backend}"
 DEPLOY_CADDY_SNIPPET="${DEPLOY_CADDY_SNIPPET:-/etc/caddy/Caddyfile.d/testcase-ac-api.caddy}"
 DEPLOY_BINARY_NAME="${DEPLOY_BINARY_NAME:-testcase-ac-backend}"
@@ -319,10 +341,25 @@ REMOTE_STAGING_DIR="${REMOTE_STAGING_DIR:-/tmp/testcase-ac-deploy}"
 SSH_ARGS=(-p "${DEPLOY_SSH_PORT}" -o BatchMode=yes)
 SSH_RSH="ssh ${SSH_ARGS[*]}"
 
+resolve_from_terraform STRESSER_LAMBDA_FUNCTION_NAME lambda_function_name
+resolve_from_terraform DEPLOY_AWS_ACCESS_KEY_ID access_key_id
+resolve_from_terraform DEPLOY_AWS_SECRET_ACCESS_KEY secret_access_key
+
+require_env DEPLOY_HOST
+require_env API_DOMAIN
+require_env STRESSER_LAMBDA_FUNCTION_NAME
+require_env DEPLOY_AWS_ACCESS_KEY_ID
+require_env DEPLOY_AWS_SECRET_ACCESS_KEY
+require_env DEPLOY_AWS_REGION
+
 if [[ "${DEPLOY_BLUE_PORT}" == "${DEPLOY_GREEN_PORT}" ]]; then
   echo "DEPLOY_BLUE_PORT and DEPLOY_GREEN_PORT must be different" >&2
   exit 1
 fi
+
+# REGULAR DEPLOY SECTION
+# Build local artifacts, upload them to a staging directory, and ask the remote
+# script above to perform the blue/green switch.
 
 TMP_DIR="$(mktemp -d)"
 cleanup() {
@@ -379,7 +416,7 @@ echo "==> Provisioning remote host"
 ssh "${SSH_ARGS[@]}" "${DEPLOY_SSH_TARGET}" \
   "DEPLOY_APP_DIR=$(shell_quote "${DEPLOY_APP_DIR}") \
    DEPLOY_APP_USER=$(shell_quote "${DEPLOY_APP_USER}") \
-   DEPLOY_ENV_PATH=$(shell_quote "${DEPLOY_ENV_PATH}") \
+   DEPLOY_ENV_PREFIX=$(shell_quote "${DEPLOY_ENV_PREFIX}") \
    DEPLOY_SERVICE_NAME=$(shell_quote "${DEPLOY_SERVICE_NAME}") \
    DEPLOY_CADDY_SNIPPET=$(shell_quote "${DEPLOY_CADDY_SNIPPET}") \
    DEPLOY_BINARY_NAME=$(shell_quote "${DEPLOY_BINARY_NAME}") \
