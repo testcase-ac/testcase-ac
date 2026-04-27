@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -28,20 +29,26 @@ type contextKey string
 const requestIDContextKey contextKey = "requestID"
 
 type App struct {
-	settings    Settings
-	catalog     map[[2]string]Problem
-	stresser    StresserClient
-	rateLimiter *RateLimiter
-	validate    *validator.Validate
+	settings     Settings
+	catalog      map[[2]string]Problem
+	typeMetadata map[string]TypeMetadata
+	stresser     StresserClient
+	rateLimiter  *RateLimiter
+	validate     *validator.Validate
 }
 
 func NewApp(settings Settings, catalog map[[2]string]Problem, stresser StresserClient) *App {
+	return NewAppWithTypeMetadata(settings, catalog, nil, stresser)
+}
+
+func NewAppWithTypeMetadata(settings Settings, catalog map[[2]string]Problem, typeMetadata map[string]TypeMetadata, stresser StresserClient) *App {
 	return &App{
-		settings:    settings,
-		catalog:     catalog,
-		stresser:    stresser,
-		rateLimiter: NewRateLimiter(settings.RateLimitMax, settings.RateLimitWindowS),
-		validate:    validator.New(validator.WithRequiredStructEnabled()),
+		settings:     settings,
+		catalog:      catalog,
+		typeMetadata: typeMetadata,
+		stresser:     stresser,
+		rateLimiter:  NewRateLimiter(settings.RateLimitMax, settings.RateLimitWindowS),
+		validate:     validator.New(validator.WithRequiredStructEnabled()),
 	}
 }
 
@@ -123,7 +130,40 @@ func (a *App) handleListProblems(w http.ResponseWriter, r *http.Request) {
 	if end < len(items) {
 		nextCursor = stringPtr(strconv.Itoa(end))
 	}
-	writeJSON(w, http.StatusOK, ProblemList{Problems: page, NextCursor: nextCursor, Total: len(items)})
+	response := ProblemList{
+		Problems:     page,
+		ProblemTypes: a.problemTypeSummaries(),
+		NextCursor:   nextCursor,
+		Total:        len(items),
+	}
+	if problemTypeFilter != "" {
+		if typeMeta, ok := a.typeMetadata[problemTypeFilter]; ok {
+			response.TypeMetadata = &typeMeta
+		}
+	}
+	writeJSON(w, http.StatusOK, response)
+}
+
+func (a *App) problemTypeSummaries() []ProblemTypeSummary {
+	counts := make(map[string]int)
+	for _, problem := range a.catalog {
+		counts[problem.ProblemType]++
+	}
+
+	items := make([]ProblemTypeSummary, 0, len(counts))
+	for problemType, total := range counts {
+		label := ""
+		if typeMeta, ok := a.typeMetadata[problemType]; ok {
+			label = typeMeta.Label
+		}
+		items = append(items, ProblemTypeSummary{
+			ProblemType: problemType,
+			Label:       nilIfEmpty(label),
+			Total:       total,
+		})
+	}
+	sortProblemTypeSummaries(items)
+	return items
 }
 
 func (a *App) handleGetProblem(w http.ResponseWriter, r *http.Request) {
@@ -219,7 +259,11 @@ func isRequestBodyTooLarge(err error) bool {
 
 func (a *App) lookupProblem(w http.ResponseWriter, r *http.Request) (Problem, bool) {
 	problemType := chi.URLParam(r, "problemType")
-	externalID := chi.URLParam(r, "externalId")
+	externalID, err := url.PathUnescape(chi.URLParam(r, "externalId"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid problem id")
+		return Problem{}, false
+	}
 	problem, ok := a.catalog[[2]string{problemType, externalID}]
 	if !ok {
 		writeError(w, http.StatusNotFound, fmt.Sprintf("Problem not found: %s/%s", problemType, externalID))

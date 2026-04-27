@@ -120,10 +120,18 @@ type ProblemSummary struct {
 	Title       *string `json:"title"`
 }
 
+type ProblemTypeSummary struct {
+	ProblemType string  `json:"problemType"`
+	Label       *string `json:"label"`
+	Total       int     `json:"total"`
+}
+
 type ProblemList struct {
-	Problems   []ProblemSummary `json:"problems"`
-	NextCursor *string          `json:"nextCursor"`
-	Total      int              `json:"total"`
+	Problems     []ProblemSummary     `json:"problems"`
+	ProblemTypes []ProblemTypeSummary `json:"problemTypes"`
+	NextCursor   *string              `json:"nextCursor"`
+	Total        int                  `json:"total"`
+	TypeMetadata *TypeMetadata        `json:"typeMetadata,omitempty"`
 }
 
 type ProblemDetail struct {

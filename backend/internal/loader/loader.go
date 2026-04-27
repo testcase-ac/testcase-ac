@@ -21,6 +21,7 @@ const (
 	defaultTimeLimitMS = 2000
 	defaultMemoryMB    = 256
 	authorIndexName    = ".author-index.json"
+	typeMetadataName   = "type_metadata.yaml"
 )
 
 var extensionToLang = map[string]contracts.Language{
@@ -74,18 +75,47 @@ type Problem struct {
 	UnknownFiles   []string
 }
 
+type TypeMetadata struct {
+	Label    string                `json:"label,omitempty"`
+	Segments []TypeMetadataSegment `json:"segments,omitempty"`
+}
+
+type TypeMetadataSegment struct {
+	Label  string                     `json:"label,omitempty"`
+	Labels []TypeMetadataSegmentLabel `json:"labels,omitempty"`
+}
+
+type TypeMetadataSegmentLabel struct {
+	Value string `json:"value"`
+	Label string `json:"label"`
+}
+
 type Options struct {
 	AllowUnknownFiles bool
 	AuthorByRelPath   map[string]string
+	ProblemType       string
+	ExternalID        string
 }
 
 type metadataFile struct {
 	Title          string            `yaml:"title"`
 	ExternalLink   string            `yaml:"externalLink"`
+	Authors        map[string]string `yaml:"authors"`
 	TimeLimitMS    int               `yaml:"timeLimitMs"`
 	MemoryLimitMB  int               `yaml:"memoryLimitMb"`
 	IsSpecialJudge bool              `yaml:"isSpecialJudge"`
 	Codes          map[string]string `yaml:"codes"`
+}
+
+type rawTypeMetadataFile struct {
+	SchemaVersion int                      `yaml:"schemaVersion"`
+	Label         string                   `yaml:"label"`
+	Segments      []rawTypeMetadataSegment `yaml:"segments"`
+}
+
+type rawTypeMetadataSegment struct {
+	Label  string    `yaml:"label"`
+	Labels yaml.Node `yaml:"labels"`
 }
 
 func BuildCatalog(testcaseRoot string) (map[[2]string]Problem, error) {
@@ -112,30 +142,184 @@ func BuildCatalog(testcaseRoot string) (map[[2]string]Problem, error) {
 			continue
 		}
 		typePath := filepath.Join(testcaseRoot, typeDir.Name())
-		problemDirs, err := os.ReadDir(typePath)
-		if err != nil {
-			return nil, err
-		}
-		for _, problemDir := range problemDirs {
-			if !problemDir.IsDir() {
-				continue
-			}
-			problemPath := filepath.Join(typePath, problemDir.Name())
-			problem, err := LoadProblem(problemPath, Options{AllowUnknownFiles: true, AuthorByRelPath: authorByRelPath})
+		err := walkProblemDirs(typePath, "", func(relPath, problemPath string) {
+			problem, err := LoadProblem(problemPath, Options{
+				AllowUnknownFiles: true,
+				AuthorByRelPath:   authorByRelPath,
+				ProblemType:       typeDir.Name(),
+				ExternalID:        filepath.ToSlash(relPath),
+			})
 			if err != nil {
 				slog.Warn("problem_load_failed", "path", problemPath, "err", err)
-				continue
+				return
 			}
 			catalog[[2]string{problem.ProblemType, problem.ExternalID}] = problem
+		})
+		if err != nil {
+			return nil, err
 		}
 	}
 	slog.Info("catalog_built", "problems", len(catalog), "testcase_root", testcaseRoot)
 	return catalog, nil
 }
 
+func BuildTypeMetadata(testcaseRoot string) (map[string]TypeMetadata, error) {
+	metadata := make(map[string]TypeMetadata)
+	info, err := os.Stat(testcaseRoot)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return metadata, nil
+		}
+		return nil, err
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("testcase root is not a directory: %s", testcaseRoot)
+	}
+
+	typeDirs, err := os.ReadDir(testcaseRoot)
+	if err != nil {
+		return nil, err
+	}
+	for _, typeDir := range typeDirs {
+		if !typeDir.IsDir() {
+			continue
+		}
+		typePath := filepath.Join(testcaseRoot, typeDir.Name())
+		typeMeta, err := LoadTypeMetadata(typePath)
+		if err != nil {
+			return nil, fmt.Errorf("load type metadata %s: %w", typeDir.Name(), err)
+		}
+		if typeMeta != nil {
+			metadata[typeDir.Name()] = *typeMeta
+		}
+	}
+	return metadata, nil
+}
+
+func LoadTypeMetadata(typePath string) (*TypeMetadata, error) {
+	metadataPath := filepath.Join(typePath, typeMetadataName)
+	data, err := os.ReadFile(metadataPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	var raw rawTypeMetadataFile
+	decoder := yaml.NewDecoder(bytes.NewReader(data))
+	decoder.KnownFields(true)
+	if err := decoder.Decode(&raw); err != nil {
+		return nil, fmt.Errorf("parse type metadata: %w", err)
+	}
+	if raw.SchemaVersion != 1 {
+		return nil, fmt.Errorf("unsupported schemaVersion %d", raw.SchemaVersion)
+	}
+
+	metadata := TypeMetadata{
+		Label:    raw.Label,
+		Segments: make([]TypeMetadataSegment, 0, len(raw.Segments)),
+	}
+	for _, rawSegment := range raw.Segments {
+		segment := TypeMetadataSegment{Label: rawSegment.Label}
+		if rawSegment.Labels.Kind != 0 {
+			labels, err := parseOrderedSegmentLabels(rawSegment.Labels)
+			if err != nil {
+				return nil, err
+			}
+			segment.Labels = labels
+		}
+		metadata.Segments = append(metadata.Segments, segment)
+	}
+	return &metadata, nil
+}
+
+func parseOrderedSegmentLabels(labelsNode yaml.Node) ([]TypeMetadataSegmentLabel, error) {
+	if labelsNode.Kind != yaml.MappingNode {
+		return nil, fmt.Errorf("segment labels must be a mapping")
+	}
+	labels := make([]TypeMetadataSegmentLabel, 0, len(labelsNode.Content)/2)
+	for i := 0; i < len(labelsNode.Content); i += 2 {
+		keyNode := labelsNode.Content[i]
+		valueNode := labelsNode.Content[i+1]
+		if keyNode.Kind != yaml.ScalarNode || valueNode.Kind != yaml.ScalarNode {
+			return nil, fmt.Errorf("segment labels must map scalar values to scalar labels")
+		}
+		labels = append(labels, TypeMetadataSegmentLabel{
+			Value: keyNode.Value,
+			Label: valueNode.Value,
+		})
+	}
+	return labels, nil
+}
+
+func walkProblemDirs(dirPath, relPath string, visit func(relPath, problemPath string)) error {
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return err
+	}
+	if isProblemDir(entries) {
+		visit(relPath, dirPath)
+		return nil
+	}
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), ".") {
+			continue
+		}
+		childPath := filepath.Join(dirPath, entry.Name())
+		childRelPath := filepath.Join(relPath, entry.Name())
+		if entry.IsDir() {
+			if err := walkProblemDirs(childPath, childRelPath, visit); err != nil {
+				return err
+			}
+			continue
+		}
+		if entry.Type()&os.ModeSymlink == 0 {
+			continue
+		}
+		info, err := os.Stat(childPath)
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			continue
+		}
+		if err := walkProblemDirs(childPath, childRelPath, visit); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func isProblemDir(entries []os.DirEntry) bool {
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		switch {
+		case name == "metadata.yaml" || name == "description.md":
+			return true
+		case name == "validator.cpp" || name == "checker.cpp":
+			return true
+		case IsRoleFile(name, "correct"), IsRoleFile(name, "generator"), IsRoleFile(name, "singlegen"):
+			return true
+		case IsRoleFile(name, "testcase") && strings.EqualFold(filepath.Ext(name), ".txt"):
+			return true
+		}
+	}
+	return false
+}
+
 func LoadProblem(dirPath string, options Options) (Problem, error) {
 	problemType := filepath.Base(filepath.Dir(dirPath))
 	externalID := filepath.Base(dirPath)
+	if options.ProblemType != "" {
+		problemType = options.ProblemType
+	}
+	if options.ExternalID != "" {
+		externalID = options.ExternalID
+	}
 
 	meta := metadataFile{TimeLimitMS: defaultTimeLimitMS, MemoryLimitMB: defaultMemoryMB}
 	metadataPath := filepath.Join(dirPath, "metadata.yaml")
@@ -189,7 +373,7 @@ func LoadProblem(dirPath string, options Options) (Problem, error) {
 		if err != nil {
 			return Problem{}, err
 		}
-		authorName := options.AuthorByRelPath[filepath.ToSlash(filepath.Join(problemType, externalID, name))]
+		authorName := sourceAuthor(name, meta.Authors, options.AuthorByRelPath, problemType, externalID)
 		switch {
 		case name == "validator.cpp":
 			file := CodeFile{Filename: name, Language: contracts.LanguageCpp23, Content: string(contentBytes), AuthorName: authorName}
@@ -226,6 +410,11 @@ func LoadProblem(dirPath string, options Options) (Problem, error) {
 			return Problem{}, fmt.Errorf("language override references missing file %q", name)
 		}
 	}
+	for name := range meta.Authors {
+		if _, ok := seen[name]; !ok {
+			return Problem{}, fmt.Errorf("author override references missing file %q", name)
+		}
+	}
 	if len(problem.UnknownFiles) > 0 && !options.AllowUnknownFiles {
 		slices.Sort(problem.UnknownFiles)
 		return Problem{}, fmt.Errorf("unrecognized problem files: %s", strings.Join(problem.UnknownFiles, ", "))
@@ -237,6 +426,13 @@ func LoadProblem(dirPath string, options Options) (Problem, error) {
 	slices.SortFunc(problem.Testcases, func(a, b TestcaseFile) int { return strings.Compare(a.Filename, b.Filename) })
 	slices.Sort(problem.UnknownFiles)
 	return problem, nil
+}
+
+func sourceAuthor(filename string, authors map[string]string, authorByRelPath map[string]string, problemType, externalID string) string {
+	if author, ok := authors[filename]; ok {
+		return author
+	}
+	return authorByRelPath[filepath.ToSlash(filepath.Join(problemType, externalID, filename))]
 }
 
 func IsRoleFile(filename, role string) bool {

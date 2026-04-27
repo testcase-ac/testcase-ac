@@ -1,0 +1,6 @@
+interface:
+  display_name: "Create Generator"
+  short_description: "Write and test testcase generators"
+  default_prompt: "Use $create-generator with problem directory= and problem description= to write and validate a C++ testlib generator."
+policy:
+  allow_implicit_invocation: true

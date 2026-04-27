@@ -58,10 +58,33 @@ export interface ProblemSummary {
   title: string | null;
 }
 
+export interface ProblemTypeSummary {
+  problemType: string;
+  label: string | null;
+  total: number;
+}
+
+export interface TypeMetadataSegmentLabel {
+  value: string;
+  label: string;
+}
+
+export interface TypeMetadataSegment {
+  label?: string;
+  labels?: TypeMetadataSegmentLabel[];
+}
+
+export interface TypeMetadata {
+  label?: string;
+  segments?: TypeMetadataSegment[];
+}
+
 export interface ProblemList {
   problems: ProblemSummary[];
+  problemTypes: ProblemTypeSummary[];
   nextCursor: string | null;
   total: number;
+  typeMetadata?: TypeMetadata;
 }
 
 export interface ProblemDetail {

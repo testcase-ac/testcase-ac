@@ -1,0 +1,10 @@
+schemaVersion: 1
+label: KOI
+segments:
+  - label: "{}년"
+  - label: "{}차대회"
+  - labels:
+      elem: "초등부"
+      mid: "중등부"
+      high: "고등부"
+  - label: "{}번"

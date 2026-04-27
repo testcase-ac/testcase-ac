@@ -14,6 +14,7 @@ import "./index.css";
 // ProblemPage pulls in CodeMirror; keep it out of the landing chunk.
 const ProblemPage = lazy(() => import("./pages/ProblemPage"));
 const CustomInvocationPage = lazy(() => import("./pages/CustomInvocationPage"));
+const ProblemTypePage = lazy(() => import("./pages/ProblemTypePage"));
 
 function EditorFallback() {
   const { t } = useI18n();
@@ -57,6 +58,14 @@ const router = createBrowserRouter(
           element: (
             <Suspense fallback={<EditorFallback />}>
               <CustomInvocationPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: ":problemType/*",
+          element: (
+            <Suspense fallback={<EditorFallback />}>
+              <ProblemTypePage />
             </Suspense>
           ),
         },

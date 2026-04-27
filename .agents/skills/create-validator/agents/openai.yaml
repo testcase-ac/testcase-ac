@@ -1,0 +1,6 @@
+interface:
+  display_name: "Create Validator"
+  short_description: "Write and test testlib validators"
+  default_prompt: "Use $create-validator with problem directory= and problem description= to write and smoke-test validator.cpp."
+policy:
+  allow_implicit_invocation: true

@@ -17,6 +17,9 @@
 ```yaml
 title: "A+B"
 externalLink: "https://www.acmicpc.net/problem/1000"
+authors:                  # 파일별 작성자/출처 덮어쓰기
+  correct_reference.cpp: "problem source or reference-code author"
+  testcase_sample_1.txt: "problem source"
 timeLimitMs: 2000
 memoryLimitMb: 256
 isSpecialJudge: false
@@ -26,12 +29,44 @@ codes:                    # 파일별 언어 태그 덮어쓰기
 
 - `title`: 사람이 읽을 문제 제목입니다.
 - `externalLink`: 원문 문제로 연결되는 URL입니다.
+- `authors`: 파일별 작성자 또는 출처를 덮어쓰는 선택 맵입니다. 값이 있으면
+  해당 파일에 한해서 git 커밋 작성자보다 우선 표시됩니다. 외부 대회나 기관에서
+  제공한 공식 코드나 샘플 입력처럼 저작권 표시가 필요한 파일에만 명시하세요.
 - `timeLimitMs`: 테스트케이스별 시간 제한입니다. 단위는 밀리초입니다.
 - `memoryLimitMb`: 테스트케이스별 메모리 제한입니다. 단위는 MB입니다.
 - `isSpecialJudge`: 원문 문제가 스페셜 저지인지 나타냅니다. 프론트엔드가
   체커 관련 UI를 보여줄지 결정할 때 사용합니다.
 - `codes`: 파일 이름에서 추론한 언어 태그를 덮어쓰는 선택 맵입니다. 예를 들어
   `.cpp` 파일의 기본값인 `cpp23` 대신 특정 파일을 `cpp14`로 고정할 수 있습니다.
+
+### `type_metadata.yaml` (문제 유형 디렉터리에서 선택)
+
+`testcase/<problemType>/type_metadata.yaml`은 해당 문제 유형의 프론트엔드 탐색
+라벨과 정렬을 정의합니다. 문제 자체의 존재 여부는 여전히 파일시스템의 문제
+디렉터리에서 결정되며, 이 파일은 표시용 메타데이터입니다.
+
+예: [koi/type_metadata.yaml](koi/type_metadata.yaml)
+
+```yaml
+schemaVersion: 1
+label: KOI
+segments:
+  - label: "{}년"
+  - label: "{}차대회"
+  - labels:
+      elem: "초등부"
+      mid: "중등부"
+      high: "고등부"
+  - label: "{}번"
+```
+
+- `schemaVersion`: 현재 `1`만 지원합니다.
+- `label`: 루트 문제 유형 라벨입니다. 예를 들어 `/koi`에서 `KOI`로 표시됩니다.
+- `segments`: `externalId`를 `/`로 나눈 각 깊이의 표시 규칙입니다.
+- `segments[].label`: `{}` 자리에 실제 경로 조각을 넣어 표시합니다.
+- `segments[].labels`: 특정 경로 조각을 라벨로 매핑합니다. YAML에 적힌 순서가
+  프론트엔드 정렬 순서로도 사용됩니다. 이 값이 없으면 숫자로 해석 가능한 값은
+  숫자순, 나머지는 사전순으로 정렬합니다.
 
 ### `description.md` (선택)
 

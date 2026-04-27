@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { ChevronRight, Search } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { listProblems } from "../api";
 import { useI18n } from "../lib/i18n";
+import { problemHref } from "../lib/problemLinks";
 
 const PAGE_SIZE = 50;
 
@@ -23,6 +24,7 @@ export default function HomePage() {
     placeholderData: keepPreviousData,
   });
   const problems = problemsQuery.data?.problems ?? [];
+  const problemTypes = problemsQuery.data?.problemTypes ?? [];
   const nextCursor = problemsQuery.data?.nextCursor ?? null;
   const totalProblems = problemsQuery.data?.total ?? null;
   const loading = problemsQuery.isPending || problemsQuery.isPlaceholderData;
@@ -66,6 +68,30 @@ export default function HomePage() {
           <Link to="/custom-invocation">{t("home.custom.link")}</Link>
         </Button>
       </div>
+      {!loading && !error && problemTypes.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">{t("home.problemTypes")}</h2>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {problemTypes.map((problemType) => (
+              <Link
+                key={problemType.problemType}
+                to={`/${problemType.problemType}`}
+                className="flex items-center justify-between rounded-md border bg-card px-4 py-3 text-card-foreground transition-colors hover:border-primary hover:no-underline"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">
+                    {problemType.label || problemType.problemType}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {t("home.problemType.count", { count: problemType.total })}
+                  </span>
+                </span>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="relative">
         <Search
           aria-hidden="true"
@@ -100,7 +126,7 @@ export default function HomePage() {
         {problems.map((p) => (
           <li key={`${p.problemType}/${p.externalId}`}>
             <Link
-              to={`/problems/${p.problemType}/${p.externalId}`}
+              to={problemHref(p)}
               aria-label={`${p.problemType} ${p.externalId} ${p.title ?? t("home.untitled")}`}
               className="grid grid-cols-[52px_72px_minmax(0,1fr)] items-center gap-2 rounded-md border bg-card p-3 text-card-foreground transition-colors hover:border-primary hover:no-underline sm:grid-cols-[84px_96px_1fr] sm:p-4"
             >

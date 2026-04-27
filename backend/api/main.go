@@ -32,6 +32,10 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
+	typeMetadata, err := BuildTypeMetadata(testcaseRoot)
+	if err != nil {
+		fatal(err)
+	}
 	stresser, err := MakeStresserClient(context.Background(), settings)
 	if err != nil {
 		fatal(err)
@@ -43,11 +47,12 @@ func main() {
 		"backend_ready",
 		"mode", settings.StresserMode,
 		"problems", len(catalog),
+		"problem_types_with_metadata", len(typeMetadata),
 		"catalog_build_ms", time.Since(buildStarted).Milliseconds(),
 		"heap_alloc_mb", float64(mem.Alloc)/1024.0/1024.0,
 	)
 
-	app := NewApp(settings, catalog, stresser)
+	app := NewAppWithTypeMetadata(settings, catalog, typeMetadata, stresser)
 	server := &http.Server{
 		Addr:         settings.HTTPAddr,
 		Handler:      app.Handler(),

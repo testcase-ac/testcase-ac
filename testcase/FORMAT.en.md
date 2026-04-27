@@ -17,6 +17,9 @@ problem also needs at least one `generator_*`, `singlegen_*`, or
 ```yaml
 title: "A+B"
 externalLink: "https://www.acmicpc.net/problem/1000"
+authors:                  # optional per-file author/source overrides
+  correct_reference.cpp: "problem source or reference-code author"
+  testcase_sample_1.txt: "problem source"
 timeLimitMs: 2000
 memoryLimitMb: 256
 isSpecialJudge: false
@@ -26,6 +29,10 @@ codes:                    # optional per-file language overrides
 
 - `title`: human-readable problem title.
 - `externalLink`: URL of the original problem statement, if any.
+- `authors`: optional map from filename to author or source. When set, this is
+  displayed instead of the git commit author for that file only. Use it only
+  for files that need explicit attribution, such as official reference code or
+  sample inputs imported from an external contest or institution.
 - `timeLimitMs`: per-testcase time limit in milliseconds.
 - `memoryLimitMb`: per-testcase memory limit in megabytes.
 - `isSpecialJudge`: whether the original problem is special-judged. This is
@@ -33,6 +40,37 @@ codes:                    # optional per-file language overrides
 - `codes`: optional map from source filename to a language tag that overrides
   extension-based inference, such as pinning a `.cpp` file to `cpp14` instead
   of the default `cpp23`.
+
+### `type_metadata.yaml` (optional at problem-type directory)
+
+`testcase/<problemType>/type_metadata.yaml` defines frontend browsing labels
+and ordering for that problem type. Problem existence still comes from problem
+directories in the filesystem; this file is display metadata.
+
+Example: [koi/type_metadata.yaml](koi/type_metadata.yaml)
+
+```yaml
+schemaVersion: 1
+label: KOI
+segments:
+  - label: "{}년"
+  - label: "{}차대회"
+  - labels:
+      elem: "초등부"
+      mid: "중등부"
+      high: "고등부"
+  - label: "{}번"
+```
+
+- `schemaVersion`: only `1` is currently supported.
+- `label`: root problem-type label, such as showing `KOI` for `/koi`.
+- `segments`: display rules for each depth after splitting `externalId` on
+  `/`.
+- `segments[].label`: display template. `{}` is replaced with the raw path
+  segment.
+- `segments[].labels`: maps specific path segments to display labels. The YAML
+  order is also used as the frontend sort order. Without this, numeric-looking
+  values sort numerically and other values sort lexicographically.
 
 ### `description.md` (optional)
 

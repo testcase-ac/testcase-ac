@@ -45,3 +45,5 @@ __pycache__/
 
 # Local tooling
 .scripts/
+
+tmp/*

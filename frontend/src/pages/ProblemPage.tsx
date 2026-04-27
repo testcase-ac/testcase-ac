@@ -18,6 +18,7 @@ import LanguageField from "../components/LanguageField";
 import StressResultView from "../components/StressResult";
 import { problemDirUrl, sourceFileUrl } from "../github";
 import { useI18n, type TranslationKey } from "../lib/i18n";
+import { problemTypeLabel } from "../lib/typeMetadata";
 import {
   isCppLanguageValue,
   type CodeInfo,
@@ -25,6 +26,7 @@ import {
   type ProblemDetail,
   type StressRequest,
   type TestcaseInfo,
+  type TypeMetadata,
 } from "../types";
 import {
   ITERATIONS_DEFAULT,
@@ -135,7 +137,15 @@ export default function ProblemPage() {
   return <ProblemWorkspace key={`${problemType}/${externalId}`} externalId={externalId} problemType={problemType} />;
 }
 
-function ProblemWorkspace({ problemType, externalId }: { problemType: string; externalId: string }) {
+export function ProblemWorkspace({
+  problemType,
+  externalId,
+  typeMetadata,
+}: {
+  problemType: string;
+  externalId: string;
+  typeMetadata?: TypeMetadata;
+}) {
   const { t } = useI18n();
   const {
     useLanguageAutodetect,
@@ -263,21 +273,33 @@ function ProblemWorkspace({ problemType, externalId }: { problemType: string; ex
     <section className="space-y-6">
       <header className="space-y-3">
         <h1 className="flex flex-wrap items-center gap-2 text-3xl font-semibold">
-          <Badge variant="secondary" className="lowercase">
-            {problem.problemType}
+          <Badge variant="secondary">
+            {problemTypeLabel(problem.problemType, typeMetadata)}
           </Badge>
           <span className="font-mono text-2xl text-muted-foreground">{problem.externalId}</span>
           {problem.title ? <span>{problem.title}</span> : null}
         </h1>
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
           {problem.externalLink && (
-            <a href={problem.externalLink} target="_blank" rel="noreferrer">
+            <a
+              href={problem.externalLink}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 hover:text-foreground"
+            >
               {t("problem.externalLink")}
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
             </a>
           )}
           {repoDir && (
-            <a href={repoDir} target="_blank" rel="noreferrer">
+            <a
+              href={repoDir}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 hover:text-foreground"
+            >
               {t("problem.viewOnGitHub")}
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
             </a>
           )}
           <span>{t("problem.time", { ms: problem.timeLimitMs })}</span>

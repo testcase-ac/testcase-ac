@@ -165,6 +165,91 @@ func TestRateLimitUsesXForwardedFor(t *testing.T) {
 	}
 }
 
+func TestGetProblemAcceptsEscapedSlashExternalID(t *testing.T) {
+	problem := Problem{
+		ProblemType:   "koi",
+		ExternalID:    "2020/1/elem/1",
+		Title:         "박 터뜨리기",
+		TimeLimitMS:   2000,
+		MemoryLimitMB: 256,
+	}
+	app := NewApp(
+		Settings{RateLimitMax: 1, RateLimitWindowS: 60},
+		map[[2]string]Problem{{"koi", "2020/1/elem/1"}: problem},
+		okStresserClient{},
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/problems/koi/2020%2F1%2Felem%2F1", nil)
+	rec := httptest.NewRecorder()
+	app.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var response ProblemDetail
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if response.ExternalID != "2020/1/elem/1" {
+		t.Fatalf("ExternalID = %q, want nested id", response.ExternalID)
+	}
+}
+
+func TestListProblemsIncludesTypeMetadataWhenFiltered(t *testing.T) {
+	problem := Problem{
+		ProblemType:   "koi",
+		ExternalID:    "2025/1/elem/1",
+		Title:         "Test",
+		TimeLimitMS:   2000,
+		MemoryLimitMB: 256,
+	}
+	app := NewAppWithTypeMetadata(
+		Settings{RateLimitMax: 1, RateLimitWindowS: 60},
+		map[[2]string]Problem{{"koi", "2025/1/elem/1"}: problem},
+		map[string]TypeMetadata{
+			"koi": {
+				Label: "KOI",
+				Segments: []TypeMetadataSegment{
+					{Label: "{}년"},
+					{Label: "{}차대회"},
+					{Labels: []TypeMetadataSegmentLabel{
+						{Value: "elem", Label: "초등부"},
+						{Value: "mid", Label: "중등부"},
+						{Value: "high", Label: "고등부"},
+					}},
+					{Label: "{}번"},
+				},
+			},
+		},
+		okStresserClient{},
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/problems?problemType=koi", nil)
+	rec := httptest.NewRecorder()
+	app.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var response ProblemList
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if response.TypeMetadata == nil {
+		t.Fatal("TypeMetadata = nil, want metadata")
+	}
+	labels := response.TypeMetadata.Segments[2].Labels
+	if len(labels) != 3 || labels[0].Value != "elem" || labels[1].Value != "mid" || labels[2].Value != "high" {
+		t.Fatalf("labels = %#v, want elem/mid/high order", labels)
+	}
+	if len(response.ProblemTypes) != 1 {
+		t.Fatalf("ProblemTypes = %#v, want one type", response.ProblemTypes)
+	}
+	if response.ProblemTypes[0].ProblemType != "koi" || response.ProblemTypes[0].Label == nil || *response.ProblemTypes[0].Label != "KOI" || response.ProblemTypes[0].Total != 1 {
+		t.Fatalf("ProblemTypes[0] = %#v, want KOI summary", response.ProblemTypes[0])
+	}
+}
+
 func TestValidationDetailListsSupportedTargetLanguages(t *testing.T) {
 	want := "targetCodeLang must be one of cpp23, cpp20, cpp17, cpp14, c11, c99, python3, java, nodejs, pypy3, golang, kotlin, rust2021, csharp"
 	if got := supportedTargetCodeLangDetail; got != want {
