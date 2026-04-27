@@ -408,15 +408,7 @@ func selectSingleCode(available []CodeFile, requestedName *string, kindLabel str
 }
 
 type hasFilename interface {
-	filename() string
-}
-
-func (f CodeFile) filename() string {
-	return f.Filename
-}
-
-func (f TestcaseFile) filename() string {
-	return f.Filename
+	FilenameValue() string
 }
 
 func selectByFilename[T hasFilename](available []T, requestedNames []string, kindLabel string) ([]T, bool, string) {
@@ -425,7 +417,7 @@ func selectByFilename[T hasFilename](available []T, requestedNames []string, kin
 	}
 	byName := make(map[string]T, len(available))
 	for _, item := range available {
-		byName[item.filename()] = item
+		byName[item.FilenameValue()] = item
 	}
 	selected := make([]T, 0, len(requestedNames))
 	missing := make([]string, 0)

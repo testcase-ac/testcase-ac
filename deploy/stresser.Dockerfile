@@ -5,6 +5,7 @@ WORKDIR /src/backend
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 COPY backend/contracts ./contracts
+COPY backend/internal ./internal
 COPY backend/stresser ./stresser
 
 ARG TARGETARCH

@@ -1,0 +1,41 @@
+name: Verify contributed problems
+
+on:
+  pull_request:
+    paths:
+      - "backend/cmd/verify/**"
+      - "backend/internal/**"
+      - "deploy/stresser.Dockerfile"
+      - "testcase/**"
+      - "tests/dockertest/**"
+      - "tests/verify/**"
+      - ".github/workflows/verify-problems.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify changed problems
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="HEAD^"
+          fi
+          mapfile -t problem_dirs < <(./tests/verify/changed_problem_dirs.sh "${base}" HEAD)
+          if [ "${#problem_dirs[@]}" -eq 0 ]; then
+            echo "No changed problem directories detected; verifying smoke fixture."
+            problem_dirs=(testcase/boj/1000)
+          fi
+          ./tests/verify/run_problems.sh "${problem_dirs[@]}"

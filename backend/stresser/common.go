@@ -7,13 +7,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
 	"unicode/utf8"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
+	"github.com/testcase-ac/testcase-ac/backend/internal/executor"
 )
 
 const diskCleanupThresholdPercent = 60.0
@@ -138,42 +138,16 @@ func truncationKindPtr(value contracts.TruncationKind) *contracts.TruncationKind
 	return &value
 }
 
-var tmpPathRegex = regexp.MustCompile(`/tmp/.*/([A-Za-z]+\.[a-z]{1,3})`)
-
 func shortenPathsToFilenames(s string) string {
-	if s == "" {
-		return ""
-	}
-	return tmpPathRegex.ReplaceAllString(s, `$1`)
+	return executor.ShortenPathsToFilenames(s)
 }
 
 func cleanStdout(output string, trailingNewline string) string {
-	trimmed := strings.TrimRight(output, "\n\r\t ")
-	if trimmed == "" {
-		if trailingNewline == "always" {
-			return "\n"
-		}
-		return ""
-	}
-	lines := strings.Split(trimmed, "\n")
-	for i, line := range lines {
-		lines[i] = strings.TrimRight(line, " \t\r")
-	}
-	cleaned := strings.Join(lines, "\n")
-	switch trailingNewline {
-	case "always":
-		return cleaned + "\n"
-	}
-	return cleaned
+	return executor.CleanStdout(output, trailingNewline)
 }
 
 func compareOutput(a, b string) bool {
-	a = strings.TrimRight(a, "\n\r\t ")
-	b = strings.TrimRight(b, "\n\r\t ")
-	if strings.ReplaceAll(a, "\n", " ") == strings.ReplaceAll(b, "\n", " ") {
-		return true
-	}
-	return strings.ReplaceAll(a, " \n", "\n") == strings.ReplaceAll(b, " \n", "\n")
+	return executor.CompareOutput(a, b)
 }
 
 func checkAndCleanTmp() error {

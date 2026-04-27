@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
+	"github.com/testcase-ac/testcase-ac/backend/internal/executor"
 )
 
 const (
@@ -18,18 +20,11 @@ const (
 	caseLimitInResponse         = 3
 )
 
-type compiledProgram struct {
-	Dir         string
-	Language    contracts.Language
-	TimeLimit   float64
-	MemoryLimit int
-}
+type compiledProgram = executor.CompiledProgram
 
 type compiledCaseProvider struct {
 	contracts.CaseProvider
-	Dir         string
-	TimeLimit   float64
-	MemoryLimit int
+	Program *executor.CompiledProgram
 }
 
 type targetRun struct {
@@ -89,7 +84,12 @@ func operationStress(event contracts.StressEvent) (contracts.StressResult, error
 
 	slog.Info("compile_start", "phase", "target")
 	events.record("target_compile_start", "")
-	targetDir, err := compileAndGetDir(normalized.TargetCode, normalized.TargetCodeLang, contracts.ErrorTypeTargetCompilationFailed)
+	targetProgram, err := compileAndGetProgram(
+		normalized.TargetCode,
+		normalized.TargetCodeLang,
+		executor.Limits{TimeSeconds: normalized.TargetTimeLimit, MemoryMB: normalized.TargetMemoryLimit},
+		contracts.ErrorTypeTargetCompilationFailed,
+	)
 	if err != nil {
 		return contracts.StressResult{}, err
 	}
@@ -97,35 +97,31 @@ func operationStress(event contracts.StressEvent) (contracts.StressResult, error
 
 	slog.Info("compile_start", "phase", "correct")
 	events.record("correct_compile_start", "")
-	correctDir, err := compileAndGetDir(normalized.CorrectCode, normalized.CorrectCodeLang, contracts.ErrorTypeCorrectCompilationFailed)
+	correctProgram, err := compileAndGetProgram(
+		normalized.CorrectCode,
+		normalized.CorrectCodeLang,
+		executor.Limits{TimeSeconds: normalized.CorrectTimeLimit, MemoryMB: normalized.CorrectMemoryLimit},
+		contracts.ErrorTypeCorrectCompilationFailed,
+	)
 	if err != nil {
 		return contracts.StressResult{}, err
 	}
 	events.record("correct_compile_done", "")
 
-	var checkerProgram *compiledProgram
+	var checkerProgram *executor.CompiledProgram
 	if normalized.CheckerCode != "" {
 		slog.Info("compile_start", "phase", "checker")
 		events.record("checker_compile_start", "")
-		checkerDir, err := compileAndGetDir(normalized.CheckerCode, contracts.LanguageCpp23, contracts.ErrorTypeCheckerCompilationFailed)
+		checkerProgram, err = compileAndGetProgram(
+			normalized.CheckerCode,
+			contracts.LanguageCpp23,
+			executor.Limits{TimeSeconds: 2, MemoryMB: 1024},
+			contracts.ErrorTypeCheckerCompilationFailed,
+		)
 		if err != nil {
 			return contracts.StressResult{}, err
 		}
 		events.record("checker_compile_done", "")
-		checkerProgram = &compiledProgram{Dir: checkerDir, Language: contracts.LanguageCpp23, TimeLimit: 2, MemoryLimit: 1024}
-	}
-
-	targetProgram := compiledProgram{
-		Dir:         targetDir,
-		Language:    normalized.TargetCodeLang,
-		TimeLimit:   normalized.TargetTimeLimit,
-		MemoryLimit: normalized.TargetMemoryLimit,
-	}
-	correctProgram := compiledProgram{
-		Dir:         correctDir,
-		Language:    normalized.CorrectCodeLang,
-		TimeLimit:   normalized.CorrectTimeLimit,
-		MemoryLimit: normalized.CorrectMemoryLimit,
 	}
 
 	providers, err := compileCaseProviders(normalized.CaseProviders, events)
@@ -136,8 +132,8 @@ func operationStress(event contracts.StressEvent) (contracts.StressResult, error
 	wrongCases, executionFailedCases, correctCases, err := runStressLoop(
 		normalized.Iterations,
 		startTime,
-		targetProgram,
-		correctProgram,
+		*targetProgram,
+		*correctProgram,
 		checkerProgram,
 		providers,
 		events,
@@ -185,18 +181,21 @@ func compileCaseProviders(caseProviders []contracts.CaseProvider, events *eventR
 	for _, provider := range caseProviders {
 		compiled := compiledCaseProvider{
 			CaseProvider: provider,
-			TimeLimit:    2,
-			MemoryLimit:  1024,
 		}
 		switch provider.Type {
 		case contracts.CaseProviderText:
 		case contracts.CaseProviderGenerator, contracts.CaseProviderSinglegen:
 			events.record(string(provider.Type)+"_compile_start", provider.ID)
-			dir, err := compileAndGetDir(provider.Code, provider.Language, contracts.ErrorTypeGeneratorCompilationFailed)
+			program, err := compileAndGetProgram(
+				provider.Code,
+				provider.Language,
+				executor.Limits{TimeSeconds: 2, MemoryMB: 1024},
+				contracts.ErrorTypeGeneratorCompilationFailed,
+			)
 			if err != nil {
 				return nil, err
 			}
-			compiled.Dir = dir
+			compiled.Program = program
 			events.record(string(provider.Type)+"_compile_done", provider.ID)
 		default:
 			return nil, NewResponseError(
@@ -212,11 +211,14 @@ func compileCaseProviders(caseProviders []contracts.CaseProvider, events *eventR
 func (p compiledCaseProvider) Generate(randomSeed int) (string, contracts.GeneratedBy, *executionResult, error) {
 	switch p.Type {
 	case contracts.CaseProviderText:
-		return cleanStdout(p.Content, "always"), contracts.GeneratedBy{
+		return executor.CleanStdout(p.Content, "always"), contracts.GeneratedBy{
 			Stage: p.Type,
 			ID:    p.ID,
 		}, nil, nil
 	case contracts.CaseProviderGenerator, contracts.CaseProviderSinglegen:
+		if p.Program == nil {
+			return "", contracts.GeneratedBy{}, nil, NewResponseError(contracts.ErrorTypeInternalServerError, map[string]any{"message": "Missing compiled case provider program"})
+		}
 		args := []string{}
 		generatedBy := contracts.GeneratedBy{Stage: p.Type, ID: p.ID}
 		if p.Type == contracts.CaseProviderGenerator {
@@ -224,11 +226,11 @@ func (p compiledCaseProvider) Generate(randomSeed int) (string, contracts.Genera
 			args = []string{seed}
 			generatedBy.Seed = stringPtr(seed)
 		}
-		execution := runCode(p.Dir, "", p.Language, p.TimeLimit, p.MemoryLimit, args)
+		execution := executor.Run(context.Background(), *p.Program, "", args, p.Program.Limits)
 		if !execution.Success {
 			return "", contracts.GeneratedBy{}, &execution, nil
 		}
-		return cleanStdout(execution.Stdout, "always"), generatedBy, nil, nil
+		return executor.CleanStdout(execution.Stdout, "always"), generatedBy, nil, nil
 	default:
 		return "", contracts.GeneratedBy{}, nil, NewResponseError(
 			contracts.ErrorTypeInternalServerError,
