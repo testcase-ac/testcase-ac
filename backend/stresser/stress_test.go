@@ -64,46 +64,59 @@ int main(int argc, char* argv[]) {
 `
 }
 
-func TestOperationStressSmokeSupportedLanguages(t *testing.T) {
-	for _, tc := range supportedLanguageSmokeCases() {
-		t.Run(tc.Name, func(t *testing.T) {
-			requireCommands(t, tc.RequiredExecutables...)
-			requirePaths(t, tc.RequiredPaths...)
+func TestOperationStressSmoke(t *testing.T) {
+	requireCommands(t, "g++")
 
-			result, err := operationStress(contracts.StressEvent{
-				Operation:          contracts.OperationStress,
-				TargetCode:         tc.Program,
-				TargetCodeLang:     tc.Lang,
-				CorrectCode:        tc.Program,
-				CorrectCodeLang:    tc.Lang,
-				TargetTimeLimit:    2,
-				TargetMemoryLimit:  256,
-				CorrectTimeLimit:   2,
-				CorrectMemoryLimit: 256,
-				Iterations:         1,
-				CaseProviders: []contracts.CaseProvider{
-					singlegenProvider("sg-1", tc.Lang, tc.Singlegen),
-				},
-			})
-			if err != nil {
-				t.Fatalf("operationStress() error = %v", err)
-			}
-			if result.Error {
-				t.Fatalf("operationStress() returned error result: %+v", result)
-			}
-			if result.TotalCases != 1 {
-				t.Fatalf("TotalCases = %d, want 1", result.TotalCases)
-			}
-			if result.CorrectCasesCount != 1 {
-				t.Fatalf("CorrectCasesCount = %d, want 1", result.CorrectCasesCount)
-			}
-			if result.WrongCasesCount != 0 {
-				t.Fatalf("WrongCasesCount = %d, want 0", result.WrongCasesCount)
-			}
-			if result.ExecutionFailedCasesCount != 0 {
-				t.Fatalf("ExecutionFailedCasesCount = %d, want 0", result.ExecutionFailedCasesCount)
-			}
-		})
+	program := `#include <iostream>
+using namespace std;
+
+int main() {
+    int a, b;
+    cin >> a >> b;
+    cout << a + b << "\n";
+    return 0;
+}
+`
+	singlegen := `#include <iostream>
+
+int main() {
+    std::cout << "1 2\n";
+    return 0;
+}
+`
+
+	result, err := operationStress(contracts.StressEvent{
+		Operation:          contracts.OperationStress,
+		TargetCode:         program,
+		TargetCodeLang:     contracts.LanguageCpp23,
+		CorrectCode:        program,
+		CorrectCodeLang:    contracts.LanguageCpp23,
+		TargetTimeLimit:    2,
+		TargetMemoryLimit:  256,
+		CorrectTimeLimit:   2,
+		CorrectMemoryLimit: 256,
+		Iterations:         1,
+		CaseProviders: []contracts.CaseProvider{
+			singlegenProvider("sg-1", contracts.LanguageCpp23, singlegen),
+		},
+	})
+	if err != nil {
+		t.Fatalf("operationStress() error = %v", err)
+	}
+	if result.Error {
+		t.Fatalf("operationStress() returned error result: %+v", result)
+	}
+	if result.TotalCases != 1 {
+		t.Fatalf("TotalCases = %d, want 1", result.TotalCases)
+	}
+	if result.CorrectCasesCount != 1 {
+		t.Fatalf("CorrectCasesCount = %d, want 1", result.CorrectCasesCount)
+	}
+	if result.WrongCasesCount != 0 {
+		t.Fatalf("WrongCasesCount = %d, want 0", result.WrongCasesCount)
+	}
+	if result.ExecutionFailedCasesCount != 0 {
+		t.Fatalf("ExecutionFailedCasesCount = %d, want 0", result.ExecutionFailedCasesCount)
 	}
 }
 

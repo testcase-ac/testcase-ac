@@ -263,13 +263,19 @@ func Run(ctx context.Context, program CompiledProgram, inputData string, args []
 	inputFilePath := ""
 	var stdinFile *os.File
 	if inputData != "" {
-		inputFilePath = filepath.Join(program.Dir, "input.txt")
-		if err := os.WriteFile(inputFilePath, []byte(inputData), 0o644); err != nil {
+		var err error
+		stdinFile, err = os.CreateTemp(program.Dir, "input-*.txt")
+		if err != nil {
 			return ExecutionResult{Success: false, Verdict: contracts.VerdictInternalError, ReturnCode: -102, Stderr: ShortenPathsToFilenames(err.Error())}
 		}
-		var err error
-		stdinFile, err = os.Open(inputFilePath)
-		if err != nil {
+		inputFilePath = stdinFile.Name()
+		if _, err := stdinFile.WriteString(inputData); err != nil {
+			_ = stdinFile.Close()
+			_ = os.Remove(inputFilePath)
+			return ExecutionResult{Success: false, Verdict: contracts.VerdictInternalError, ReturnCode: -102, Stderr: ShortenPathsToFilenames(err.Error())}
+		}
+		if _, err := stdinFile.Seek(0, 0); err != nil {
+			_ = stdinFile.Close()
 			_ = os.Remove(inputFilePath)
 			return ExecutionResult{Success: false, Verdict: contracts.VerdictInternalError, ReturnCode: -102, Stderr: ShortenPathsToFilenames(err.Error())}
 		}
@@ -349,31 +355,36 @@ func Run(ctx context.Context, program CompiledProgram, inputData string, args []
 }
 
 func RunChecker(ctx context.Context, checker CompiledProgram, testdata, participantOutput, juryOutput string, limits Limits) ExecutionResult {
-	const (
-		testFile              = "input.txt"
-		participantOutputFile = "participant.txt"
-		juryOutputFile        = "jury.txt"
-		resultFile            = "result.txt"
-	)
-	testFilePath := filepath.Join(checker.Dir, testFile)
-	participantPath := filepath.Join(checker.Dir, participantOutputFile)
-	juryPath := filepath.Join(checker.Dir, juryOutputFile)
-	resultPath := filepath.Join(checker.Dir, resultFile)
+	testFilePath, err := writeTempFile(checker.Dir, "input-*.txt", testdata)
+	if err != nil {
+		return ExecutionResult{Success: false, Verdict: contracts.VerdictInternalError, ReturnCode: -102, Stderr: err.Error()}
+	}
+	participantPath, err := writeTempFile(checker.Dir, "participant-*.txt", participantOutput)
+	if err != nil {
+		_ = os.Remove(testFilePath)
+		return ExecutionResult{Success: false, Verdict: contracts.VerdictInternalError, ReturnCode: -102, Stderr: err.Error()}
+	}
+	juryPath, err := writeTempFile(checker.Dir, "jury-*.txt", juryOutput)
+	if err != nil {
+		_ = os.Remove(testFilePath)
+		_ = os.Remove(participantPath)
+		return ExecutionResult{Success: false, Verdict: contracts.VerdictInternalError, ReturnCode: -102, Stderr: err.Error()}
+	}
+	resultFile, err := os.CreateTemp(checker.Dir, "result-*.txt")
+	if err != nil {
+		for _, path := range []string{testFilePath, participantPath, juryPath} {
+			_ = os.Remove(path)
+		}
+		return ExecutionResult{Success: false, Verdict: contracts.VerdictInternalError, ReturnCode: -102, Stderr: err.Error()}
+	}
+	resultPath := resultFile.Name()
+	_ = resultFile.Close()
 	defer func() {
 		for _, path := range []string{testFilePath, participantPath, juryPath, resultPath} {
 			_ = os.Remove(path)
 		}
 	}()
-	if err := os.WriteFile(testFilePath, []byte(testdata), 0o644); err != nil {
-		return ExecutionResult{Success: false, Verdict: contracts.VerdictInternalError, ReturnCode: -102, Stderr: err.Error()}
-	}
-	if err := os.WriteFile(participantPath, []byte(participantOutput), 0o644); err != nil {
-		return ExecutionResult{Success: false, Verdict: contracts.VerdictInternalError, ReturnCode: -102, Stderr: err.Error()}
-	}
-	if err := os.WriteFile(juryPath, []byte(juryOutput), 0o644); err != nil {
-		return ExecutionResult{Success: false, Verdict: contracts.VerdictInternalError, ReturnCode: -102, Stderr: err.Error()}
-	}
-	result := Run(ctx, checker, "", []string{testFile, participantOutputFile, juryOutputFile, resultFile}, limits)
+	result := Run(ctx, checker, "", []string{testFilePath, participantPath, juryPath, resultPath}, limits)
 	if data, err := os.ReadFile(resultPath); err == nil {
 		result.Stdout = string(data)
 	}
@@ -382,6 +393,24 @@ func RunChecker(ctx context.Context, checker CompiledProgram, testdata, particip
 		result.Verdict = contracts.VerdictWrongAnswer
 	}
 	return result
+}
+
+func writeTempFile(dir, pattern, content string) (string, error) {
+	file, err := os.CreateTemp(dir, pattern)
+	if err != nil {
+		return "", err
+	}
+	path := file.Name()
+	if _, err := file.WriteString(content); err != nil {
+		_ = file.Close()
+		_ = os.Remove(path)
+		return "", err
+	}
+	if err := file.Close(); err != nil {
+		_ = os.Remove(path)
+		return "", err
+	}
+	return path, nil
 }
 
 func RunValidator(ctx context.Context, validator CompiledProgram, testdata string, limits Limits) ExecutionResult {

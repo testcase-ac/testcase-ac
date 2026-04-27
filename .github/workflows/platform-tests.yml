@@ -53,7 +53,7 @@ jobs:
       - name: Test runtime backend packages
         env:
           DOCKERTEST_SKIP_BUILD: "1"
-        run: ./tests/dockertest/run_test.sh ./stresser ./internal/verify
+        run: ./tests/dockertest/run_test.sh ./stresser ./internal/executor ./internal/verify
 
       - name: Run E2E smoke test
         env:

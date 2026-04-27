@@ -1,4 +1,4 @@
-package main
+package executor
 
 import "github.com/testcase-ac/testcase-ac/backend/contracts"
 
@@ -142,7 +142,7 @@ Console.WriteLine("1 2");
 		{Name: "cpp14", Lang: contracts.LanguageCpp14, Program: cppProgram, Singlegen: cppSinglegen, Input: "1 2\n", Want: "3", RequiredExecutables: []string{"g++"}},
 		{Name: "c11", Lang: contracts.LanguageC11, Program: cProgram, Singlegen: cSinglegen, Input: "1 2\n", Want: "3", RequiredExecutables: []string{"gcc"}},
 		{Name: "c99", Lang: contracts.LanguageC99, Program: cProgram, Singlegen: cSinglegen, Input: "1 2\n", Want: "3", RequiredExecutables: []string{"gcc"}},
-		{Name: "python3", Lang: contracts.LanguagePython3, Program: pythonProgram, Singlegen: pythonSinglegen, Input: "1 2\n", Want: "3", RequiredExecutables: []string{python313Command}},
+		{Name: "python3", Lang: contracts.LanguagePython3, Program: pythonProgram, Singlegen: pythonSinglegen, Input: "1 2\n", Want: "3", RequiredExecutables: []string{Python313Command}},
 		{Name: "pypy3", Lang: contracts.LanguagePyPy3, Program: pythonProgram, Singlegen: pythonSinglegen, Input: "1 2\n", Want: "3", RequiredExecutables: []string{"pypy3"}},
 		{Name: "java", Lang: contracts.LanguageJava, Program: javaProgram, Singlegen: javaSinglegen, Input: "1 2\n", Want: "3", RequiredExecutables: []string{"javac", "java"}},
 		{Name: "nodejs", Lang: contracts.LanguageNodeJS, Program: nodeProgram, Singlegen: nodeSinglegen, Input: "1 2\n", Want: "3", RequiredExecutables: []string{"node"}},

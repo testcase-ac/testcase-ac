@@ -24,7 +24,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify changed problems
+      - name: Find changed problems
+        id: changed-problems
         shell: bash
         run: |
           set -euo pipefail
@@ -33,9 +34,32 @@ jobs:
           else
             base="HEAD^"
           fi
+          echo "Diff base: ${base}"
           mapfile -t problem_dirs < <(./tests/verify/changed_problem_dirs.sh "${base}" HEAD)
           if [ "${#problem_dirs[@]}" -eq 0 ]; then
             echo "No changed problem directories detected; verifying smoke fixture."
             problem_dirs=(testcase/boj/1000)
           fi
-          ./tests/verify/run_problems.sh "${problem_dirs[@]}"
+          printf 'Problem directories selected for verification:\n'
+          printf '  %s\n' "${problem_dirs[@]}"
+          {
+            echo "problem-dirs<<EOF"
+            printf '%s\n' "${problem_dirs[@]}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Build runtime image
+        run: docker build -f deploy/stresser.Dockerfile -t testcase-ac-dockertest .
+
+      - name: Verify changed problems
+        env:
+          DOCKERTEST_SKIP_BUILD: "1"
+          PROBLEM_DIRS: ${{ steps.changed-problems.outputs.problem-dirs }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t problem_dirs <<< "${PROBLEM_DIRS}"
+          status=0
+          VERIFY_REPORT_JSON=verify-report.json ./tests/verify/run_problems.sh "${problem_dirs[@]}" || status=$?
+          node ./tests/verify/write_summary.mjs verify-report.json
+          exit "${status}"

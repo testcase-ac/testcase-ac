@@ -26,7 +26,7 @@ else
     docker build -f "${DOCKERFILE_PATH}" -t "${IMAGE_NAME}" .
 fi
 
-TEST_CMD=(test ./stresser ./internal/verify)
+TEST_CMD=(test ./stresser ./internal/executor ./internal/verify)
 if [ "$#" -gt 0 ]; then
     TEST_CMD=(test "$@")
 fi

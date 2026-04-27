@@ -1,6 +1,7 @@
-package main
+package executor
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,18 +13,18 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	if missing := missingStresserRuntimePrerequisites(); len(missing) > 0 {
-		fmt.Fprintf(os.Stderr, "missing stresser runtime prerequisites:\n")
+	if missing := missingExecutorRuntimePrerequisites(); len(missing) > 0 {
+		fmt.Fprintf(os.Stderr, "missing executor runtime prerequisites:\n")
 		for _, item := range missing {
 			fmt.Fprintf(os.Stderr, "  - %s\n", item)
 		}
-		fmt.Fprintf(os.Stderr, "run ./tests/stresser/run_test.sh for the Docker-backed stresser test environment\n")
+		fmt.Fprintf(os.Stderr, "run ./tests/dockertest/run_test.sh ./internal/executor for the Docker-backed executor test environment\n")
 		os.Exit(1)
 	}
 	os.Exit(m.Run())
 }
 
-func missingStresserRuntimePrerequisites() []string {
+func missingExecutorRuntimePrerequisites() []string {
 	requiredCommands := map[string]struct{}{}
 	requiredPaths := map[string]struct{}{
 		"/var/task/CsharpApp/obj/project.assets.json": {},
@@ -64,7 +65,7 @@ func requireCommands(t *testing.T, names ...string) {
 	t.Helper()
 	for _, name := range names {
 		if _, err := exec.LookPath(name); err != nil {
-			t.Fatalf("required command %q is not available; run ./tests/stresser/run_test.sh for the Docker-backed stresser test environment", name)
+			t.Fatalf("required command %q is not available; run ./tests/dockertest/run_test.sh ./internal/executor for the Docker-backed executor test environment", name)
 		}
 	}
 }
@@ -73,7 +74,7 @@ func requirePaths(t *testing.T, paths ...string) {
 	t.Helper()
 	for _, path := range paths {
 		if _, err := os.Stat(path); err != nil {
-			t.Fatalf("required path %q is not available; run ./tests/stresser/run_test.sh for the Docker-backed stresser test environment", path)
+			t.Fatalf("required path %q is not available; run ./tests/dockertest/run_test.sh ./internal/executor for the Docker-backed executor test environment", path)
 		}
 	}
 }
@@ -83,8 +84,30 @@ func requireVirtualMemoryLimitSupport(t *testing.T) {
 	cmd := exec.Command("bash", "-lc", "ulimit -v 65536")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("this environment does not support Linux-style virtual memory limits for MLE tests: %s; run ./tests/stresser/run_test.sh for the Docker-backed stresser test environment", strings.TrimSpace(string(output)))
+		t.Fatalf("this environment does not support Linux-style virtual memory limits for MLE tests: %s; run ./tests/dockertest/run_test.sh ./internal/executor for the Docker-backed executor test environment", strings.TrimSpace(string(output)))
 	}
+}
+
+func compileCodeCached(code string, lang contracts.Language) CompileResult {
+	return Compile(context.Background(), Source{Code: code, Language: lang, Limits: DefaultRunLimits()})
+}
+
+func runCode(workDir, inputData string, lang contracts.Language, timeLimit float64, memoryLimit int, additionalArgs []string) ExecutionResult {
+	limits := Limits{TimeSeconds: timeLimit, MemoryMB: memoryLimit}
+	program := CompiledProgram{Dir: workDir, Language: lang, Limits: limits}
+	return Run(context.Background(), program, inputData, additionalArgs, limits)
+}
+
+func truncateText(value string, maxChars, maxLines int) string {
+	lines := strings.Split(value, "\n")
+	if len(lines) > maxLines {
+		lines = lines[:maxLines]
+		value = strings.Join(lines, "\n")
+	}
+	if len(value) > maxChars {
+		return value[:maxChars]
+	}
+	return value
 }
 
 func TestSupportedLanguagesAreRegisteredForExecutionAndSmokeTests(t *testing.T) {
@@ -98,7 +121,7 @@ func TestSupportedLanguagesAreRegisteredForExecutionAndSmokeTests(t *testing.T) 
 
 	for language := range contracts.SupportedLanguages {
 		if _, ok := languages[language]; !ok {
-			t.Errorf("supported language %q is missing from stresser execution registry", language)
+			t.Errorf("supported language %q is missing from executor language registry", language)
 		}
 		if _, ok := smokeCasesByLanguage[language]; !ok {
 			t.Errorf("supported language %q is missing from supportedLanguageSmokeCases", language)
@@ -106,7 +129,7 @@ func TestSupportedLanguagesAreRegisteredForExecutionAndSmokeTests(t *testing.T) 
 	}
 	for language := range languages {
 		if !contracts.IsSupportedLanguage(language) {
-			t.Errorf("stresser execution registry contains unsupported language %q", language)
+			t.Errorf("executor language registry contains unsupported language %q", language)
 		}
 	}
 	for language := range smokeCasesByLanguage {
@@ -125,7 +148,7 @@ int main() {
     std::cout << "Hello";
 `
 
-	cacheDir := getCacheDirectory(invalidCPP, "cpp23")
+	cacheDir := GetCacheDirectory(invalidCPP, "cpp23")
 	_ = os.RemoveAll(cacheDir)
 
 	result := compileCodeCached(invalidCPP, "cpp23")
@@ -197,7 +220,7 @@ int main() {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cacheDir := getCacheDirectory(tt.code, tt.lang)
+			cacheDir := GetCacheDirectory(tt.code, tt.lang)
 			_ = os.RemoveAll(cacheDir)
 
 			compileResult := compileCodeCached(tt.code, tt.lang)
@@ -209,7 +232,7 @@ int main() {
 			if !runResult.Success {
 				t.Fatalf("runCode() failed: %+v", runResult)
 			}
-			if got := cleanStdout(runResult.Stdout, "no"); got != "OJ BOJ" {
+			if got := CleanStdout(runResult.Stdout, "no"); got != "OJ BOJ" {
 				t.Fatalf("runCode() stdout = %q, want %q", got, "OJ BOJ")
 			}
 		})
@@ -217,7 +240,7 @@ int main() {
 }
 
 func TestRunCodeRuntimeErrorVerdict(t *testing.T) {
-	requireCommands(t, python313Command)
+	requireCommands(t, Python313Command)
 
 	pythonCode := `raise RuntimeError("boom")`
 
@@ -242,7 +265,7 @@ func TestRunCodeRuntimeErrorVerdict(t *testing.T) {
 }
 
 func TestRunCodeTimeoutVerdict(t *testing.T) {
-	requireCommands(t, python313Command)
+	requireCommands(t, Python313Command)
 
 	pythonCode := `while True:
     pass
@@ -269,11 +292,11 @@ func TestRunCodeTimeoutVerdict(t *testing.T) {
 }
 
 func TestRunCodeOutputLimitVerdict(t *testing.T) {
-	requireCommands(t, python313Command)
+	requireCommands(t, Python313Command)
 
 	pythonCode := fmt.Sprintf(`import sys
 sys.stdout.write("x" * %d)
-`, maxRunStdoutBytes+1)
+`, MaxRunStdoutBytes+1)
 
 	compileResult := compileCodeCached(pythonCode, "python3")
 	if !compileResult.Success {
@@ -287,11 +310,11 @@ sys.stdout.write("x" * %d)
 	if runResult.Verdict != contracts.VerdictOutputLimit {
 		t.Fatalf("runCode() verdict = %q, want %q", runResult.Verdict, contracts.VerdictOutputLimit)
 	}
-	if runResult.ReturnCode != outputLimitReturnCode {
-		t.Fatalf("runCode() return code = %d, want %d", runResult.ReturnCode, outputLimitReturnCode)
+	if runResult.ReturnCode != OutputLimitReturnCode {
+		t.Fatalf("runCode() return code = %d, want %d", runResult.ReturnCode, OutputLimitReturnCode)
 	}
-	if len(runResult.Stdout) < maxRunStdoutBytes {
-		t.Fatalf("runCode() stdout length = %d, want at least %d", len(runResult.Stdout), maxRunStdoutBytes)
+	if len(runResult.Stdout) < MaxRunStdoutBytes {
+		t.Fatalf("runCode() stdout length = %d, want at least %d", len(runResult.Stdout), MaxRunStdoutBytes)
 	}
 	if !strings.Contains(runResult.Stdout, "output limit exceeded") {
 		t.Fatalf("runCode() stdout did not include output limit message")
@@ -349,7 +372,7 @@ func TestRunCodeSimpleAPlusBSupportedLanguages(t *testing.T) {
 			if runResult.ReturnCode != 0 {
 				t.Fatalf("runCode() return code = %d, want 0", runResult.ReturnCode)
 			}
-			if got := cleanStdout(runResult.Stdout, "no"); got != tc.Want {
+			if got := CleanStdout(runResult.Stdout, "no"); got != tc.Want {
 				t.Fatalf("runCode() stdout = %q, want %q", got, tc.Want)
 			}
 		})
@@ -365,9 +388,9 @@ func TestCsharpTemplateUsesRuntimeNuGetRoot(t *testing.T) {
 	}
 	text := string(data)
 	if !strings.Contains(text, "/tmp/dotnet/.nuget/packages/") {
-		t.Fatalf("project.assets.json did not reference runtime NuGet root: %s", truncateTestcase(text, 500, 20))
+		t.Fatalf("project.assets.json did not reference runtime NuGet root: %s", truncateText(text, 500, 20))
 	}
 	if strings.Contains(text, "/var/task/dotnet/.nuget/packages/") {
-		t.Fatalf("project.assets.json still referenced read-only NuGet root: %s", truncateTestcase(text, 500, 20))
+		t.Fatalf("project.assets.json still referenced read-only NuGet root: %s", truncateText(text, 500, 20))
 	}
 }
