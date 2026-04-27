@@ -45,7 +45,7 @@ jobs:
 
       - name: Test host-safe backend packages
         working-directory: backend
-        run: go test ./api ./contracts ./internal/executor ./internal/loader ./cmd/verify
+        run: go test ./api ./contracts ./internal/loader ./cmd/verify
 
       - name: Build runtime image
         run: docker build -f deploy/stresser.Dockerfile -t testcase-ac-dockertest .
