@@ -114,6 +114,7 @@ func (a *App) handleListProblems(w http.ResponseWriter, r *http.Request) {
 			ProblemType: problem.ProblemType,
 			ExternalID:  problem.ExternalID,
 			Title:       nilIfEmpty(problem.Title),
+			Runnable:    problem.Runnable,
 		})
 	}
 	sortProblemSummaries(items)
@@ -146,8 +147,12 @@ func (a *App) handleListProblems(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) problemTypeSummaries() []ProblemTypeSummary {
 	counts := make(map[string]int)
+	runnableCounts := make(map[string]int)
 	for _, problem := range a.catalog {
 		counts[problem.ProblemType]++
+		if problem.Runnable {
+			runnableCounts[problem.ProblemType]++
+		}
 	}
 
 	items := make([]ProblemTypeSummary, 0, len(counts))
@@ -160,6 +165,7 @@ func (a *App) problemTypeSummaries() []ProblemTypeSummary {
 			ProblemType: problemType,
 			Label:       nilIfEmpty(label),
 			Total:       total,
+			Runnable:    runnableCounts[problemType],
 		})
 	}
 	sortProblemTypeSummaries(items)

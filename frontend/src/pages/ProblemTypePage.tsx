@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { listProblems } from "../api";
+import ProblemRunnableBadge from "../components/ProblemRunnableBadge";
 import { useI18n } from "../lib/i18n";
 import { problemHref } from "../lib/problemLinks";
 import {
@@ -118,13 +119,16 @@ function ProblemTypeBrowser({ problemType, currentPath }: { problemType: string;
                 <li key={problem.externalId}>
                   <Link
                     to={problemHref(problem)}
-                    className="grid grid-cols-[minmax(92px,auto)_minmax(0,1fr)] items-center gap-3 rounded-md border bg-card p-3 text-card-foreground transition-colors hover:border-primary hover:no-underline sm:grid-cols-[150px_1fr]"
+                    className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 rounded-md border bg-card p-3 text-card-foreground transition-colors hover:border-primary hover:no-underline sm:grid-cols-[150px_minmax(0,1fr)] sm:gap-3"
                   >
                     <Badge variant="secondary" className="w-fit font-mono">
                       {problem.externalId}
                     </Badge>
-                    <span className="min-w-0 truncate font-medium">
-                      {problem.title ?? t("home.untitled")}
+                    <span className="flex min-w-0 items-center justify-between gap-1.5">
+                      <span className="min-w-0 truncate font-medium">
+                        {problem.title ?? t("home.untitled")}
+                      </span>
+                      <ProblemRunnableBadge runnable={problem.runnable} />
                     </span>
                   </Link>
                 </li>

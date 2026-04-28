@@ -73,6 +73,7 @@ type Problem struct {
 	Checker        *CodeFile
 	Testcases      []TestcaseFile
 	UnknownFiles   []string
+	Runnable       bool
 }
 
 type TypeMetadata struct {
@@ -425,7 +426,15 @@ func LoadProblem(dirPath string, options Options) (Problem, error) {
 	slices.SortFunc(problem.Singlegens, func(a, b CodeFile) int { return strings.Compare(a.Filename, b.Filename) })
 	slices.SortFunc(problem.Testcases, func(a, b TestcaseFile) int { return strings.Compare(a.Filename, b.Filename) })
 	slices.Sort(problem.UnknownFiles)
+	problem.Runnable = isRunnableProblem(problem)
 	return problem, nil
+}
+
+func isRunnableProblem(problem Problem) bool {
+	hasCorrect := len(problem.CorrectCodes) > 0
+	hasProvider := len(problem.Generators)+len(problem.Singlegens)+len(problem.Testcases) > 0
+	hasRequiredChecker := !problem.IsSpecialJudge || problem.Checker != nil
+	return hasCorrect && hasProvider && hasRequiredChecker
 }
 
 func sourceAuthor(filename string, authors map[string]string, authorByRelPath map[string]string, problemType, externalID string) string {

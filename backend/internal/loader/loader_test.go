@@ -206,4 +206,95 @@ func TestLoadProblemInfersAndSortsFiles(t *testing.T) {
 	if len(problem.CorrectCodes) != 3 || len(problem.Generators) != 2 || len(problem.Singlegens) != 2 || len(problem.Testcases) != 2 {
 		t.Fatalf("loaded problem counts = correct:%d generator:%d singlegen:%d testcase:%d", len(problem.CorrectCodes), len(problem.Generators), len(problem.Singlegens), len(problem.Testcases))
 	}
+	if !problem.Runnable {
+		t.Fatal("Runnable = false, want true")
+	}
+}
+
+func TestLoadProblemComputesRunnable(t *testing.T) {
+	tests := []struct {
+		name  string
+		files map[string]string
+		want  bool
+	}{
+		{
+			name: "correct and generator",
+			files: map[string]string{
+				"correct.cpp":   "int main(){}",
+				"generator.cpp": "int main(){}",
+			},
+			want: true,
+		},
+		{
+			name: "correct and singlegen",
+			files: map[string]string{
+				"correct.cpp":  "int main(){}",
+				"singlegen.py": "print('1 2')",
+			},
+			want: true,
+		},
+		{
+			name: "correct and testcase",
+			files: map[string]string{
+				"correct.cpp":         "int main(){}",
+				"testcase_sample.txt": "1 2\n",
+			},
+			want: true,
+		},
+		{
+			name: "correct without provider",
+			files: map[string]string{
+				"correct.cpp": "int main(){}",
+			},
+			want: false,
+		},
+		{
+			name: "generator without correct",
+			files: map[string]string{
+				"generator.cpp": "int main(){}",
+			},
+			want: false,
+		},
+		{
+			name: "special judge without checker",
+			files: map[string]string{
+				"metadata.yaml": "isSpecialJudge: true\n",
+				"correct.cpp":   "int main(){}",
+				"generator.cpp": "int main(){}",
+			},
+			want: false,
+		},
+		{
+			name: "special judge with checker",
+			files: map[string]string{
+				"metadata.yaml": "isSpecialJudge: true\n",
+				"correct.cpp":   "int main(){}",
+				"generator.cpp": "int main(){}",
+				"checker.cpp":   "int main(){}",
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			problemDir := filepath.Join(dir, "boj", "1000")
+			if err := os.MkdirAll(problemDir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			for name, content := range tt.files {
+				if err := os.WriteFile(filepath.Join(problemDir, name), []byte(content), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			problem, err := LoadProblem(problemDir, Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if problem.Runnable != tt.want {
+				t.Fatalf("Runnable = %v, want %v", problem.Runnable, tt.want)
+			}
+		})
+	}
 }

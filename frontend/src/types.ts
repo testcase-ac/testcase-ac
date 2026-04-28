@@ -56,12 +56,14 @@ export interface ProblemSummary {
   problemType: string;
   externalId: string;
   title: string | null;
+  runnable: boolean;
 }
 
 export interface ProblemTypeSummary {
   problemType: string;
   label: string | null;
   total: number;
+  runnable: number;
 }
 
 export interface TypeMetadataSegmentLabel {

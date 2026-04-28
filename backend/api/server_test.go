@@ -202,6 +202,9 @@ func TestListProblemsIncludesTypeMetadataWhenFiltered(t *testing.T) {
 		Title:         "Test",
 		TimeLimitMS:   2000,
 		MemoryLimitMB: 256,
+		CorrectCodes:  []CodeFile{{Filename: "correct.cpp", Language: contracts.LanguageCpp23}},
+		Generators:    []CodeFile{{Filename: "generator.cpp", Language: contracts.LanguageCpp23}},
+		Runnable:      true,
 	}
 	app := NewAppWithTypeMetadata(
 		Settings{RateLimitMax: 1, RateLimitWindowS: 60},
@@ -245,8 +248,11 @@ func TestListProblemsIncludesTypeMetadataWhenFiltered(t *testing.T) {
 	if len(response.ProblemTypes) != 1 {
 		t.Fatalf("ProblemTypes = %#v, want one type", response.ProblemTypes)
 	}
-	if response.ProblemTypes[0].ProblemType != "koi" || response.ProblemTypes[0].Label == nil || *response.ProblemTypes[0].Label != "KOI" || response.ProblemTypes[0].Total != 1 {
+	if response.ProblemTypes[0].ProblemType != "koi" || response.ProblemTypes[0].Label == nil || *response.ProblemTypes[0].Label != "KOI" || response.ProblemTypes[0].Total != 1 || response.ProblemTypes[0].Runnable != 1 {
 		t.Fatalf("ProblemTypes[0] = %#v, want KOI summary", response.ProblemTypes[0])
+	}
+	if len(response.Problems) != 1 || !response.Problems[0].Runnable {
+		t.Fatalf("Problems = %#v, want runnable problem summary", response.Problems)
 	}
 }
 

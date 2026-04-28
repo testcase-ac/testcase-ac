@@ -118,12 +118,14 @@ type ProblemSummary struct {
 	ProblemType string  `json:"problemType"`
 	ExternalID  string  `json:"externalId"`
 	Title       *string `json:"title"`
+	Runnable    bool    `json:"runnable"`
 }
 
 type ProblemTypeSummary struct {
 	ProblemType string  `json:"problemType"`
 	Label       *string `json:"label"`
 	Total       int     `json:"total"`
+	Runnable    int     `json:"runnable"`
 }
 
 type ProblemList struct {
