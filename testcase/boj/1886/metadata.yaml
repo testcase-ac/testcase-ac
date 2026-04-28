@@ -1,0 +1,8 @@
+title: "프리즌 브레이크"
+externalLink: "https://www.acmicpc.net/problem/1886"
+timeLimitMs: 2000
+memoryLimitMb: 128
+isSpecialJudge: false
+
+authors:
+  correct_migrated.py: "misemise official"

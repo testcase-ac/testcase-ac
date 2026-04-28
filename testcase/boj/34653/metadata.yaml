@@ -1,0 +1,9 @@
+title: "Freedom Dive"
+externalLink: "https://www.acmicpc.net/problem/34653"
+timeLimitMs: 1000
+memoryLimitMb: 1024
+isSpecialJudge: false
+
+authors:
+  correct_migrated.py: "misemise official"
+  generator_migrated.py: "misemise official"
