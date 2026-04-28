@@ -1,0 +1,32 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+using pii = pair<int, int>;
+ 
+void fast_io() {
+  cin.tie(nullptr)->sync_with_stdio(false);
+}
+
+void solve() {
+  int A, B, C, D, E;
+  cin >> A >> B >> C >> D >> E;
+
+  int ans = 0;
+  if (A < 0) {
+    ans += C * -A;
+    ans += D;
+    ans += E * B;
+  }
+  else {
+    ans += E * (B - A);
+  }
+  cout << ans << '\n';
+}
+
+int main() {
+  fast_io();
+ 
+  int t = 1;
+  // cin >> t;
+  while (t--) solve();
+}

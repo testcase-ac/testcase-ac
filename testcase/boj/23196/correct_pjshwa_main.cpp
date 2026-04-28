@@ -1,0 +1,111 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+ll tree[1 << 19], lazy[1 << 19];
+
+void fast_io() {
+  cin.tie(0)->sync_with_stdio(0);
+}
+
+class LazySeg {
+
+public:
+  LazySeg(int N) {
+    n = N;
+  }
+
+  void update(int L, int R, ll diff) {
+    __updateRange(0, 0, n - 1, L, R, diff);
+  }
+
+  ll query(int L, int R) {
+    return __query(0, n - 1, L, R, 0);
+  }
+
+private:
+  int n;
+
+  void updateLazy(int si, int ss, int se) {
+    if (lazy[si] != 0) {
+      tree[si] += (se - ss + 1) * lazy[si];
+
+      if (ss != se) {
+        lazy[si * 2 + 1] += lazy[si];
+        lazy[si * 2 + 2] += lazy[si];
+      }
+      lazy[si] = 0;
+    }
+  }
+    
+  void __updateRange(int si, int ss, int se, int us, int ue, ll diff) {
+    updateLazy(si, ss, se);
+
+    if (ss > se || ss > ue || se < us) return;
+
+    if (ss >= us && se <= ue) {
+      tree[si] += diff * (se - ss + 1);
+
+      if (ss != se) { 
+        lazy[si * 2 + 1] += diff;
+        lazy[si * 2 + 2] += diff;
+      }
+      return;
+    }
+
+    int mid = (ss + se) / 2;
+    __updateRange(si * 2 + 1, ss, mid, us, ue, diff);
+    __updateRange(si * 2 + 2, mid + 1, se, us, ue, diff);
+
+    tree[si] = tree[si * 2 + 1] + tree[si * 2 + 2];
+  }
+    
+  ll __query(int ss, int se, int qs, int qe, int si) {
+    updateLazy(si, ss, se);
+
+    if (ss > se || ss > qe || se < qs) return 0;
+    if (ss >= qs && se <= qe) return tree[si];
+
+    int mid = (ss + se) / 2;
+    return __query(ss, mid, qs, qe, 2 * si + 1) + __query(mid + 1, se, qs, qe, 2 * si + 2);
+  }
+
+};
+
+int main() {
+  fast_io();
+
+  int n, q;
+  cin >> n >> q;
+
+  LazySeg s(n + 1);
+
+  while (q--) {
+    string op;
+    int a, b;
+    cin >> op >> a >> b;
+    if (op == "R") {
+      s.update(a, a, 1);
+      s.update(b + 1, b + 1, -1);
+    }
+    else if (op == "D") {
+      s.update(a, a, -1);
+      s.update(b + 1, b + 1, 1);
+    }
+    else {
+      int dir = op == "H" ? 1 : -1;
+      if ((b - a) & 1) {
+        int mid = (a + b + 1) / 2;
+        s.update(a, mid - 1, dir);
+        s.update(mid + 1, b + 1, -dir);
+      }
+      else {
+        int mid = (a + b) / 2;
+        s.update(a, mid, dir);
+        s.update(mid + 1, b + 1, -dir);
+      }
+    }
+  }
+
+  for (int i = 1; i <= n; i++) cout << s.query(1, i) << '\n';
+}

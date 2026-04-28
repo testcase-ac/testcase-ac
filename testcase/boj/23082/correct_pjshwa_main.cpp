@@ -1,0 +1,69 @@
+#include <bits/stdc++.h>
+typedef long long ll;
+using namespace std;
+
+void fast_io() {
+  cin.tie(0)->sync_with_stdio(0);
+}
+
+int main() {
+  fast_io();
+
+  ll n, mbase = 0, mpow = 1;
+  bool minus = false;
+  cin >> n;
+  if (n == 0) return cout << "0\n", 0;
+
+  if (n < 0) {
+    minus = true;
+    while (mpow < -n) {
+      mbase++;
+      mpow *= 3;
+    }
+    n = mpow + n;
+  }
+
+  stack<int> ro, oo;
+  while (n) {
+    ro.push(n % 3);
+    n /= 3;
+  }
+  while (!ro.empty()) {
+    oo.push(ro.top());
+    ro.pop();
+  }
+
+  string ans = "";
+  while (!oo.empty()) {
+    bool carry = false;
+    if (oo.top() == 0) ans += "0";
+    if (oo.top() == 1) ans += "1";
+    if (oo.top() == 2) {
+      ans += "T";
+      carry = true;
+    }
+    if (oo.top() == 3) {
+      ans += "0";
+      carry = true;
+    }
+    oo.pop();
+    if (carry) {
+      if (oo.empty()) oo.push(1);
+      else {
+        int t = oo.top();
+        oo.pop();
+        oo.push(t + 1);
+        carry = false;
+      }
+    }
+  }
+  if (minus) {
+    if (ans.size() == mbase + 1) ans.pop_back();
+    else {
+      while (ans.size() < mbase) ans += "0";
+      ans += 'T';
+    }
+  }
+  reverse(ans.begin(), ans.end());
+  cout << ans << '\n';
+}

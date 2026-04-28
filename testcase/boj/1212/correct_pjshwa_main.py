@@ -1,0 +1,1 @@
+print("{0:b}".format(int(input(), base=8)))
