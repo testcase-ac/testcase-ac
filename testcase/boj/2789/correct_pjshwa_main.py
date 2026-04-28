@@ -1,0 +1,1 @@
+import sys,re;r=sys.stdin.readline;word=r().rstrip();print(re.sub('[CAMBRIDGE]','',word))

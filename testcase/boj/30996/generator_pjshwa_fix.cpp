@@ -1,0 +1,32 @@
+#include <bits/stdc++.h>
+#include "testlib.h"
+using namespace std;
+using ll = long long;
+
+int main(int argc, char* argv[]){
+  registerGen(argc, argv, 1);
+
+  int N = atoi(argv[1]);
+  int M = atoi(argv[2]);
+  int Q = atoi(argv[3]);
+
+  cout << N << ' ' << M << ' ' << Q << '\n';
+
+  long double mu = 0, sumA = 0;
+  for (int i = 1; i <= N; ++i) {
+    int x = rnd.next(1, 1000);
+    cout << x;
+
+    mu += x * i;
+    sumA += x;
+
+    if (i < N) cout << ' ';
+    else cout << '\n';
+  }
+  mu /= sumA;
+
+  for (int i = 1; i <= Q; ++i) {
+    int r = rnd.next(1, N * M);
+    cout << r << '\n';
+  }
+}

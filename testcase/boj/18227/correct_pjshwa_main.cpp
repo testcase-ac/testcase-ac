@@ -1,0 +1,123 @@
+#include <bits/stdc++.h>
+typedef long long ll;
+using namespace std;
+
+const int MAX = 2e5;
+vector<int> graph[MAX + 1];
+int level[MAX + 1], vs[MAX + 1], ve[MAX + 1];
+bool vis[MAX + 1];
+
+void fast_io() {
+  cin.tie(0)->sync_with_stdio(0);
+}
+
+int tick = 0;
+void dfs(int v, int lv) {
+  vis[v] = true;
+  vs[v] = ++tick;
+  level[v] = lv;
+  for (int d : graph[v]) {
+    if (!vis[d]) dfs(d, lv + 1);
+  }
+  ve[v] = tick;
+}
+
+class SegmentTree {
+
+public:
+  SegmentTree(int N) {
+    n = N;
+    __init(0, N - 1, 0);
+  }
+
+  void inc(int P) {
+    __add(0, 0, n - 1, P, 1);
+  }
+
+  ll query(int L, int R) {
+    return __query(0, n - 1, L, R, 0);
+  }
+
+private:
+  int n;
+  int tree[1 << 19];
+
+  void __init(int ss, int se, int si) {
+    if (ss > se) return;
+
+    if (ss == se) {
+      tree[si] = 0;
+      return;
+    }
+
+    int mid = (ss + se) / 2;
+    __init(ss, mid, si * 2 + 1);
+    __init(mid + 1, se, si * 2 + 2);
+
+    tree[si] = tree[si * 2 + 1] + tree[si * 2 + 2];
+  }
+
+  void __add(int si, int ss, int se, int p, int val) {
+    if (ss > se || ss > p || se < p) return;
+
+    if (ss == se) {
+      tree[si] += val;
+      return;
+    }
+
+    int mid = (ss + se) / 2;
+    __add(si * 2 + 1, ss, mid, p, val);
+    __add(si * 2 + 2, mid + 1, se, p, val);
+
+    tree[si] = tree[si * 2 + 1] + tree[si * 2 + 2];
+  }
+    
+  void __update(int si, int ss, int se, int p, int val) {
+    if (ss > se || ss > p || se < p) return;
+
+    if (ss == se) {
+      tree[si] = val;
+      return;
+    }
+
+    int mid = (ss + se) / 2;
+    __update(si * 2 + 1, ss, mid, p, val);
+    __update(si * 2 + 2, mid + 1, se, p, val);
+
+    tree[si] = tree[si * 2 + 1] + tree[si * 2 + 2];
+  }
+
+  ll __query(int ss, int se, int qs, int qe, int si) {
+    if (ss > se || ss > qe || se < qs) return 0;
+    if (ss >= qs && se <= qe) return tree[si];
+
+    int mid = (ss + se) / 2;
+    return __query(ss, mid, qs, qe, 2 * si + 1) + __query(mid + 1, se, qs, qe, 2 * si + 2);
+  }
+
+};
+
+int main() {
+  fast_io();
+
+  int n, c;
+  cin >> n >> c;
+
+  for (int i = 0; i < n - 1; i++) {
+    int x, y;
+    cin >> x >> y;
+    graph[x].push_back(y);
+    graph[y].push_back(x);
+  }
+  dfs(c, 1);
+
+  SegmentTree s(n + 1);
+  int q;
+  cin >> q;
+  while (q--) {
+    int qi, a;
+    cin >> qi >> a;
+    if (qi == 1) s.inc(vs[a]);
+    if (qi == 2) cout << s.query(vs[a], ve[a]) * level[a] << '\n';
+  }
+}

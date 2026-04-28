@@ -1,0 +1,39 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+using pii = pair<int, int>;
+
+void fast_io() {
+  cin.tie(nullptr)->sync_with_stdio(false);
+}
+
+void solve() {
+  int N; cin >> N;
+  vector<pii> A(N);
+  for (auto& [x, y] : A) cin >> x >> y;
+  sort(A.begin(), A.end(), [](auto& a, auto& b) {
+    return a.second < b.second;
+  });
+
+  int ans = 0;
+  deque<pii> dq{A.begin(), A.end()};
+  while (dq.size() >= 2) {
+    auto [fx, fy] = dq.front(); dq.pop_front();
+    auto [bx, by] = dq.back(); dq.pop_back();
+
+    int rx = min(fx, bx);
+    fx -= rx, bx -= rx;
+    ans = max(ans, fy + by);
+    if (fx) dq.push_front({fx, fy});
+    if (bx) dq.push_back({bx, by});
+  }
+  cout << ans << '\n';
+}
+
+int main() {
+  fast_io();
+
+  int t = 1;
+  // cin >> t;
+  while (t--) solve();
+}
