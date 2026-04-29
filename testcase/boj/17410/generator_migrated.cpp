@@ -17,8 +17,9 @@ int main(int argc, char** argv){
 
     int m = rnd.next(2, 30);
     cout << m << endl;
-    while(m--){
-        int mode = rnd.next(1, 2);
+    int forcedType2 = rnd.next(1, m);
+    for(int q = 1; q <= m; q++){
+        int mode = (q == forcedType2) ? 2 : rnd.next(1, 2);
         cout << mode << ' ';
         if(mode == 1){
             int i = rnd.next(1, n);
