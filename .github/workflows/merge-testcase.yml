@@ -21,7 +21,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
-          client-id: Iv23liSwunhgcPi5CcyM
+          client-id: ${{ vars.TESTCASE_BOT_CLIENT_ID }}
           private-key: ${{ secrets.TESTCASE_BOT_PRIVATE_KEY }}
           permission-actions: read
           permission-contents: write
