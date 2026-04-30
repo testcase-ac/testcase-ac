@@ -1,0 +1,10 @@
+title: "마방진"
+externalLink: "https://www.acmicpc.net/problem/1307"
+timeLimitMs: 2000
+memoryLimitMb: 128
+isSpecialJudge: true
+
+authors:
+  checker_migrated.cpp: "erick12"
+  correct_migrated.cpp: "erick12"
+  validator.cpp: "erick12"

@@ -1,0 +1,12 @@
+title: "색깔 모으기"
+externalLink: "https://www.acmicpc.net/problem/32070"
+timeLimitMs: 2000
+memoryLimitMb: 1024
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "erick12"
+  testcase_migrated_1.txt: "erick12"
+  testcase_migrated_2.txt: "erick12"
+  testcase_migrated_3.txt: "erick12"
+  validator.cpp: "erick12"
