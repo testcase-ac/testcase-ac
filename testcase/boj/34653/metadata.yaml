@@ -5,5 +5,4 @@ memoryLimitMb: 1024
 isSpecialJudge: false
 
 authors:
-  correct_migrated.py: "misemise official"
   generator_migrated.py: "misemise official"
