@@ -216,8 +216,26 @@ read_active_slot() {
   printf 'blue\n'
 }
 
-sudo apt-get update
-sudo apt-get install -y curl rsync caddy
+ensure_packages_installed() {
+  local missing=()
+  local package
+  for package in "$@"; do
+    if ! dpkg-query -W -f='${Status}' "${package}" 2>/dev/null | grep -q 'install ok installed'; then
+      missing+=("${package}")
+    fi
+  done
+
+  if [[ "${#missing[@]}" -eq 0 ]]; then
+    printf 'Required packages already installed: %s\n' "$*"
+    return 0
+  fi
+
+  printf 'Installing missing packages: %s\n' "${missing[*]}"
+  sudo apt-get update
+  sudo apt-get install -y "${missing[@]}"
+}
+
+ensure_packages_installed curl rsync caddy
 
 sudo systemctl disable --now "${LEGACY_SERVICE_NAME}" >/dev/null 2>&1 || true
 sudo rm -f "/etc/systemd/system/${LEGACY_SERVICE_NAME}.service" "${LEGACY_CADDY_SNIPPET}"
@@ -277,14 +295,26 @@ sudo systemctl enable "${inactive_service}"
 sudo systemctl restart "${inactive_service}"
 sudo systemctl enable --now caddy
 
-for _attempt in $(seq 1 20); do
-  if curl --fail --silent "http://127.0.0.1:${inactive_port}/api/health" >/dev/null; then
+health_url="http://127.0.0.1:${inactive_port}/api/health"
+health_ok=0
+for _attempt in $(seq 1 60); do
+  if curl --fail --silent --connect-timeout 2 --max-time 5 "${health_url}" >/dev/null; then
+    health_ok=1
     break
   fi
-  sleep 1
+  if [[ $(( _attempt % 5 )) -eq 0 ]]; then
+    printf 'Waiting for %s health check (%s/60)\n' "${inactive_service}" "${_attempt}"
+  fi
+  sleep 2
 done
 
-curl --fail --silent "http://127.0.0.1:${inactive_port}/api/health" >/dev/null
+if [[ "${health_ok}" -ne 1 ]]; then
+  printf 'Health check failed for %s at %s\n' "${inactive_service}" "${health_url}" >&2
+  sudo systemctl --no-pager --full status "${inactive_service}" >&2 || true
+  sudo journalctl -u "${inactive_service}" -n 80 --no-pager >&2 || true
+  exit 1
+fi
+
 sudo install -o root -g root -m 0644 "${STAGING_DIR}/testcase-ac-api-${inactive_slot}.caddy" "${CADDY_SNIPPET}"
 sudo systemctl reload caddy
 printf '%s\n' "${inactive_slot}" | sudo tee "${ACTIVE_SLOT_PATH}" >/dev/null
