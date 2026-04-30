@@ -1,0 +1,8 @@
+title: "빅 픽쳐"
+externalLink: "https://www.acmicpc.net/problem/10538"
+timeLimitMs: 2000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  singlegen_migrated.py: "misemise official"

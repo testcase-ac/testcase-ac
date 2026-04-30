@@ -3,3 +3,6 @@ externalLink: "https://www.acmicpc.net/problem/11718"
 timeLimitMs: 1000
 memoryLimitMb: 256
 isSpecialJudge: false
+
+authors:
+  generator_migrated.py: "misemise official"

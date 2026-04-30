@@ -1,0 +1,8 @@
+title: "가장 가까운 두 점"
+externalLink: "https://www.acmicpc.net/problem/2261"
+timeLimitMs: 1000
+memoryLimitMb: 256
+isSpecialJudge: false
+
+authors:
+  singlegen_migrated.py: "misemise official"
