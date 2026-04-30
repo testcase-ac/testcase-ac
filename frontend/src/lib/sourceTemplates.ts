@@ -78,10 +78,8 @@ fn main() {
 
 const DEFAULT_CSHARP_TEMPLATE = `using System;
 
-var parts = Console.ReadLine()!.Split();
-var a = int.Parse(parts[0]);
-var b = int.Parse(parts[1]);
-Console.WriteLine(a + b);
+var input = Console.In.ReadToEnd().Trim();
+// your solution
 `;
 
 export function defaultSource(language: LanguageValue): string {
