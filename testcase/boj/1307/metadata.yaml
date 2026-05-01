@@ -5,6 +5,6 @@ memoryLimitMb: 128
 isSpecialJudge: true
 
 authors:
-  checker_migrated.cpp: "erick12"
+  checker.cpp: "erick12"
   correct_migrated.cpp: "erick12"
   validator.cpp: "erick12"
