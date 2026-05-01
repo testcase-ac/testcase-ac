@@ -3,3 +3,6 @@ externalLink: "https://www.acmicpc.net/problem/15486"
 timeLimitMs: 2000
 memoryLimitMb: 512
 isSpecialJudge: false
+
+authors:
+  testcase_migrated_1.txt: "눈 감으면 보이는 글씨"

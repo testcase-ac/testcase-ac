@@ -3,3 +3,7 @@ externalLink: "https://www.acmicpc.net/problem/31869"
 timeLimitMs: 1000
 memoryLimitMb: 1024
 isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "눈 감으면 보이는 글씨"
+  validator.cpp: "눈 감으면 보이는 글씨"
