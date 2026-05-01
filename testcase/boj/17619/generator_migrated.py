@@ -1,4 +1,5 @@
 import random
+import sys
 
 def generate_test_case(n, q, coord_range=(0, 10**9), y_range=(0, 10**9)):
     """
@@ -57,6 +58,9 @@ def format_test_case(logs, queries):
 
 # Example usage
 if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        random.seed(int(sys.argv[1]))
+
     # Example parameters
     n = 10  # Number of logs
     q = 5   # Number of queries
