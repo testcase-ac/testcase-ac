@@ -3,3 +3,6 @@ externalLink: "https://www.acmicpc.net/problem/14959"
 timeLimitMs: 2000
 memoryLimitMb: 512
 isSpecialJudge: false
+
+authors:
+  generator_migrated.cpp: "hyper1423"

@@ -3,3 +3,8 @@ externalLink: "https://www.acmicpc.net/problem/34202"
 timeLimitMs: 1000
 memoryLimitMb: 2048
 isSpecialJudge: true
+
+authors:
+  checker.cpp: "hyper1423"
+  correct_migrated.cpp: "hyper1423"
+  validator.cpp: "hyper1423"
