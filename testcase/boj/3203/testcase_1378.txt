@@ -1,0 +1,4 @@
+BEGIN
+   a = 5 - 3
+   PRINT a
+STOP

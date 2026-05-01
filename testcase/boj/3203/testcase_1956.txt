@@ -1,0 +1,7 @@
+BEGIN
+   x = 0
+   REPEAT 5
+      x = x + 1
+   STOP
+   PRINT x
+STOP

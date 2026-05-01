@@ -1,0 +1,8 @@
+BEGIN
+   a = 0
+   b = 5
+   REPEAT 3
+      a = a + b
+   STOP
+   PRINT a
+STOP
