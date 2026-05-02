@@ -315,7 +315,7 @@ func Run(ctx context.Context, program CompiledProgram, inputData string, args []
 			stdinPath = inputFilePath
 		}
 		virtualMemoryMB := virtualMemoryLimitMB(program.Language, limits.MemoryMB)
-		script := `mem="$1"; stdin_path="$2"; shift 2; ulimit -c 0; ulimit -v "$mem"; ulimit -u 0; exec "$@" < "$stdin_path"`
+		script := `mem="$1"; stdin_path="$2"; shift 2; ulimit -c 0; ulimit -v "$mem"; ulimit -s "$mem"; ulimit -u 0; exec "$@" < "$stdin_path"`
 		shellArgs := []string{"-lc", script, "bash", fmt.Sprintf("%d", virtualMemoryMB*1024), stdinPath}
 		shellArgs = append(shellArgs, command...)
 		cmd = exec.CommandContext(runCtx, "bash", shellArgs...)

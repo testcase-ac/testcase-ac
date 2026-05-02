@@ -375,6 +375,35 @@ int main() {
 	}
 }
 
+func TestRunCodeAllowsNativeStackWithinMemoryLimit(t *testing.T) {
+	requireCommands(t, "g++")
+	requireVirtualMemoryLimitSupport(t)
+
+	cppCode := `#include <iostream>
+
+int main() {
+    volatile char buf[48 * 1024 * 1024];
+    buf[0] = 1;
+    buf[sizeof(buf) - 1] = 2;
+    std::cout << int(buf[0] + buf[sizeof(buf) - 1]) << "\n";
+    return 0;
+}
+`
+
+	compileResult := compileCodeCached(cppCode, "cpp23")
+	if !compileResult.Success {
+		t.Fatalf("compileCodeCached() failed: %+v", compileResult)
+	}
+
+	runResult := runCode(compileResult.Directory, "", "cpp23", 2, 512, nil)
+	if !runResult.Success {
+		t.Fatalf("runCode() failed with stack allocation inside memory limit: %+v", runResult)
+	}
+	if got := CleanStdout(runResult.Stdout, "no"); got != "3" {
+		t.Fatalf("runCode() stdout = %q, want %q", got, "3")
+	}
+}
+
 func TestRunCodeSimpleAPlusBSupportedLanguages(t *testing.T) {
 	for _, tc := range supportedLanguageSmokeCases() {
 		t.Run(tc.Name, func(t *testing.T) {
