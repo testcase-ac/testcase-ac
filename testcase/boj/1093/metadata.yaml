@@ -3,3 +3,7 @@ externalLink: "https://www.acmicpc.net/problem/1093"
 timeLimitMs: 2000
 memoryLimitMb: 128
 isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "khj20006"
+  validator.cpp: "khj20006"
