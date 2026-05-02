@@ -3,3 +3,9 @@ externalLink: "https://www.acmicpc.net/problem/12918"
 timeLimitMs: 2000
 memoryLimitMb: 512
 isSpecialJudge: false
+
+authors:
+  generator_migrated.cpp: "hyper1423"
+  testcase_migrated_1.txt: "hyper1423"
+  testcase_migrated_2.txt: "hyper1423"
+  validator.cpp: "hyper1423"

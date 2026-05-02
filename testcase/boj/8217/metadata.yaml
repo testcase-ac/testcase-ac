@@ -3,3 +3,6 @@ externalLink: "https://www.acmicpc.net/problem/8217"
 timeLimitMs: 5000
 memoryLimitMb: 256
 isSpecialJudge: false
+
+authors:
+  singlegen_migrated.py: "hyper1423"
