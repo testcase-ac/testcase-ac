@@ -3,3 +3,8 @@ externalLink: "https://www.acmicpc.net/problem/15829"
 timeLimitMs: 1000
 memoryLimitMb: 512
 isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "유대경"
+  generator_migrated.py: "유대경"
+  validator.cpp: "유대경"
