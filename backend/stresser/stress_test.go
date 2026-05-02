@@ -33,33 +33,22 @@ func singlegenProvider(id string, language contracts.Language, code string) cont
 }
 
 func testCheckerCode() string {
-	return `#include <cmath>
-#include <fstream>
-#include <string>
+	return `#include "testlib.h"
+#include <cmath>
 
 int main(int argc, char* argv[]) {
-    if (argc < 5) {
-        return 3;
-    }
-
-    std::ifstream participant(argv[2]);
-    std::ifstream jury(argv[3]);
-    std::ofstream result(argv[4]);
+    registerTestlibCmd(argc, argv);
 
     double p = 0.0;
     double j = 0.0;
-    if (!(participant >> p) || !(jury >> j)) {
-        result << "failed to read outputs";
-        return 3;
-    }
+    p = ouf.readDouble();
+    j = ans.readDouble();
 
     if (std::fabs(p - j) <= 1e-6) {
-        result << "accepted";
-        return 0;
+        quitf(_ok, "accepted");
     }
 
-    result << "expected " << j << " got " << p;
-    return 1;
+    quitf(_wa, "expected %.10f got %.10f", j, p);
 }
 `
 }
@@ -315,6 +304,9 @@ int main(int argc, char* argv[]) {
 	}
 	foundCheckerOutput := false
 	for _, wrongCase := range result.WrongCases {
+		if wrongCase.Stderr != nil {
+			t.Fatalf("wrong case stderr = %+v, want empty submitted-code stderr", wrongCase.Stderr)
+		}
 		if wrongCase.CheckerOutput != nil && wrongCase.CheckerOutput.Text != "" {
 			foundCheckerOutput = true
 			break

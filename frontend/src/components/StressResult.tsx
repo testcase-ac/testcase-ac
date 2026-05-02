@@ -244,6 +244,9 @@ function CounterexampleView({
           <TextBlock title={t("stress.label.yourOutput")} tt={ce.targetOutput} />
           <TextBlock title={t("stress.label.correctOutput")} tt={ce.correctOutput} />
         </div>
+        {ce.checkerOutput && ce.checkerOutput.text && (
+          <TextBlock title={t("stress.label.checkerOutput")} tt={ce.checkerOutput} />
+        )}
         {ce.stderr && ce.stderr.text && (
           <TextBlock title={t("stress.label.stderr")} tt={ce.stderr} />
         )}

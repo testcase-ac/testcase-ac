@@ -146,7 +146,7 @@ func stressTestIteration(targetCode, correctCode compiledProgram, checkerCode *c
 				Verdict:       checkerExecution.Verdict,
 				TargetOutput:  targetExecution.Stdout,
 				CheckerOutput: checkerExecution.Stdout,
-				Stderr:        checkerExecution.Stderr,
+				Stderr:        targetExecution.Stderr,
 				Time:          checkerExecution.Time,
 			}
 		} else {
