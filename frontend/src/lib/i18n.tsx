@@ -102,7 +102,8 @@ const translations = {
     "problem.providers.none": "Nothing available in this group.",
     "problem.providers.noneSelected":
       "At least one testcase or generator source must be selected.",
-    "problem.reference.hint": "Reference only. Not used to judge.",
+    "problem.reference.validatorHint": "Reference only. Not sent to the stresser.",
+    "problem.reference.checkerHint": "Used to compare output of correct code and submitted code.",
     "problem.correct.cannotDeselect":
       "At least one correct code must stay selected.",
     "problem.author.unknown": "unknown author",
@@ -270,7 +271,8 @@ const translations = {
     "problem.providers.none": "이 그룹에는 선택 가능한 항목이 없습니다.",
     "problem.providers.noneSelected":
       "테스트케이스 또는 제너레이터 계열 입력은 최소 하나가 선택되어 있어야 합니다.",
-    "problem.reference.hint": "참고용입니다. 채점에는 사용되지 않습니다.",
+    "problem.reference.validatorHint": "참고용입니다. 스트레서에는 전달되지 않습니다.",
+    "problem.reference.checkerHint": "정답 코드와 제출된 코드의 출력 비교에 사용됩니다.",
     "problem.correct.cannotDeselect":
       "정답 코드는 최소 하나가 선택되어 있어야 합니다.",
     "problem.author.unknown": "작성자 미상",

@@ -493,21 +493,23 @@ function AdvancedStressOptions({
             externalId={problem.externalId}
           />
 
-          <ReferenceFileGroup
-            label={t("problem.providers.validator")}
-            file={problem.validator}
-            problemType={problem.problemType}
-            externalId={problem.externalId}
-          />
-
           {problem.isSpecialJudge && (
             <ReferenceFileGroup
               label={t("problem.providers.checker")}
               file={problem.checker}
+              hint={t("problem.reference.checkerHint")}
               problemType={problem.problemType}
               externalId={problem.externalId}
             />
           )}
+
+          <ReferenceFileGroup
+            label={t("problem.providers.validator")}
+            file={problem.validator}
+            hint={t("problem.reference.validatorHint")}
+            problemType={problem.problemType}
+            externalId={problem.externalId}
+          />
         </div>
       )}
     </div>
@@ -676,18 +678,20 @@ function SelectableTestcaseGroup({
 function ReferenceFileGroup({
   label,
   file,
+  hint,
   problemType,
   externalId,
 }: {
   label: string;
   file: CodeInfo | null;
+  hint: string;
   problemType: string;
   externalId: string;
 }) {
   const { t } = useI18n();
 
   return (
-    <SelectionGroupShell label={label} hint={t("problem.reference.hint")}>
+    <SelectionGroupShell label={label} hint={hint}>
       {file ? (
         <FileChipGrid>
           <ReferenceFileChip
