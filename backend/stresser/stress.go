@@ -390,13 +390,13 @@ func buildStressResponse(wrongCases, executionFailedCases, correctCases []stress
 		counterexample := contracts.Counterexample{
 			Testcase:      textWithMetadata(item.Testcase, 1000, 40),
 			GeneratedBy:   item.GeneratedBy,
-			TargetOutput:  textWithMetadata(item.TargetRun.TargetOutput, 1000, 40),
-			CorrectOutput: textWithMetadata(item.CorrectOutput, 1000, 40),
+			TargetOutput:  stdoutTextWithMetadata(item.TargetRun.TargetOutput),
+			CorrectOutput: stdoutTextWithMetadata(item.CorrectOutput),
 			Verdict:       verdictPtr(item.TargetRun.Verdict),
 			Stderr:        textWithMetadataPtr(item.TargetRun.Stderr),
 		}
 		if useChecker {
-			counterexample.CheckerOutput = textWithMetadataPtr(item.TargetRun.CheckerOutput)
+			counterexample.CheckerOutput = stdoutTextWithMetadataPtr(item.TargetRun.CheckerOutput)
 		}
 		result.WrongCases = append(result.WrongCases, counterexample)
 	}
@@ -404,7 +404,7 @@ func buildStressResponse(wrongCases, executionFailedCases, correctCases []stress
 		result.ExecutionFailedCases = append(result.ExecutionFailedCases, contracts.ExecutionFailedCase{
 			Testcase:      textWithMetadata(item.Testcase, 1000, 40),
 			GeneratedBy:   item.GeneratedBy,
-			CorrectOutput: textWithMetadata(item.CorrectOutput, 1000, 40),
+			CorrectOutput: stdoutTextWithMetadata(item.CorrectOutput),
 			Reason:        item.TargetRun.Verdict,
 			Stderr:        textWithMetadataPtr(item.TargetRun.Stderr),
 			TimeSeconds:   item.TargetRun.Time,
@@ -473,6 +473,19 @@ func textWithMetadataPtr(s string) *contracts.TextWithMetadata {
 		return nil
 	}
 	value := textWithMetadata(s, 1000, 40)
+	return &value
+}
+
+func stdoutTextWithMetadata(s string) contracts.TextWithMetadata {
+	return textWithMetadata(util.CleanStdout(s, "no"), 1000, 40)
+}
+
+func stdoutTextWithMetadataPtr(s string) *contracts.TextWithMetadata {
+	cleaned := util.CleanStdout(s, "no")
+	if cleaned == "" {
+		return nil
+	}
+	value := textWithMetadata(cleaned, 1000, 40)
 	return &value
 }
 

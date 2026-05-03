@@ -406,6 +406,52 @@ func TestBuildStressResponseDedupsAndLimitsReturnedFailures(t *testing.T) {
 	}
 }
 
+func TestBuildStressResponseCleansReturnedStdout(t *testing.T) {
+	wrongCases := []stressIteration{
+		{
+			Testcase:      "1 2\n",
+			GeneratedBy:   contracts.GeneratedBy{Stage: contracts.CaseProviderText, ID: "tc"},
+			CorrectOutput: "3  \n\n",
+			TargetRun: targetRun{
+				Verdict:       contracts.VerdictWrongAnswer,
+				TargetOutput:  "4\t \n\n",
+				CheckerOutput: "expected 3  \n",
+			},
+		},
+	}
+	executionFailedCases := []stressIteration{
+		{
+			Testcase:      "2 2\n",
+			GeneratedBy:   contracts.GeneratedBy{Stage: contracts.CaseProviderText, ID: "tc-fail"},
+			CorrectOutput: "4  \n\n",
+			TargetRun: targetRun{
+				Verdict: contracts.VerdictRuntimeError,
+				Stderr:  "boom  \n\n",
+			},
+		},
+	}
+
+	result := buildStressResponse(wrongCases, executionFailedCases, nil, true)
+	if got := result.WrongCases[0].TargetOutput.Text; got != "4" {
+		t.Fatalf("TargetOutput.Text = %q, want %q", got, "4")
+	}
+	if got := result.WrongCases[0].CorrectOutput.Text; got != "3" {
+		t.Fatalf("CorrectOutput.Text = %q, want %q", got, "3")
+	}
+	if result.WrongCases[0].CheckerOutput == nil {
+		t.Fatalf("CheckerOutput = nil, want output")
+	}
+	if got := result.WrongCases[0].CheckerOutput.Text; got != "expected 3" {
+		t.Fatalf("CheckerOutput.Text = %q, want %q", got, "expected 3")
+	}
+	if got := result.ExecutionFailedCases[0].CorrectOutput.Text; got != "4" {
+		t.Fatalf("ExecutionFailed CorrectOutput.Text = %q, want %q", got, "4")
+	}
+	if got := result.ExecutionFailedCases[0].Stderr.Text; got != "boom  \n\n" {
+		t.Fatalf("Stderr.Text = %q, want raw stderr", got)
+	}
+}
+
 type fakeRuntime struct {
 	compileFailures map[string]executor.CompileResult
 }
