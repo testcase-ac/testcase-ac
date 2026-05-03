@@ -38,7 +38,7 @@ go build ./stresser
 Run Linux/container tests from the repo root:
 
 ```bash
-./tests/stresser/run_test.sh
+./tests/dockertest/run_test.sh ./stresser
 ```
 
 Run locally through the Lambda runtime:

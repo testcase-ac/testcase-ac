@@ -16,6 +16,9 @@ The frontend sends user code to the API to find counterexamples, the API loads t
 - `backend/` is a Go module containing:
   - `api/` for the HTTP API used by the frontend.
   - `stresser/` for execution/stress logic
+  - `internal/loader/` for loading testcase problem directories, metadata, source files, and fixed testcase files into structured problem data.
+  - `internal/executor/` for compiling and running source programs with language runtimes, limits, validators, and checkers.
+  - `internal/verify/` for repository problem verification used by CI and testcase contribution checks; it builds on `loader` and `executor`.
   - `contracts/` for shared types
 - `deploy/` contains production deploy scripts and Terraform for the stresser stack. Ideally, if deployment infrastructure is changed, only this folder should be edited.
 
@@ -24,11 +27,23 @@ The frontend sends user code to the API to find counterexamples, the API loads t
 
 - Default local entrypoint is `./dev.sh`.
 - `./dev.sh frontend` runs only the SPA against a remote API.
-- Run frontend typechecking with `cd frontend && npm run typecheck`.
 - Frontend shared API contracts in `frontend/src/generated/contracts.ts` are generated from `backend/contracts`; after editing backend contracts, run `cd frontend && npm run generate:contracts`.
-- Run backend API validation with `cd backend && go test ./api ./contracts`.
-- `cd backend && go test ./stresser` exercises stresser code locally and requires the full stresser runtime environment.
-- For reproducible stresser validation, run `./tests/stresser/run_test.sh` from the repo root; it builds and runs the stresser tests inside Docker with the production-like language environment.
+
+## Local Testing
+
+Host-local checks are for packages that do not compile or execute testcase programs:
+
+- Run frontend typechecking with `cd frontend && npm run typecheck`.
+- Run backend host-safe validation with `cd backend && go test ./api ./contracts ./internal/loader`.
+- Host-only `backend/internal/verify` tests do not validate verifier execution behavior.
+
+Docker runtime checks are required for packages that compile or execute testcase programs. Run these commands from the repo root, and do not treat host-only runtime failures as sufficient verification:
+
+- Stresser: `./tests/dockertest/run_test.sh ./stresser`
+- Verifier: `./tests/dockertest/run_test.sh ./internal/verify`
+- Executor: `./tests/dockertest/run_test.sh ./internal/executor`
+- All runtime-backed packages: `./tests/dockertest/run_test.sh`, covering `./stresser`, `./internal/executor`, and `./internal/verify`
+- Pass normal Go test flags through the Docker wrapper, for example `./tests/dockertest/run_test.sh ./internal/verify -run TestMissingCorrectWarnsAndSkips -count=1`.
 
 ## Deployment
 

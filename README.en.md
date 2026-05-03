@@ -75,7 +75,7 @@ stresser runtime environment. For reproducible stresser validation, run the
 Docker-backed test from the repo root:
 
 ```bash
-./tests/stresser/run_test.sh
+./tests/dockertest/run_test.sh ./stresser
 ```
 
 ## Contributing

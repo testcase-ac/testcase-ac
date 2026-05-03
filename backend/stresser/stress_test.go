@@ -1,10 +1,20 @@
 package main
 
 import (
+	"os/exec"
 	"testing"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 )
+
+func requireCommands(t *testing.T, names ...string) {
+	t.Helper()
+	for _, name := range names {
+		if _, err := exec.LookPath(name); err != nil {
+			t.Fatalf("required command %q is not available; run ./tests/dockertest/run_test.sh ./stresser for the Docker-backed stresser test environment", name)
+		}
+	}
+}
 
 func textProvider(id, content string) contracts.CaseProvider {
 	return contracts.CaseProvider{

@@ -68,11 +68,11 @@ cd backend && go test ./api ./contracts
 ```
 
 `go test ./stresser`는 stresser를 로컬에서 실행하며 전체 stresser 실행 환경이
-필요합니다. 재현 가능한 stresser 검증은 레포지토리 루트에서 Docker 기반 테스트를
-실행하세요.
+필요합니다. 재현 가능한 stresser 검증은 레포지토리 루트에서 Docker 기반 테스트
+러너로 실행하세요.
 
 ```bash
-./tests/stresser/run_test.sh
+./tests/dockertest/run_test.sh ./stresser
 ```
 
 ## 기여
