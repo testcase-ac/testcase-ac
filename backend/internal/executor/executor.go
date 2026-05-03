@@ -177,14 +177,6 @@ var languages = map[contracts.Language]languageSpec{
 	},
 }
 
-func SupportedLanguages() map[contracts.Language]struct{} {
-	out := make(map[contracts.Language]struct{}, len(languages))
-	for language := range languages {
-		out[language] = struct{}{}
-	}
-	return out
-}
-
 func DefaultRunLimits() Limits {
 	return Limits{TimeSeconds: 2, MemoryMB: 1024, StdoutBytes: MaxRunStdoutBytes, StderrBytes: MaxRunStderrBytes}
 }

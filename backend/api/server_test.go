@@ -12,6 +12,10 @@ import (
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 )
 
+func newTestApp(settings Settings, catalog map[[2]string]Problem, stresser StresserClient) *App {
+	return NewAppWithTypeMetadata(settings, catalog, nil, stresser)
+}
+
 type fakeStresserClient struct {
 	t            *testing.T
 	wantTarget   contracts.Language
@@ -68,7 +72,7 @@ func TestHandleStressAcceptsSupportedTargetLanguages(t *testing.T) {
 					{Filename: "singlegen.any", Language: lang, Content: "generator"},
 				},
 			}
-			app := NewApp(
+			app := newTestApp(
 				Settings{RateLimitMax: 100, RateLimitWindowS: 10},
 				map[[2]string]Problem{{"boj", "1000"}: problem},
 				&fakeStresserClient{t: t, wantTarget: lang, wantCorrect: lang, wantCaseLang: lang},
@@ -122,7 +126,7 @@ func TestRateLimitUsesXForwardedFor(t *testing.T) {
 			{Filename: "sample.txt", Content: "1 2\n"},
 		},
 	}
-	app := NewApp(
+	app := newTestApp(
 		Settings{RateLimitMax: 1, RateLimitWindowS: 60},
 		map[[2]string]Problem{{"boj", "1000"}: problem},
 		okStresserClient{},
@@ -173,7 +177,7 @@ func TestGetProblemAcceptsEscapedSlashExternalID(t *testing.T) {
 		TimeLimitMS:   2000,
 		MemoryLimitMB: 256,
 	}
-	app := NewApp(
+	app := newTestApp(
 		Settings{RateLimitMax: 1, RateLimitWindowS: 60},
 		map[[2]string]Problem{{"koi", "2020/1/elem/1"}: problem},
 		okStresserClient{},
@@ -309,7 +313,7 @@ func TestHandleStressAcceptsInlineCustomMaterials(t *testing.T) {
 		},
 		Checker: &CodeFile{Filename: "checker.cpp", Language: "cpp23", Content: "repo-checker"},
 	}
-	app := NewApp(
+	app := newTestApp(
 		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
 		map[[2]string]Problem{{"boj", "1000"}: problem},
 		&inlineMaterialsStresserClient{t: t},
@@ -368,7 +372,7 @@ func (c *customInvocationStresserClient) Invoke(_ context.Context, event contrac
 }
 
 func TestHandleCustomStressAcceptsExplicitLimits(t *testing.T) {
-	app := NewApp(
+	app := newTestApp(
 		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
 		map[[2]string]Problem{},
 		&customInvocationStresserClient{t: t},
@@ -405,7 +409,7 @@ func TestHandleCustomStressAcceptsExplicitLimits(t *testing.T) {
 }
 
 func TestHandleCustomStressRejectsOversizedLimits(t *testing.T) {
-	app := NewApp(
+	app := newTestApp(
 		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
 		map[[2]string]Problem{},
 		&customInvocationStresserClient{t: t},
@@ -439,7 +443,7 @@ func TestHandleCustomStressRejectsOversizedLimits(t *testing.T) {
 }
 
 func TestHandleCustomStressRejectsOversizedBody(t *testing.T) {
-	app := NewApp(
+	app := newTestApp(
 		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
 		map[[2]string]Problem{},
 		&customInvocationStresserClient{t: t},

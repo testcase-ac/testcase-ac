@@ -419,7 +419,7 @@ func dedupAndSort(items []stressIteration) []stressIteration {
 	byTestcase := make(map[string]stressIteration, len(items))
 	order := []string{}
 	for _, item := range items {
-		key := cleanStdout(item.Testcase, "no")
+		key := executor.CleanStdout(item.Testcase, "no")
 		if _, exists := byTestcase[key]; !exists {
 			byTestcase[key] = item
 			order = append(order, key)

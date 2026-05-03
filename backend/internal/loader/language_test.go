@@ -1,4 +1,4 @@
-package main
+package loader
 
 import (
 	"testing"
@@ -24,23 +24,23 @@ func TestInferLanguageSupportsKnownExtensions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.filename, func(t *testing.T) {
-			got, err := inferLanguage(tt.filename, nil)
+			got, err := InferLanguage(tt.filename, nil)
 			if err != nil {
-				t.Fatalf("inferLanguage() error = %v", err)
+				t.Fatalf("InferLanguage() error = %v", err)
 			}
 			if got != tt.want {
-				t.Fatalf("inferLanguage() = %q, want %q", got, tt.want)
+				t.Fatalf("InferLanguage() = %q, want %q", got, tt.want)
 			}
 		})
 	}
 }
 
 func TestInferLanguagePrefersExplicitOverride(t *testing.T) {
-	got, err := inferLanguage("correct.py", map[string]string{"correct.py": "pypy3"})
+	got, err := InferLanguage("correct.py", map[string]string{"correct.py": "pypy3"})
 	if err != nil {
-		t.Fatalf("inferLanguage() error = %v", err)
+		t.Fatalf("InferLanguage() error = %v", err)
 	}
 	if got != contracts.LanguagePyPy3 {
-		t.Fatalf("inferLanguage() = %q, want %q", got, "pypy3")
+		t.Fatalf("InferLanguage() = %q, want %q", got, "pypy3")
 	}
 }

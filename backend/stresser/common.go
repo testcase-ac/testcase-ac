@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -13,7 +12,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
-	"github.com/testcase-ac/testcase-ac/backend/internal/executor"
 )
 
 const diskCleanupThresholdPercent = 60.0
@@ -138,18 +136,6 @@ func truncationKindPtr(value contracts.TruncationKind) *contracts.TruncationKind
 	return &value
 }
 
-func shortenPathsToFilenames(s string) string {
-	return executor.ShortenPathsToFilenames(s)
-}
-
-func cleanStdout(output string, trailingNewline string) string {
-	return executor.CleanStdout(output, trailingNewline)
-}
-
-func compareOutput(a, b string) bool {
-	return executor.CompareOutput(a, b)
-}
-
 func checkAndCleanTmp() error {
 	var stat syscall.Statfs_t
 	if err := syscall.Statfs("/tmp", &stat); err != nil {
@@ -203,14 +189,6 @@ func mustJSON(value any) string {
 		return "{}"
 	}
 	return string(data)
-}
-
-func runCommand(dir string, name string, args ...string) error {
-	cmd := exec.Command(name, args...)
-	cmd.Dir = dir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
 }
 
 func intPtr(value int) *int {

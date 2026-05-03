@@ -37,10 +37,6 @@ type App struct {
 	validate     *validator.Validate
 }
 
-func NewApp(settings Settings, catalog map[[2]string]Problem, stresser StresserClient) *App {
-	return NewAppWithTypeMetadata(settings, catalog, nil, stresser)
-}
-
 func NewAppWithTypeMetadata(settings Settings, catalog map[[2]string]Problem, typeMetadata map[string]TypeMetadata, stresser StresserClient) *App {
 	return &App{
 		settings:     settings,

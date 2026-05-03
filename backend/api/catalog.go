@@ -4,7 +4,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/testcase-ac/testcase-ac/backend/contracts"
 	"github.com/testcase-ac/testcase-ac/backend/internal/loader"
 )
 
@@ -21,10 +20,6 @@ func BuildCatalog(testcaseRoot string) (map[[2]string]Problem, error) {
 
 func BuildTypeMetadata(testcaseRoot string) (map[string]TypeMetadata, error) {
 	return loader.BuildTypeMetadata(testcaseRoot)
-}
-
-func inferLanguage(filename string, overrides map[string]string) (contracts.Language, error) {
-	return loader.InferLanguage(filename, overrides)
 }
 
 func sortProblemSummaries(items []ProblemSummary) {
