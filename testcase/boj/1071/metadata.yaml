@@ -3,3 +3,6 @@ externalLink: "https://www.acmicpc.net/problem/1071"
 timeLimitMs: 2000
 memoryLimitMb: 128
 isSpecialJudge: false
+
+authors:
+  testcase_migrated_1.txt: "전설의추억"

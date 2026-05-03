@@ -3,3 +3,8 @@ externalLink: "https://www.acmicpc.net/problem/32765"
 timeLimitMs: 500
 memoryLimitMb: 512
 isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "전설의추억"
+  generator_migrated.cpp: "전설의추억"
+  validator.cpp: "전설의추억"
