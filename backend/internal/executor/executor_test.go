@@ -436,6 +436,49 @@ func TestRunCodeSimpleAPlusBSupportedLanguages(t *testing.T) {
 	}
 }
 
+func TestRunCheckerMapsAcceptedAndWrongAnswer(t *testing.T) {
+	requireCommands(t, "g++")
+
+	checkerCode := `#include "testlib.h"
+
+int main(int argc, char* argv[]) {
+    registerTestlibCmd(argc, argv);
+
+    int participant = ouf.readInt();
+    int jury = ans.readInt();
+    if (participant == jury) {
+        quitf(_ok, "accepted");
+    }
+    quitf(_wa, "expected %d got %d", jury, participant);
+}
+`
+
+	compileResult := compileCodeCached(checkerCode, contracts.LanguageCpp23)
+	if !compileResult.Success {
+		t.Fatalf("compileCodeCached() failed: %+v", compileResult)
+	}
+	checker := CompiledProgram{Dir: compileResult.Directory, Language: contracts.LanguageCpp23, Limits: Limits{TimeSeconds: 2, MemoryMB: 1024}}
+
+	acceptedResult := RunChecker(context.Background(), checker, "1 2\n", "3\n", "3\n", checker.Limits)
+	if !acceptedResult.Success {
+		t.Fatalf("RunChecker() accepted case failed: %+v", acceptedResult)
+	}
+	if acceptedResult.Verdict != contracts.VerdictAccepted {
+		t.Fatalf("RunChecker() accepted verdict = %q, want %q", acceptedResult.Verdict, contracts.VerdictAccepted)
+	}
+
+	wrongResult := RunChecker(context.Background(), checker, "1 2\n", "4\n", "3\n", checker.Limits)
+	if !wrongResult.Success {
+		t.Fatalf("RunChecker() wrong-answer case failed: %+v", wrongResult)
+	}
+	if wrongResult.Verdict != contracts.VerdictWrongAnswer {
+		t.Fatalf("RunChecker() wrong-answer verdict = %q, want %q", wrongResult.Verdict, contracts.VerdictWrongAnswer)
+	}
+	if !strings.Contains(wrongResult.Stdout, "expected 3 got 4") {
+		t.Fatalf("RunChecker() stdout = %q, want checker result message", wrongResult.Stdout)
+	}
+}
+
 func TestCsharpTemplateUsesRuntimeNuGetRoot(t *testing.T) {
 	requirePaths(t, "/var/task/CsharpApp/obj/project.assets.json")
 

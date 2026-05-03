@@ -419,10 +419,6 @@ func writeTempFile(dir, pattern, content string) (string, error) {
 	return path, nil
 }
 
-func RunValidator(ctx context.Context, validator CompiledProgram, testdata string, limits Limits) ExecutionResult {
-	return Run(ctx, validator, testdata, nil, limits)
-}
-
 func CleanStdout(output string, trailingNewline string) string {
 	trimmed := strings.TrimRight(output, "\n\r\t ")
 	if trimmed == "" {

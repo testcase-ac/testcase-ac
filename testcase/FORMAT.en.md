@@ -107,9 +107,10 @@ Plaintext fixed inputs. The filename must start with `testcase` and end with
 `.txt` to be loaded as a fixed input. Example: `testcase_sample.txt`. Must be
 valid UTF-8 text.
 
-### `validator.cpp` (optional)
+### `validator.cpp` (required)
 
-Input validator using `testlib.h`. Exactly this filename.
+Input validator using `testlib.h`. Exactly this filename. Every committed
+testcase provider output must pass this validator.
 
 ### `checker.cpp` (optional)
 

@@ -1,20 +1,16 @@
 package main
 
 import (
-	"os/exec"
+	"context"
+	"fmt"
+	"math/rand"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
+	"github.com/testcase-ac/testcase-ac/backend/internal/executor"
 )
-
-func requireCommands(t *testing.T, names ...string) {
-	t.Helper()
-	for _, name := range names {
-		if _, err := exec.LookPath(name); err != nil {
-			t.Fatalf("required command %q is not available; run ./tests/dockertest/run_test.sh ./stresser for the Docker-backed stresser test environment", name)
-		}
-	}
-}
 
 func textProvider(id, content string) contracts.CaseProvider {
 	return contracts.CaseProvider{
@@ -24,71 +20,30 @@ func textProvider(id, content string) contracts.CaseProvider {
 	}
 }
 
-func generatorProvider(id string, language contracts.Language, code string) contracts.CaseProvider {
+func generatorProvider(id string, code string) contracts.CaseProvider {
 	return contracts.CaseProvider{
 		Type:     contracts.CaseProviderGenerator,
 		ID:       id,
 		Code:     code,
-		Language: language,
+		Language: contracts.LanguageCpp23,
 	}
 }
 
-func singlegenProvider(id string, language contracts.Language, code string) contracts.CaseProvider {
+func singlegenProvider(id string, code string) contracts.CaseProvider {
 	return contracts.CaseProvider{
 		Type:     contracts.CaseProviderSinglegen,
 		ID:       id,
 		Code:     code,
-		Language: language,
+		Language: contracts.LanguageCpp23,
 	}
 }
 
-func testCheckerCode() string {
-	return `#include "testlib.h"
-#include <cmath>
-
-int main(int argc, char* argv[]) {
-    registerTestlibCmd(argc, argv);
-
-    double p = 0.0;
-    double j = 0.0;
-    p = ouf.readDouble();
-    j = ans.readDouble();
-
-    if (std::fabs(p - j) <= 1e-6) {
-        quitf(_ok, "accepted");
-    }
-
-    quitf(_wa, "expected %.10f got %.10f", j, p);
-}
-`
-}
-
 func TestOperationStressSmoke(t *testing.T) {
-	requireCommands(t, "g++")
-
-	program := `#include <iostream>
-using namespace std;
-
-int main() {
-    int a, b;
-    cin >> a >> b;
-    cout << a + b << "\n";
-    return 0;
-}
-`
-	singlegen := `#include <iostream>
-
-int main() {
-    std::cout << "1 2\n";
-    return 0;
-}
-`
-
-	result, err := operationStress(contracts.StressEvent{
+	result, err := fakeStresser(newFakeRuntime()).operationStress(contracts.StressEvent{
 		Operation:          contracts.OperationStress,
-		TargetCode:         program,
+		TargetCode:         "sum",
 		TargetCodeLang:     contracts.LanguageCpp23,
-		CorrectCode:        program,
+		CorrectCode:        "sum",
 		CorrectCodeLang:    contracts.LanguageCpp23,
 		TargetTimeLimit:    2,
 		TargetMemoryLimit:  256,
@@ -96,7 +51,7 @@ int main() {
 		CorrectMemoryLimit: 256,
 		Iterations:         1,
 		CaseProviders: []contracts.CaseProvider{
-			singlegenProvider("sg-1", contracts.LanguageCpp23, singlegen),
+			singlegenProvider("sg-1", "case:1 2"),
 		},
 	})
 	if err != nil {
@@ -120,62 +75,22 @@ int main() {
 }
 
 func TestOperationStressFindsCounterexample(t *testing.T) {
-	requireCommands(t, "g++")
-
-	targetCode := `#include <iostream>
-using namespace std;
-
-int main() {
-    int a, b;
-    cin >> a >> b;
-    if (a == 3) {
-        cout << a - b << "\n";
-    } else {
-        cout << a + b << "\n";
-    }
-    return 0;
-}
-`
-	correctCode := `#include <iostream>
-using namespace std;
-
-int main() {
-    int a, b;
-    cin >> a >> b;
-    cout << a + b << "\n";
-    return 0;
-}
-`
-	generatorCode := `#include <iostream>
-#include <random>
-#include <string>
-
-int main(int argc, char* argv[]) {
-    int seed = argc > 1 ? std::stoi(argv[1]) : 42;
-    std::mt19937 rng(seed);
-    std::uniform_int_distribution<int> dist(1, 9);
-    std::cout << dist(rng) << " " << dist(rng) << "\n";
-    return 0;
-}
-`
-
-	result, err := operationStress(contracts.StressEvent{
+	result, err := fakeStresser(newFakeRuntime()).operationStress(contracts.StressEvent{
 		Operation:          contracts.OperationStress,
-		TargetCode:         targetCode,
-		TargetCodeLang:     "cpp23",
-		CorrectCode:        correctCode,
-		CorrectCodeLang:    "cpp23",
+		TargetCode:         "buggy-three",
+		TargetCodeLang:     contracts.LanguageCpp23,
+		CorrectCode:        "sum",
+		CorrectCodeLang:    contracts.LanguageCpp23,
 		TargetTimeLimit:    2,
 		TargetMemoryLimit:  256,
 		CorrectTimeLimit:   2,
 		CorrectMemoryLimit: 256,
-		Iterations:         20,
+		Iterations:         4,
 		CaseProviders: []contracts.CaseProvider{
 			textProvider("tc-1", "1 2"),
 			textProvider("tc-2", "1 1"),
 			textProvider("tc-3", "3 7"),
 			textProvider("tc-4", "10 9"),
-			generatorProvider("gen-1", "cpp23", generatorCode),
 		},
 	})
 	if err != nil {
@@ -184,8 +99,8 @@ int main(int argc, char* argv[]) {
 	if result.Error {
 		t.Fatalf("operationStress() returned error result: %+v", result)
 	}
-	if result.TotalCases != 20 {
-		t.Fatalf("TotalCases = %d, want 20", result.TotalCases)
+	if result.TotalCases != 4 {
+		t.Fatalf("TotalCases = %d, want 4", result.TotalCases)
 	}
 	if result.WrongCasesCount == 0 {
 		t.Fatalf("WrongCasesCount = 0, want > 0")
@@ -196,39 +111,19 @@ int main(int argc, char* argv[]) {
 }
 
 func TestOperationStressSurfaceRuntimeErrorVerdict(t *testing.T) {
-	requireCommands(t, python313Command, "g++")
-
-	targetCode := `raise RuntimeError("boom")`
-	correctCode := `#include <iostream>
-using namespace std;
-
-int main() {
-    int a, b;
-    cin >> a >> b;
-    cout << a + b << "\n";
-    return 0;
-}
-`
-	generatorCode := `#include <iostream>
-int main() {
-    std::cout << "1 2\n";
-    return 0;
-}
-`
-
-	result, err := operationStress(contracts.StressEvent{
+	result, err := fakeStresser(newFakeRuntime()).operationStress(contracts.StressEvent{
 		Operation:          contracts.OperationStress,
-		TargetCode:         targetCode,
-		TargetCodeLang:     "python3",
-		CorrectCode:        correctCode,
-		CorrectCodeLang:    "cpp23",
+		TargetCode:         "rte",
+		TargetCodeLang:     contracts.LanguageCpp23,
+		CorrectCode:        "sum",
+		CorrectCodeLang:    contracts.LanguageCpp23,
 		TargetTimeLimit:    2,
 		TargetMemoryLimit:  256,
 		CorrectTimeLimit:   2,
 		CorrectMemoryLimit: 256,
-		Iterations:         10,
+		Iterations:         3,
 		CaseProviders: []contracts.CaseProvider{
-			generatorProvider("gen-rte", "cpp23", generatorCode),
+			generatorProvider("gen-rte", "case:1 2"),
 		},
 	})
 	if err != nil {
@@ -237,14 +132,14 @@ int main() {
 	if result.Error {
 		t.Fatalf("operationStress() returned error result: %+v", result)
 	}
-	if result.TotalCases != 10 {
-		t.Fatalf("TotalCases = %d, want 10", result.TotalCases)
+	if result.TotalCases != 3 {
+		t.Fatalf("TotalCases = %d, want 3", result.TotalCases)
 	}
 	if result.WrongCasesCount != 0 {
 		t.Fatalf("WrongCasesCount = %d, want 0", result.WrongCasesCount)
 	}
-	if result.ExecutionFailedCasesCount != 10 {
-		t.Fatalf("ExecutionFailedCasesCount = %d, want 10", result.ExecutionFailedCasesCount)
+	if result.ExecutionFailedCasesCount != 3 {
+		t.Fatalf("ExecutionFailedCasesCount = %d, want 3", result.ExecutionFailedCasesCount)
 	}
 	if len(result.ExecutionFailedCases) == 0 {
 		t.Fatalf("ExecutionFailedCases was empty")
@@ -260,44 +155,20 @@ int main() {
 }
 
 func TestOperationStressCheckerMismatch(t *testing.T) {
-	requireCommands(t, python313Command, "g++")
-
-	targetCode := `a, b = map(int, input().split())
-print(a // b)
-`
-	correctCode := `a, b = map(int, input().split())
-print(a / b)
-`
-	generatorCode := `#include <iostream>
-#include <random>
-#include <string>
-
-int main(int argc, char* argv[]) {
-    int seed = argc > 1 ? std::stoi(argv[1]) : 42;
-    std::mt19937 rng(seed);
-    std::uniform_int_distribution<int> dist(1, 9);
-    int a = dist(rng);
-    int b = dist(rng);
-    if (b == 0) b = 1;
-    std::cout << a << " " << b << "\n";
-    return 0;
-}
-`
-
-	result, err := operationStress(contracts.StressEvent{
+	result, err := fakeStresser(newFakeRuntime()).operationStress(contracts.StressEvent{
 		Operation:          contracts.OperationStress,
-		TargetCode:         targetCode,
-		TargetCodeLang:     "python3",
-		CorrectCode:        correctCode,
-		CorrectCodeLang:    "python3",
-		CheckerCode:        testCheckerCode(),
+		TargetCode:         "wrong-output",
+		TargetCodeLang:     contracts.LanguageCpp23,
+		CorrectCode:        "sum",
+		CorrectCodeLang:    contracts.LanguageCpp23,
+		CheckerCode:        "checker",
 		TargetTimeLimit:    2,
 		TargetMemoryLimit:  256,
 		CorrectTimeLimit:   2,
 		CorrectMemoryLimit: 256,
-		Iterations:         20,
+		Iterations:         3,
 		CaseProviders: []contracts.CaseProvider{
-			generatorProvider("gen-checker", "cpp23", generatorCode),
+			generatorProvider("gen-checker", "case:3 7"),
 		},
 	})
 	if err != nil {
@@ -306,11 +177,11 @@ int main(int argc, char* argv[]) {
 	if result.Error {
 		t.Fatalf("operationStress() returned error result: %+v", result)
 	}
-	if result.TotalCases != 20 {
-		t.Fatalf("TotalCases = %d, want 20", result.TotalCases)
+	if result.TotalCases != 3 {
+		t.Fatalf("TotalCases = %d, want 3", result.TotalCases)
 	}
-	if result.WrongCasesCount == 0 {
-		t.Fatalf("WrongCasesCount = 0, want > 0")
+	if result.WrongCasesCount != 3 {
+		t.Fatalf("WrongCasesCount = %d, want 3", result.WrongCasesCount)
 	}
 	foundCheckerOutput := false
 	for _, wrongCase := range result.WrongCases {
@@ -328,48 +199,19 @@ int main(int argc, char* argv[]) {
 }
 
 func TestOperationStressDetectsNullCharacterDifference(t *testing.T) {
-	requireCommands(t, "gcc")
-
-	generatorCode := `#include <stdio.h>
-
-int main() {
-    printf("3 7\n");
-    return 0;
-}
-`
-	correctCode := `#include <stdio.h>
-
-int main() {
-    int a, b;
-    scanf("%d %d", &a, &b);
-    printf("%d", a + b);
-    return 0;
-}
-`
-	targetCode := `#include <stdio.h>
-
-int main() {
-    int a, b;
-    scanf("%d %d", &a, &b);
-    printf("%d", a + b);
-    putchar('\0');
-    return 0;
-}
-`
-
-	result, err := operationStress(contracts.StressEvent{
+	result, err := fakeStresser(newFakeRuntime()).operationStress(contracts.StressEvent{
 		Operation:          contracts.OperationStress,
-		TargetCode:         targetCode,
-		TargetCodeLang:     "c11",
-		CorrectCode:        correctCode,
-		CorrectCodeLang:    "c11",
+		TargetCode:         "null-sum",
+		TargetCodeLang:     contracts.LanguageCpp23,
+		CorrectCode:        "sum",
+		CorrectCodeLang:    contracts.LanguageCpp23,
 		TargetTimeLimit:    2,
 		TargetMemoryLimit:  256,
 		CorrectTimeLimit:   2,
 		CorrectMemoryLimit: 256,
-		Iterations:         10,
+		Iterations:         3,
 		CaseProviders: []contracts.CaseProvider{
-			generatorProvider("gen-null", "c11", generatorCode),
+			generatorProvider("gen-null", "case:3 7"),
 		},
 	})
 	if err != nil {
@@ -378,11 +220,11 @@ int main() {
 	if result.Error {
 		t.Fatalf("operationStress() returned error result: %+v", result)
 	}
-	if result.TotalCases != 10 {
-		t.Fatalf("TotalCases = %d, want 10", result.TotalCases)
+	if result.TotalCases != 3 {
+		t.Fatalf("TotalCases = %d, want 3", result.TotalCases)
 	}
-	if result.WrongCasesCount != 10 {
-		t.Fatalf("WrongCasesCount = %d, want 10", result.WrongCasesCount)
+	if result.WrongCasesCount != 3 {
+		t.Fatalf("WrongCasesCount = %d, want 3", result.WrongCasesCount)
 	}
 	for _, wrongCase := range result.WrongCases {
 		if wrongCase.Verdict == nil || *wrongCase.Verdict != contracts.VerdictWrongAnswer {
@@ -392,56 +234,20 @@ int main() {
 }
 
 func TestOperationStressUsesMultipleGenerators(t *testing.T) {
-	requireCommands(t, "gcc")
-
-	generator1Code := `#include <stdio.h>
-int main() {
-    printf("1 1\n");
-    return 0;
-}
-`
-	generator2Code := `#include <stdio.h>
-int main() {
-    printf("2 2\n");
-    return 0;
-}
-`
-	targetCode := `#include <stdio.h>
-
-int main() {
-    int a, b;
-    scanf("%d %d", &a, &b);
-    if (a == 1) {
-        a--;
-    }
-    printf("%d\n", a + b);
-    return 0;
-}
-`
-	correctCode := `#include <stdio.h>
-
-int main() {
-    int a, b;
-    scanf("%d %d", &a, &b);
-    printf("%d\n", a + b);
-    return 0;
-}
-`
-
-	result, err := operationStress(contracts.StressEvent{
+	result, err := fakeStresser(newFakeRuntime()).operationStress(contracts.StressEvent{
 		Operation:          contracts.OperationStress,
-		TargetCode:         targetCode,
-		TargetCodeLang:     "c11",
-		CorrectCode:        correctCode,
-		CorrectCodeLang:    "c11",
+		TargetCode:         "wrong-one",
+		TargetCodeLang:     contracts.LanguageCpp23,
+		CorrectCode:        "sum",
+		CorrectCodeLang:    contracts.LanguageCpp23,
 		TargetTimeLimit:    2,
 		TargetMemoryLimit:  256,
 		CorrectTimeLimit:   2,
 		CorrectMemoryLimit: 256,
 		Iterations:         40,
 		CaseProviders: []contracts.CaseProvider{
-			generatorProvider("gen-1", "c11", generator1Code),
-			generatorProvider("gen-2", "c11", generator2Code),
+			generatorProvider("gen-1", "case:1 1"),
+			generatorProvider("gen-2", "case:2 2"),
 		},
 	})
 	if err != nil {
@@ -462,43 +268,20 @@ int main() {
 }
 
 func TestOperationStressSkipsFailingGenerator(t *testing.T) {
-	requireCommands(t, "gcc")
-
-	failingGeneratorCode := `#include <stdlib.h>
-int main() {
-    return 1;
-}
-`
-	successfulGeneratorCode := `#include <stdio.h>
-int main() {
-    printf("2 2\n");
-    return 0;
-}
-`
-	targetCode := `#include <stdio.h>
-
-int main() {
-    int a, b;
-    scanf("%d %d", &a, &b);
-    printf("%d\n", a + b);
-    return 0;
-}
-`
-
-	result, err := operationStress(contracts.StressEvent{
+	result, err := fakeStresser(newFakeRuntime()).operationStress(contracts.StressEvent{
 		Operation:          contracts.OperationStress,
-		TargetCode:         targetCode,
-		TargetCodeLang:     "c11",
-		CorrectCode:        targetCode,
-		CorrectCodeLang:    "c11",
+		TargetCode:         "sum",
+		TargetCodeLang:     contracts.LanguageCpp23,
+		CorrectCode:        "sum",
+		CorrectCodeLang:    contracts.LanguageCpp23,
 		TargetTimeLimit:    2,
 		TargetMemoryLimit:  256,
 		CorrectTimeLimit:   2,
 		CorrectMemoryLimit: 256,
 		Iterations:         50,
 		CaseProviders: []contracts.CaseProvider{
-			generatorProvider("gen-bad", "c11", failingGeneratorCode),
-			generatorProvider("gen-good", "c11", successfulGeneratorCode),
+			generatorProvider("gen-bad", "fail-generator"),
+			generatorProvider("gen-good", "case:2 2"),
 		},
 	})
 	if err != nil {
@@ -620,4 +403,101 @@ func TestBuildStressResponseDedupsAndLimitsReturnedFailures(t *testing.T) {
 			t.Fatalf("ExecutionFailedCases[%d].Testcase.Text = %q, want %q", i, gotFailedTestcases[i], wantFailedTestcases[i])
 		}
 	}
+}
+
+type fakeRuntime struct {
+	compileFailures map[string]executor.CompileResult
+}
+
+func newFakeRuntime() *fakeRuntime {
+	return &fakeRuntime{compileFailures: map[string]executor.CompileResult{}}
+}
+
+func fakeStresser(fake *fakeRuntime) stresser {
+	return stresser{
+		compile:    fake.compile,
+		run:        fake.run,
+		runChecker: fake.runChecker,
+		newRandom: func() *rand.Rand {
+			return rand.New(rand.NewSource(1))
+		},
+	}
+}
+
+func (f *fakeRuntime) compile(_ context.Context, source executor.Source) executor.CompileResult {
+	if result, ok := f.compileFailures[source.Code]; ok {
+		return result
+	}
+	program := &executor.CompiledProgram{
+		Dir:      source.Code,
+		Label:    source.Code,
+		Language: source.Language,
+		Limits:   source.Limits,
+	}
+	return executor.CompileResult{Success: true, Program: program}
+}
+
+func (f *fakeRuntime) run(_ context.Context, program executor.CompiledProgram, input string, args []string, _ executor.Limits) executor.ExecutionResult {
+	switch program.Label {
+	case "sum":
+		return accepted(sumOutput(input))
+	case "buggy-three":
+		a, b := firstTwoInts(input)
+		if a == 3 {
+			return accepted(fmt.Sprintf("%d\n", a-b))
+		}
+		return accepted(fmt.Sprintf("%d\n", a+b))
+	case "rte":
+		return executor.ExecutionResult{Success: false, Verdict: contracts.VerdictRuntimeError, ReturnCode: 1, Stderr: "boom"}
+	case "wrong-output":
+		return accepted("0\n")
+	case "null-sum":
+		return accepted(strings.TrimSpace(sumOutput(input)) + "\x00")
+	case "wrong-one":
+		a, b := firstTwoInts(input)
+		if a == 1 {
+			return accepted(fmt.Sprintf("%d\n", a+b-1))
+		}
+		return accepted(fmt.Sprintf("%d\n", a+b))
+	case "fail-generator":
+		return executor.ExecutionResult{Success: false, Verdict: contracts.VerdictRuntimeError, ReturnCode: 1, Stderr: "generator failed"}
+	}
+	if content, ok := strings.CutPrefix(program.Label, "case:"); ok {
+		if len(args) > 0 && args[0] == "" {
+			return executor.ExecutionResult{Success: false, Verdict: contracts.VerdictInternalError, ReturnCode: -100}
+		}
+		return accepted(content + "\n")
+	}
+	return accepted(program.Label + "\n")
+}
+
+func (f *fakeRuntime) runChecker(_ context.Context, _ executor.CompiledProgram, input, participant, jury string, _ executor.Limits) executor.ExecutionResult {
+	if executor.CompareOutput(participant, jury) {
+		return executor.ExecutionResult{Success: true, Verdict: contracts.VerdictAccepted, ReturnCode: 0}
+	}
+	return executor.ExecutionResult{
+		Success:    true,
+		Verdict:    contracts.VerdictWrongAnswer,
+		ReturnCode: 1,
+		Stdout:     fmt.Sprintf("expected %s got %s on %s", strings.TrimSpace(jury), strings.TrimSpace(participant), strings.TrimSpace(input)),
+	}
+}
+
+func accepted(stdout string) executor.ExecutionResult {
+	return executor.ExecutionResult{Success: true, Verdict: contracts.VerdictAccepted, ReturnCode: 0, Stdout: stdout}
+}
+
+func sumOutput(input string) string {
+	a, b := firstTwoInts(input)
+	return fmt.Sprintf("%d\n", a+b)
+}
+
+func firstTwoInts(input string) (int, int) {
+	fields := strings.Fields(input)
+	if len(fields) < 2 {
+		return 0, 0
+	}
+	a, _ := strconv.Atoi(fields[0])
+	b, _ := strconv.Atoi(fields[1])
+	return a, b
 }

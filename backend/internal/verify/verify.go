@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 	"github.com/testcase-ac/testcase-ac/backend/internal/executor"
@@ -77,18 +76,33 @@ type sample struct {
 
 type compiledFiles map[string]*executor.CompiledProgram
 
+type verifier struct {
+	compile    func(context.Context, executor.Source) executor.CompileResult
+	run        func(context.Context, executor.CompiledProgram, string, []string, executor.Limits) executor.ExecutionResult
+	runChecker func(context.Context, executor.CompiledProgram, string, string, string, executor.Limits) executor.ExecutionResult
+	sleep      func(time.Duration)
+}
+
 func VerifyProblem(ctx context.Context, problem loader.Problem) VerifyReport {
+	return newVerifier().verifyProblem(ctx, problem)
+}
+
+func newVerifier() verifier {
+	return verifier{
+		compile:    executor.Compile,
+		run:        executor.Run,
+		runChecker: executor.RunChecker,
+		sleep:      time.Sleep,
+	}
+}
+
+func (v verifier) verifyProblem(ctx context.Context, problem loader.Problem) VerifyReport {
 	start := time.Now()
 	report := VerifyReport{ProblemType: problem.ProblemType, ExternalID: problem.ExternalID, Status: StatusOK}
 	addStaticFindings(&report, problem)
 
-	compiled := compileAll(ctx, &report, problem)
-	samples := buildSamples(ctx, &report, problem, compiled)
-	report.SampledCasesCount = len(samples)
-
-	runProblemValidators(ctx, &report, problem, compiled, samples)
-	runCheckerSmoke(ctx, &report, problem, compiled, samples)
-	runCorrectConsistency(ctx, &report, problem, compiled, samples)
+	compiled := v.compileAll(ctx, &report, problem)
+	v.verifySamples(ctx, &report, problem, compiled)
 
 	if hasErrors(report.Findings) {
 		report.Status = StatusFailed
@@ -104,6 +118,9 @@ func addStaticFindings(report *VerifyReport, problem loader.Problem) {
 	if len(problem.Generators)+len(problem.Singlegens)+len(problem.Testcases) == 0 {
 		add(report, SeverityError, StageStatic, "", nil, "problem has no testcase provider", "", "")
 	}
+	if problem.Validator == nil {
+		add(report, SeverityError, StageStatic, "validator.cpp", nil, "problem has no validator", "", "")
+	}
 	for _, testcase := range problem.Testcases {
 		verifyTestcaseText(report, testcase.Filename, testcase.Content)
 	}
@@ -113,15 +130,12 @@ func addStaticFindings(report *VerifyReport, problem loader.Problem) {
 }
 
 func verifyTestcaseText(report *VerifyReport, filename, content string) {
-	if !utf8.ValidString(content) {
-		add(report, SeverityError, StageStatic, filename, nil, "testcase is not valid UTF-8", "", "")
-	}
 	if len(content) > MaxGeneratedTestcaseBytes {
 		add(report, SeverityError, StageStatic, filename, nil, fmt.Sprintf("testcase exceeds %d bytes", MaxGeneratedTestcaseBytes), "", "")
 	}
 }
 
-func compileAll(ctx context.Context, report *VerifyReport, problem loader.Problem) compiledFiles {
+func (v verifier) compileAll(ctx context.Context, report *VerifyReport, problem loader.Problem) compiledFiles {
 	out := compiledFiles{}
 	for _, file := range allSourceFiles(problem) {
 		limits := limitsFor(problem, file.Language)
@@ -131,7 +145,7 @@ func compileAll(ctx context.Context, report *VerifyReport, problem loader.Proble
 		if file.Filename == "validator.cpp" || file.Filename == "checker.cpp" {
 			limits = helperLimits()
 		}
-		result := executor.Compile(ctx, executor.Source{Label: file.Filename, Code: file.Content, Language: file.Language, Limits: limits})
+		result := v.compile(ctx, executor.Source{Label: file.Filename, Code: file.Content, Language: file.Language, Limits: limits})
 		if !result.Success {
 			add(report, SeverityError, StageCompile, file.Filename, nil, "compilation failed", result.Stdout, result.Stderr)
 			continue
@@ -155,12 +169,24 @@ func allSourceFiles(problem loader.Problem) []loader.CodeFile {
 	return out
 }
 
-func buildSamples(ctx context.Context, report *VerifyReport, problem loader.Problem, compiled compiledFiles) []sample {
-	samples := make([]sample, 0, len(problem.Testcases)+len(problem.Singlegens)+len(problem.Generators)*GeneratorRuns)
+func (v verifier) verifySamples(ctx context.Context, report *VerifyReport, problem loader.Problem, compiled compiledFiles) {
+	if problem.Validator == nil {
+		return
+	}
+	validator := compiled[problem.Validator.Filename]
+	if validator == nil {
+		return
+	}
+	var checker *executor.CompiledProgram
+	if problem.Checker != nil {
+		checker = compiled[problem.Checker.Filename]
+	}
+
 	for _, testcase := range problem.Testcases {
 		content := executor.CleanStdout(testcase.Content, "always")
 		if validGeneratedSize(report, StageStatic, testcase.Filename, nil, content) {
-			samples = append(samples, sample{Content: content, Filename: testcase.Filename})
+			report.SampledCasesCount++
+			v.verifySample(ctx, report, problem, compiled, *validator, checker, sample{Content: content, Filename: testcase.Filename})
 		}
 	}
 	for _, singlegen := range problem.Singlegens {
@@ -168,13 +194,13 @@ func buildSamples(ctx context.Context, report *VerifyReport, problem loader.Prob
 		if program == nil {
 			continue
 		}
-		first := executor.Run(ctx, *program, "", nil, generatorLimits())
+		first := v.run(ctx, *program, "", nil, generatorLimits())
 		if !first.Success {
 			addExecution(report, StageSinglegen, singlegen.Filename, nil, "singlegen execution failed", first)
 			continue
 		}
-		time.Sleep(time.Second)
-		second := executor.Run(ctx, *program, "", nil, generatorLimits())
+		v.sleep(time.Second)
+		second := v.run(ctx, *program, "", nil, generatorLimits())
 		if !second.Success {
 			addExecution(report, StageSinglegen, singlegen.Filename, nil, "singlegen repeat execution failed", second)
 			continue
@@ -186,7 +212,8 @@ func buildSamples(ctx context.Context, report *VerifyReport, problem loader.Prob
 			continue
 		}
 		if validGeneratedSize(report, StageSinglegen, singlegen.Filename, nil, firstOut) {
-			samples = append(samples, sample{Content: firstOut, Filename: singlegen.Filename})
+			report.SampledCasesCount++
+			v.verifySample(ctx, report, problem, compiled, *validator, checker, sample{Content: firstOut, Filename: singlegen.Filename})
 		}
 	}
 	for _, generator := range problem.Generators {
@@ -197,30 +224,30 @@ func buildSamples(ctx context.Context, report *VerifyReport, problem loader.Prob
 		seen := map[string]struct{}{}
 		var firstSeedOutput string
 		for seed := 0; seed < GeneratorRuns; seed++ {
-			output, ok := runGenerator(ctx, report, generator.Filename, *program, seed)
+			output, ok := v.runGenerator(ctx, report, generator.Filename, *program, seed)
 			if !ok {
 				continue
 			}
 			if seed == 0 {
 				firstSeedOutput = output
-				repeat, repeatOK := runGenerator(ctx, report, generator.Filename, *program, seed)
+				repeat, repeatOK := v.runGenerator(ctx, report, generator.Filename, *program, seed)
 				if repeatOK && repeat != firstSeedOutput {
 					add(report, SeverityError, StageGenerator, generator.Filename, &seed, "generator output changed for the same seed", firstSeedOutput, repeat)
 				}
 			}
 			seen[output] = struct{}{}
 			s := seed
-			samples = append(samples, sample{Content: output, Filename: generator.Filename, Seed: &s})
+			report.SampledCasesCount++
+			v.verifySample(ctx, report, problem, compiled, *validator, checker, sample{Content: output, Filename: generator.Filename, Seed: &s})
 		}
 		if len(seen) < MinimumDistinctGeneratorIO {
 			add(report, SeverityError, StageGenerator, generator.Filename, nil, fmt.Sprintf("generator produced %d distinct outputs across %d seeds; want at least %d", len(seen), GeneratorRuns, MinimumDistinctGeneratorIO), "", "")
 		}
 	}
-	return samples
 }
 
-func runGenerator(ctx context.Context, report *VerifyReport, filename string, program executor.CompiledProgram, seed int) (string, bool) {
-	result := executor.Run(ctx, program, "", []string{fmt.Sprintf("%d", seed)}, generatorLimits())
+func (v verifier) runGenerator(ctx context.Context, report *VerifyReport, filename string, program executor.CompiledProgram, seed int) (string, bool) {
+	result := v.run(ctx, program, "", []string{fmt.Sprintf("%d", seed)}, generatorLimits())
 	if !result.Success {
 		addExecution(report, StageGenerator, filename, &seed, "generator execution failed", result)
 		return "", false
@@ -232,84 +259,58 @@ func runGenerator(ctx context.Context, report *VerifyReport, filename string, pr
 	return output, true
 }
 
-func runProblemValidators(ctx context.Context, report *VerifyReport, problem loader.Problem, compiled compiledFiles, samples []sample) {
-	if problem.Validator == nil {
+func (v verifier) verifySample(ctx context.Context, report *VerifyReport, problem loader.Problem, compiled compiledFiles, validator executor.CompiledProgram, checker *executor.CompiledProgram, s sample) {
+	result := v.run(ctx, validator, s.Content, nil, helperLimits())
+	if !result.Success || result.ReturnCode != 0 {
+		addExecution(report, StageValidator, s.Filename, s.Seed, "validator rejected testcase", result)
 		return
 	}
-	validator := compiled[problem.Validator.Filename]
-	if validator == nil {
+	if len(problem.CorrectCodes) == 0 {
 		return
 	}
-	for _, s := range samples {
-		result := executor.RunValidator(ctx, *validator, s.Content, helperLimits())
-		if !result.Success || result.ReturnCode != 0 {
-			addExecution(report, StageValidator, s.Filename, s.Seed, "validator rejected testcase", result)
-		}
-	}
-}
 
-func runCheckerSmoke(ctx context.Context, report *VerifyReport, problem loader.Problem, compiled compiledFiles, samples []sample) {
-	if problem.Checker == nil || len(problem.CorrectCodes) == 0 {
-		return
-	}
-	checker := compiled[problem.Checker.Filename]
+	var jury string
+	primaryOK := false
 	primary := compiled[problem.CorrectCodes[0].Filename]
-	if checker == nil || primary == nil {
-		return
-	}
-	for _, s := range samples {
-		jury := executor.Run(ctx, *primary, s.Content, nil, primary.Limits)
-		if !jury.Success {
-			addExecution(report, StageChecker, problem.CorrectCodes[0].Filename, s.Seed, "primary correct solution failed while preparing checker smoke output", jury)
-			continue
+	if primary != nil {
+		primaryRun := v.run(ctx, *primary, s.Content, nil, primary.Limits)
+		if !primaryRun.Success {
+			addExecution(report, StageCorrectConsistency, problem.CorrectCodes[0].Filename, s.Seed, "correct solution failed on sampled testcase", primaryRun)
+		} else {
+			jury = executor.CleanStdout(primaryRun.Stdout, "no")
+			primaryOK = true
 		}
-		clean := executor.CleanStdout(jury.Stdout, "no")
-		result := executor.RunChecker(ctx, *checker, s.Content, clean, clean, helperLimits())
+	}
+
+	if primaryOK && checker != nil {
+		result := v.runChecker(ctx, *checker, s.Content, jury, jury, helperLimits())
 		if !result.Success || result.Verdict != contracts.VerdictAccepted {
 			addExecution(report, StageChecker, problem.Checker.Filename, s.Seed, "checker rejected identical participant and jury output", result)
 		}
 	}
-}
 
-func runCorrectConsistency(ctx context.Context, report *VerifyReport, problem loader.Problem, compiled compiledFiles, samples []sample) {
-	if len(problem.CorrectCodes) == 0 {
-		return
-	}
-	checker := (*executor.CompiledProgram)(nil)
-	if problem.Checker != nil {
-		checker = compiled[problem.Checker.Filename]
-	}
-	for _, s := range samples {
-		outputs := make([]string, len(problem.CorrectCodes))
-		allOK := true
-		for i, correct := range problem.CorrectCodes {
-			program := compiled[correct.Filename]
-			if program == nil {
-				allOK = false
-				continue
-			}
-			result := executor.Run(ctx, *program, s.Content, nil, program.Limits)
-			if !result.Success {
-				addExecution(report, StageCorrectConsistency, correct.Filename, s.Seed, "correct solution failed on sampled testcase", result)
-				allOK = false
-				continue
-			}
-			outputs[i] = executor.CleanStdout(result.Stdout, "no")
-		}
-		if !allOK {
+	for i := 1; i < len(problem.CorrectCodes); i++ {
+		correct := problem.CorrectCodes[i]
+		program := compiled[correct.Filename]
+		if program == nil {
 			continue
 		}
-		jury := outputs[0]
-		for i := 1; i < len(problem.CorrectCodes); i++ {
-			correct := problem.CorrectCodes[i]
-			if checker != nil {
-				result := executor.RunChecker(ctx, *checker, s.Content, outputs[i], jury, helperLimits())
-				if !result.Success || result.Verdict != contracts.VerdictAccepted {
-					addExecution(report, StageCorrectConsistency, correct.Filename, s.Seed, "correct solution output was rejected by checker", result)
-				}
-			} else if !executor.CompareOutput(outputs[i], jury) {
-				add(report, SeverityError, StageCorrectConsistency, correct.Filename, s.Seed, "correct solution output differs from primary correct solution", outputs[i], jury)
+		result := v.run(ctx, *program, s.Content, nil, program.Limits)
+		if !result.Success {
+			addExecution(report, StageCorrectConsistency, correct.Filename, s.Seed, "correct solution failed on sampled testcase", result)
+			continue
+		}
+		if !primaryOK {
+			continue
+		}
+		output := executor.CleanStdout(result.Stdout, "no")
+		if checker != nil {
+			result := v.runChecker(ctx, *checker, s.Content, output, jury, helperLimits())
+			if !result.Success || result.Verdict != contracts.VerdictAccepted {
+				addExecution(report, StageCorrectConsistency, correct.Filename, s.Seed, "correct solution output was rejected by checker", result)
 			}
+		} else if !executor.CompareOutput(output, jury) {
+			add(report, SeverityError, StageCorrectConsistency, correct.Filename, s.Seed, "correct solution output differs from primary correct solution", output, jury)
 		}
 	}
 }
@@ -337,10 +338,6 @@ func helperLimits() executor.Limits {
 func validGeneratedSize(report *VerifyReport, stage Stage, filename string, seed *int, output string) bool {
 	if len(output) > MaxGeneratedTestcaseBytes {
 		add(report, SeverityError, stage, filename, seed, fmt.Sprintf("generated testcase exceeds %d bytes", MaxGeneratedTestcaseBytes), "", "")
-		return false
-	}
-	if !utf8.ValidString(output) {
-		add(report, SeverityError, stage, filename, seed, "generated testcase is not valid UTF-8", "", "")
 		return false
 	}
 	return true

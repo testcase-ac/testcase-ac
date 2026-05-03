@@ -27,6 +27,13 @@ type compiledCaseProvider struct {
 	Program *executor.CompiledProgram
 }
 
+type stresser struct {
+	compile    func(context.Context, executor.Source) executor.CompileResult
+	run        func(context.Context, executor.CompiledProgram, string, []string, executor.Limits) executor.ExecutionResult
+	runChecker func(context.Context, executor.CompiledProgram, string, string, string, executor.Limits) executor.ExecutionResult
+	newRandom  func() *rand.Rand
+}
+
 type targetRun struct {
 	Verdict       contracts.Verdict
 	TargetOutput  string
@@ -67,7 +74,22 @@ func (r *eventRecorder) response() []contracts.EventRecord {
 	return r.events
 }
 
+func newStresser() stresser {
+	return stresser{
+		compile:    executor.Compile,
+		run:        executor.Run,
+		runChecker: executor.RunChecker,
+		newRandom: func() *rand.Rand {
+			return rand.New(rand.NewSource(time.Now().UnixNano()))
+		},
+	}
+}
+
 func operationStress(event contracts.StressEvent) (contracts.StressResult, error) {
+	return newStresser().operationStress(event)
+}
+
+func (s stresser) operationStress(event contracts.StressEvent) (contracts.StressResult, error) {
 	normalized := normalizeStressEvent(event)
 	events := newEventRecorder()
 	startTime := time.Now()
@@ -84,7 +106,7 @@ func operationStress(event contracts.StressEvent) (contracts.StressResult, error
 
 	slog.Info("compile_start", "phase", "target")
 	events.record("target_compile_start", "")
-	targetProgram, err := compileAndGetProgram(
+	targetProgram, err := s.compileAndGetProgram(
 		normalized.TargetCode,
 		normalized.TargetCodeLang,
 		executor.Limits{TimeSeconds: normalized.TargetTimeLimit, MemoryMB: normalized.TargetMemoryLimit},
@@ -97,7 +119,7 @@ func operationStress(event contracts.StressEvent) (contracts.StressResult, error
 
 	slog.Info("compile_start", "phase", "correct")
 	events.record("correct_compile_start", "")
-	correctProgram, err := compileAndGetProgram(
+	correctProgram, err := s.compileAndGetProgram(
 		normalized.CorrectCode,
 		normalized.CorrectCodeLang,
 		executor.Limits{TimeSeconds: normalized.CorrectTimeLimit, MemoryMB: normalized.CorrectMemoryLimit},
@@ -112,7 +134,7 @@ func operationStress(event contracts.StressEvent) (contracts.StressResult, error
 	if normalized.CheckerCode != "" {
 		slog.Info("compile_start", "phase", "checker")
 		events.record("checker_compile_start", "")
-		checkerProgram, err = compileAndGetProgram(
+		checkerProgram, err = s.compileAndGetProgram(
 			normalized.CheckerCode,
 			contracts.LanguageCpp23,
 			executor.Limits{TimeSeconds: 2, MemoryMB: 1024},
@@ -124,12 +146,12 @@ func operationStress(event contracts.StressEvent) (contracts.StressResult, error
 		events.record("checker_compile_done", "")
 	}
 
-	providers, err := compileCaseProviders(normalized.CaseProviders, events)
+	providers, err := s.compileCaseProviders(normalized.CaseProviders, events)
 	if err != nil {
 		return contracts.StressResult{}, err
 	}
 
-	wrongCases, executionFailedCases, correctCases, err := runStressLoop(
+	wrongCases, executionFailedCases, correctCases, err := s.runStressLoop(
 		normalized.Iterations,
 		startTime,
 		*targetProgram,
@@ -176,7 +198,7 @@ func normalizeStressEvent(event contracts.StressEvent) contracts.StressEvent {
 	return event
 }
 
-func compileCaseProviders(caseProviders []contracts.CaseProvider, events *eventRecorder) ([]compiledCaseProvider, error) {
+func (s stresser) compileCaseProviders(caseProviders []contracts.CaseProvider, events *eventRecorder) ([]compiledCaseProvider, error) {
 	out := make([]compiledCaseProvider, 0, len(caseProviders))
 	for _, provider := range caseProviders {
 		compiled := compiledCaseProvider{
@@ -186,7 +208,7 @@ func compileCaseProviders(caseProviders []contracts.CaseProvider, events *eventR
 		case contracts.CaseProviderText:
 		case contracts.CaseProviderGenerator, contracts.CaseProviderSinglegen:
 			events.record(string(provider.Type)+"_compile_start", provider.ID)
-			program, err := compileAndGetProgram(
+			program, err := s.compileAndGetProgram(
 				provider.Code,
 				provider.Language,
 				executor.Limits{TimeSeconds: 2, MemoryMB: 1024},
@@ -208,7 +230,7 @@ func compileCaseProviders(caseProviders []contracts.CaseProvider, events *eventR
 	return out, nil
 }
 
-func (p compiledCaseProvider) Generate(randomSeed int) (string, contracts.GeneratedBy, *executionResult, error) {
+func (s stresser) generateCaseProvider(p compiledCaseProvider, randomSeed int) (string, contracts.GeneratedBy, *executionResult, error) {
 	switch p.Type {
 	case contracts.CaseProviderText:
 		return executor.CleanStdout(p.Content, "always"), contracts.GeneratedBy{
@@ -226,7 +248,7 @@ func (p compiledCaseProvider) Generate(randomSeed int) (string, contracts.Genera
 			args = []string{seed}
 			generatedBy.Seed = stringPtr(seed)
 		}
-		execution := executor.Run(context.Background(), *p.Program, "", args, p.Program.Limits)
+		execution := s.run(context.Background(), *p.Program, "", args, p.Program.Limits)
 		if !execution.Success {
 			return "", contracts.GeneratedBy{}, &execution, nil
 		}
@@ -239,7 +261,7 @@ func (p compiledCaseProvider) Generate(randomSeed int) (string, contracts.Genera
 	}
 }
 
-func runStressLoop(
+func (s stresser) runStressLoop(
 	iterations int,
 	startTime time.Time,
 	targetCode compiledProgram,
@@ -262,7 +284,7 @@ func runStressLoop(
 		generatorWeights[i] = 1.0
 	}
 
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	random := s.newRandom()
 	wrongCases := []stressIteration{}
 	executionFailedCases := []stressIteration{}
 	correctCases := []stressIteration{}
@@ -295,7 +317,7 @@ func runStressLoop(
 		}
 
 		randomSeed := random.Intn(1_000_000_000)
-		iterationResult, err := stressTestIteration(targetCode, correctCode, checkerCode, provider, randomSeed)
+		iterationResult, err := s.stressTestIteration(targetCode, correctCode, checkerCode, provider, randomSeed)
 		if err != nil {
 			if responseErr, ok := err.(*ResponseError); ok && responseErr.errorType == contracts.ErrorTypeGeneratorExecutionFailed {
 				slog.Warn("generator_execution_failed", "iteration", iteration, "error_type", responseErr.errorType)
