@@ -10,6 +10,7 @@ import (
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 	"github.com/testcase-ac/testcase-ac/backend/internal/executor"
 	"github.com/testcase-ac/testcase-ac/backend/internal/loader"
+	"github.com/testcase-ac/testcase-ac/backend/internal/util"
 )
 
 const (
@@ -107,7 +108,7 @@ func (v verifier) verifyProblem(ctx context.Context, problem loader.Problem) Ver
 	if hasErrors(report.Findings) {
 		report.Status = StatusFailed
 	}
-	report.RuntimeSeconds = executor.RoundSeconds(time.Since(start))
+	report.RuntimeSeconds = util.RoundSeconds(time.Since(start))
 	return report
 }
 
@@ -183,7 +184,7 @@ func (v verifier) verifySamples(ctx context.Context, report *VerifyReport, probl
 	}
 
 	for _, testcase := range problem.Testcases {
-		content := executor.CleanStdout(testcase.Content, "always")
+		content := util.CleanStdout(testcase.Content, "always")
 		if validGeneratedSize(report, StageStatic, testcase.Filename, nil, content) {
 			report.SampledCasesCount++
 			v.verifySample(ctx, report, problem, compiled, *validator, checker, sample{Content: content, Filename: testcase.Filename})
@@ -205,8 +206,8 @@ func (v verifier) verifySamples(ctx context.Context, report *VerifyReport, probl
 			addExecution(report, StageSinglegen, singlegen.Filename, nil, "singlegen repeat execution failed", second)
 			continue
 		}
-		firstOut := executor.CleanStdout(first.Stdout, "always")
-		secondOut := executor.CleanStdout(second.Stdout, "always")
+		firstOut := util.CleanStdout(first.Stdout, "always")
+		secondOut := util.CleanStdout(second.Stdout, "always")
 		if firstOut != secondOut {
 			add(report, SeverityError, StageSinglegen, singlegen.Filename, nil, "singlegen output changed between runs", first.Stdout, second.Stdout)
 			continue
@@ -252,7 +253,7 @@ func (v verifier) runGenerator(ctx context.Context, report *VerifyReport, filena
 		addExecution(report, StageGenerator, filename, &seed, "generator execution failed", result)
 		return "", false
 	}
-	output := executor.CleanStdout(result.Stdout, "always")
+	output := util.CleanStdout(result.Stdout, "always")
 	if !validGeneratedSize(report, StageGenerator, filename, &seed, output) {
 		return "", false
 	}
@@ -277,7 +278,7 @@ func (v verifier) verifySample(ctx context.Context, report *VerifyReport, proble
 		if !primaryRun.Success {
 			addExecution(report, StageCorrectConsistency, problem.CorrectCodes[0].Filename, s.Seed, "correct solution failed on sampled testcase", primaryRun)
 		} else {
-			jury = executor.CleanStdout(primaryRun.Stdout, "no")
+			jury = util.CleanStdout(primaryRun.Stdout, "no")
 			primaryOK = true
 		}
 	}
@@ -303,13 +304,13 @@ func (v verifier) verifySample(ctx context.Context, report *VerifyReport, proble
 		if !primaryOK {
 			continue
 		}
-		output := executor.CleanStdout(result.Stdout, "no")
+		output := util.CleanStdout(result.Stdout, "no")
 		if checker != nil {
 			result := v.runChecker(ctx, *checker, s.Content, output, jury, helperLimits())
 			if !result.Success || result.Verdict != contracts.VerdictAccepted {
 				addExecution(report, StageCorrectConsistency, correct.Filename, s.Seed, "correct solution output was rejected by checker", result)
 			}
-		} else if !executor.CompareOutput(output, jury) {
+		} else if !util.CompareOutput(output, jury) {
 			add(report, SeverityError, StageCorrectConsistency, correct.Filename, s.Seed, "correct solution output differs from primary correct solution", output, jury)
 		}
 	}

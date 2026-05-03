@@ -11,6 +11,7 @@ import (
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 	"github.com/testcase-ac/testcase-ac/backend/internal/executor"
+	"github.com/testcase-ac/testcase-ac/backend/internal/util"
 )
 
 const (
@@ -65,7 +66,7 @@ func (r *eventRecorder) record(eventType, value string) {
 		ID:             len(r.events) + 1,
 		Type:           eventType,
 		Value:          value,
-		ElapsedSeconds: roundSeconds(time.Since(r.startTime)),
+		ElapsedSeconds: util.RoundSeconds(time.Since(r.startTime)),
 	})
 }
 
@@ -233,7 +234,7 @@ func (s stresser) compileCaseProviders(caseProviders []contracts.CaseProvider, e
 func (s stresser) generateCaseProvider(p compiledCaseProvider, randomSeed int) (string, contracts.GeneratedBy, *executionResult, error) {
 	switch p.Type {
 	case contracts.CaseProviderText:
-		return executor.CleanStdout(p.Content, "always"), contracts.GeneratedBy{
+		return util.CleanStdout(p.Content, "always"), contracts.GeneratedBy{
 			Stage: p.Type,
 			ID:    p.ID,
 		}, nil, nil
@@ -252,7 +253,7 @@ func (s stresser) generateCaseProvider(p compiledCaseProvider, randomSeed int) (
 		if !execution.Success {
 			return "", contracts.GeneratedBy{}, &execution, nil
 		}
-		return executor.CleanStdout(execution.Stdout, "always"), generatedBy, nil, nil
+		return util.CleanStdout(execution.Stdout, "always"), generatedBy, nil, nil
 	default:
 		return "", contracts.GeneratedBy{}, nil, NewResponseError(
 			contracts.ErrorTypeInternalServerError,
@@ -419,7 +420,7 @@ func dedupAndSort(items []stressIteration) []stressIteration {
 	byTestcase := make(map[string]stressIteration, len(items))
 	order := []string{}
 	for _, item := range items {
-		key := executor.CleanStdout(item.Testcase, "no")
+		key := util.CleanStdout(item.Testcase, "no")
 		if _, exists := byTestcase[key]; !exists {
 			byTestcase[key] = item
 			order = append(order, key)

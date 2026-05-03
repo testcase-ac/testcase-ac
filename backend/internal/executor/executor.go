@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
+	"github.com/testcase-ac/testcase-ac/backend/internal/util"
 )
 
 const (
@@ -319,7 +320,7 @@ func Run(ctx context.Context, program CompiledProgram, inputData string, args []
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	err := cmd.Run()
-	timeSpent := RoundSeconds(time.Since(start))
+	timeSpent := util.RoundSeconds(time.Since(start))
 
 	stdoutText := stdout.String()
 	stderrText := ShortenPathsToFilenames(stderr.String())
@@ -409,34 +410,6 @@ func writeTempFile(dir, pattern, content string) (string, error) {
 		return "", err
 	}
 	return path, nil
-}
-
-func CleanStdout(output string, trailingNewline string) string {
-	trimmed := strings.TrimRight(output, "\n\r\t ")
-	if trimmed == "" {
-		if trailingNewline == "always" {
-			return "\n"
-		}
-		return ""
-	}
-	lines := strings.Split(trimmed, "\n")
-	for i, line := range lines {
-		lines[i] = strings.TrimRight(line, " \t\r")
-	}
-	cleaned := strings.Join(lines, "\n")
-	if trailingNewline == "always" {
-		return cleaned + "\n"
-	}
-	return cleaned
-}
-
-func CompareOutput(a, b string) bool {
-	a = strings.TrimRight(a, "\n\r\t ")
-	b = strings.TrimRight(b, "\n\r\t ")
-	if strings.ReplaceAll(a, "\n", " ") == strings.ReplaceAll(b, "\n", " ") {
-		return true
-	}
-	return strings.ReplaceAll(a, " \n", "\n") == strings.ReplaceAll(b, " \n", "\n")
 }
 
 func ShortenPathsToFilenames(s string) string {
@@ -605,8 +578,4 @@ func dotnetRuntimeIdentifier() string {
 
 func dotnetPublishedBinaryPath() string {
 	return filepath.Join(".", "CsharpApp", "bin", "Release", "net8.0", dotnetRuntimeIdentifier(), "publish", "CsharpApp")
-}
-
-func RoundSeconds(d time.Duration) float64 {
-	return float64(d.Milliseconds()) / 1000.0
 }

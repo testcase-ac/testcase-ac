@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"time"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 	"github.com/testcase-ac/testcase-ac/backend/internal/executor"
+	"github.com/testcase-ac/testcase-ac/backend/internal/util"
 )
 
 type executionResult = executor.ExecutionResult
@@ -78,8 +78,8 @@ func (s stresser) stressTestIteration(targetCode, correctCode compiledProgram, c
 			Time:          targetExecution.Time,
 		}
 	} else if checkerCode != nil {
-		cleanCorrect := executor.CleanStdout(correctExecution.Stdout, "no")
-		cleanTarget := executor.CleanStdout(targetExecution.Stdout, "no")
+		cleanCorrect := util.CleanStdout(correctExecution.Stdout, "no")
+		cleanTarget := util.CleanStdout(targetExecution.Stdout, "no")
 		checkerExecution := s.runChecker(context.Background(), *checkerCode, testcase, cleanTarget, cleanCorrect, checkerCode.Limits)
 		if checkerExecution.Success {
 			runSummary = targetRun{
@@ -102,7 +102,7 @@ func (s stresser) stressTestIteration(targetCode, correctCode compiledProgram, c
 		}
 	} else {
 		verdict := contracts.VerdictWrongAnswer
-		if executor.CompareOutput(targetExecution.Stdout, correctExecution.Stdout) {
+		if util.CompareOutput(targetExecution.Stdout, correctExecution.Stdout) {
 			verdict = contracts.VerdictAccepted
 		}
 		runSummary = targetRun{
@@ -118,8 +118,4 @@ func (s stresser) stressTestIteration(targetCode, correctCode compiledProgram, c
 		CorrectOutput: correctExecution.Stdout,
 		TargetRun:     runSummary,
 	}, nil
-}
-
-func roundSeconds(d time.Duration) float64 {
-	return executor.RoundSeconds(d)
 }

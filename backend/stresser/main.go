@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
+	"github.com/testcase-ac/testcase-ac/backend/internal/util"
 )
 
 var (
@@ -36,7 +37,7 @@ func handler(_ context.Context, event contracts.StressEvent) (result contracts.S
 				contracts.ErrorTypeInternalServerError,
 				map[string]any{"message": "Internal server error"},
 			).ToResponse(requestID)
-			result.RuntimeSeconds = roundSeconds(time.Since(startTime))
+			result.RuntimeSeconds = util.RoundSeconds(time.Since(startTime))
 			err = nil
 		}
 	}()
@@ -59,7 +60,7 @@ func handler(_ context.Context, event contracts.StressEvent) (result contracts.S
 		if responseErr, ok := err.(*ResponseError); ok {
 			slog.Warn("stresser_response_error", "request_id", requestID, "error_type", responseErr.errorType)
 			response := responseErr.ToResponse(requestID)
-			response.RuntimeSeconds = roundSeconds(time.Since(startTime))
+			response.RuntimeSeconds = util.RoundSeconds(time.Since(startTime))
 			return response, nil
 		}
 		slog.Error(
@@ -72,12 +73,12 @@ func handler(_ context.Context, event contracts.StressEvent) (result contracts.S
 			contracts.ErrorTypeInternalServerError,
 			map[string]any{"message": "Internal server error"},
 		).ToResponse(requestID)
-		response.RuntimeSeconds = roundSeconds(time.Since(startTime))
+		response.RuntimeSeconds = util.RoundSeconds(time.Since(startTime))
 		return response, nil
 	}
 
 	result.RequestID = requestID
-	result.RuntimeSeconds = roundSeconds(time.Since(startTime))
+	result.RuntimeSeconds = util.RoundSeconds(time.Since(startTime))
 	slog.Info(
 		"stresser_invocation_done",
 		"request_id", requestID,

@@ -10,6 +10,7 @@ import (
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 	"github.com/testcase-ac/testcase-ac/backend/internal/executor"
+	"github.com/testcase-ac/testcase-ac/backend/internal/util"
 )
 
 func textProvider(id, content string) contracts.CaseProvider {
@@ -472,7 +473,7 @@ func (f *fakeRuntime) run(_ context.Context, program executor.CompiledProgram, i
 }
 
 func (f *fakeRuntime) runChecker(_ context.Context, _ executor.CompiledProgram, input, participant, jury string, _ executor.Limits) executor.ExecutionResult {
-	if executor.CompareOutput(participant, jury) {
+	if util.CompareOutput(participant, jury) {
 		return executor.ExecutionResult{Success: true, Verdict: contracts.VerdictAccepted, ReturnCode: 0}
 	}
 	return executor.ExecutionResult{
