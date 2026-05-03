@@ -70,12 +70,10 @@ Run the basic browser-inclusive E2E smoke test from the repository root:
 ./tests/e2e/run_smoke.sh
 ```
 
-`go test ./stresser` exercises the stresser locally and requires the full
-stresser runtime environment. For reproducible stresser validation, run the
-Docker-backed test from the repo root:
+For real compile/run behavior, test the executor in Docker from the repo root:
 
 ```bash
-./tests/dockertest/run_test.sh ./stresser
+./tests/dockertest/run_test.sh ./internal/executor
 ```
 
 ## Contributing

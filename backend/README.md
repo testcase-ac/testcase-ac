@@ -35,10 +35,10 @@ POST /api/problems/{problemType}/{externalId}/stress
 go build ./stresser
 ```
 
-저장소 루트에서 Linux/컨테이너 테스트를 실행합니다.
+저장소 루트에서 executor runtime 테스트를 실행합니다.
 
 ```bash
-./tests/dockertest/run_test.sh ./stresser
+./tests/dockertest/run_test.sh ./internal/executor
 ```
 
 Lambda 런타임을 통해 로컬에서 실행합니다.

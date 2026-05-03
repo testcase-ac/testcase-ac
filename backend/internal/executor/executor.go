@@ -189,10 +189,8 @@ func Compile(ctx context.Context, source Source) CompileResult {
 	}
 	directory := GetCacheDirectory(source.Code, source.Language)
 	if _, err := os.Stat(directory); err == nil {
-		slog.Info("compile_cache_hit", "directory", directory, "language", source.Language)
 		return compileSuccess(source, directory)
 	}
-	slog.Info("compile_cache_miss", "directory", directory, "language", source.Language)
 	return compileCode(ctx, source, directory, spec)
 }
 
@@ -238,7 +236,6 @@ func compileCode(ctx context.Context, source Source, workDir string, spec langua
 			return CompileResult{Success: false, Stdout: stdoutText, Stderr: stderrText, ReturnCode: exitCode, Command: append([]string{}, cmdArgs...), StepIndex: i}
 		}
 	}
-	slog.Info("compile_done", "source_path", sourcePath)
 	return compileSuccess(source, workDir)
 }
 

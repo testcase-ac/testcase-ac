@@ -61,18 +61,16 @@ cd frontend && npm run typecheck
 cd backend && go test ./api ./contracts
 ```
 
-브라우저까지 포함한 기본 E2E 스모크 테스트는 레포지토리 루트에서 실행하세요.
+브라우저까지 포함한 기본 E2E 스모크 테스트:
 
 ```bash
 ./tests/e2e/run_smoke.sh
 ```
 
-`go test ./stresser`는 stresser를 로컬에서 실행하며 전체 stresser 실행 환경이
-필요합니다. 재현 가능한 stresser 검증은 레포지토리 루트에서 Docker 기반 테스트
-러너로 실행하세요.
+실제 Docker 내에서의 compile/run 동작 테스트:
 
 ```bash
-./tests/dockertest/run_test.sh ./stresser
+./tests/dockertest/run_test.sh ./internal/executor
 ```
 
 ## 기여

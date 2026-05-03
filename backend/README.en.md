@@ -35,10 +35,10 @@ Build from `backend/`:
 go build ./stresser
 ```
 
-Run Linux/container tests from the repo root:
+Run executor runtime tests from the repo root:
 
 ```bash
-./tests/dockertest/run_test.sh ./stresser
+./tests/dockertest/run_test.sh ./internal/executor
 ```
 
 Run locally through the Lambda runtime:

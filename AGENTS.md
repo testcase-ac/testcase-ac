@@ -36,11 +36,10 @@ Host-local checks cover packages whose tests either avoid testcase program execu
 - Run frontend typechecking with `cd frontend && npm run typecheck`.
 - Run backend host-safe validation with `cd backend && go test ./api ./contracts ./internal/loader ./internal/verify ./stresser`.
 
-Docker runtime checks are required for executor compile/run behavior and real problem verification. Run these commands from the repo root, and do not treat host-only runtime failures as sufficient verification:
+Docker runtime checks are required for executor compile/run behavior and real problem verification. Run these commands from the repo root, and do not treat host-only executor or real-problem verification failures as sufficient verification:
 
-- Executor: `./tests/dockertest/run_test.sh ./internal/executor`
 - Real problem verification: `./tests/verify/run_problems.sh testcase/<type>/<id>`
-- All runtime-backed package tests: `./tests/dockertest/run_test.sh`, covering `./internal/executor`.
+- Default Docker package test: `./tests/dockertest/run_test.sh`, covering `./internal/executor`.
 
 ## Deployment
 
