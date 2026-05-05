@@ -3,3 +3,7 @@ externalLink: "https://www.acmicpc.net/problem/15686"
 timeLimitMs: 1000
 memoryLimitMb: 512
 isSpecialJudge: false
+
+authors:
+  testcase_migrated_1.txt: "milt"
+  validator.cpp: "milt"
