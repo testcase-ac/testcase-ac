@@ -13,8 +13,8 @@ import (
 
 type executionResult = executor.ExecutionResult
 
-func (s stresser) compileAndGetProgram(code string, lang contracts.Language, limits executor.Limits, errorType contracts.ErrorType) (*executor.CompiledProgram, error) {
-	result := s.compile(context.Background(), executor.Source{Code: code, Language: lang, Limits: limits})
+func (s stresser) compileAndGetProgram(code string, lang contracts.Language, limits executor.Limits, errorType contracts.ErrorType) (*compiledProgram, error) {
+	result := s.compile(context.Background(), executor.Source{Code: code, Language: lang})
 	if !result.Success {
 		details := map[string]any{
 			"stderr":     result.Stderr,
@@ -36,7 +36,7 @@ func (s stresser) compileAndGetProgram(code string, lang contracts.Language, lim
 		)
 		return nil, NewResponseError(errorType, details)
 	}
-	return result.Program, nil
+	return &compiledProgram{Program: *result.Program, Limits: limits}, nil
 }
 
 func (s stresser) stressTestIteration(targetCode, correctCode compiledProgram, checkerCode *compiledProgram, caseProvider compiledCaseProvider, randomSeed int) (stressIteration, error) {
@@ -55,7 +55,7 @@ func (s stresser) stressTestIteration(targetCode, correctCode compiledProgram, c
 		})
 	}
 
-	correctExecution := s.run(context.Background(), correctCode, testcase, nil, correctCode.Limits)
+	correctExecution := s.run(context.Background(), correctCode.Program, testcase, nil, correctCode.Limits)
 	if !correctExecution.Success {
 		return stressIteration{}, NewResponseError(contracts.ErrorTypeCorrectExecutionFailed, map[string]any{
 			"verdict":    correctExecution.Verdict,
@@ -67,7 +67,7 @@ func (s stresser) stressTestIteration(targetCode, correctCode compiledProgram, c
 		})
 	}
 
-	targetExecution := s.run(context.Background(), targetCode, testcase, nil, targetCode.Limits)
+	targetExecution := s.run(context.Background(), targetCode.Program, testcase, nil, targetCode.Limits)
 	var runSummary targetRun
 	if !targetExecution.Success {
 		runSummary = targetRun{
@@ -80,7 +80,7 @@ func (s stresser) stressTestIteration(targetCode, correctCode compiledProgram, c
 	} else if checkerCode != nil {
 		cleanCorrect := util.CleanStdout(correctExecution.Stdout, "no")
 		cleanTarget := util.CleanStdout(targetExecution.Stdout, "no")
-		checkerExecution := s.runChecker(context.Background(), *checkerCode, testcase, cleanTarget, cleanCorrect, checkerCode.Limits)
+		checkerExecution := s.runChecker(context.Background(), checkerCode.Program, testcase, cleanTarget, cleanCorrect, checkerCode.Limits)
 		if checkerExecution.Success {
 			runSummary = targetRun{
 				Verdict:       checkerExecution.Verdict,

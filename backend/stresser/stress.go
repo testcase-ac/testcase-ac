@@ -21,11 +21,14 @@ const (
 	caseLimitInResponse         = 3
 )
 
-type compiledProgram = executor.CompiledProgram
+type compiledProgram struct {
+	Program executor.CompiledProgram
+	Limits  executor.Limits
+}
 
 type compiledCaseProvider struct {
 	contracts.CaseProvider
-	Program *executor.CompiledProgram
+	Program *compiledProgram
 }
 
 type stresser struct {
@@ -131,7 +134,7 @@ func (s stresser) operationStress(event contracts.StressEvent) (contracts.Stress
 	}
 	events.record("correct_compile_done", "")
 
-	var checkerProgram *executor.CompiledProgram
+	var checkerProgram *compiledProgram
 	if normalized.CheckerCode != "" {
 		slog.Info("compile_start", "phase", "checker")
 		events.record("checker_compile_start", "")
@@ -249,7 +252,7 @@ func (s stresser) generateCaseProvider(p compiledCaseProvider, randomSeed int) (
 			args = []string{seed}
 			generatedBy.Seed = stringPtr(seed)
 		}
-		execution := s.run(context.Background(), *p.Program, "", args, p.Program.Limits)
+		execution := s.run(context.Background(), p.Program.Program, "", args, p.Program.Limits)
 		if !execution.Success {
 			return "", contracts.GeneratedBy{}, &execution, nil
 		}

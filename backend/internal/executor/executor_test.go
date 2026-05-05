@@ -90,13 +90,21 @@ func requireVirtualMemoryLimitSupport(t *testing.T) {
 }
 
 func compileCodeCached(code string, lang contracts.Language) CompileResult {
-	return Compile(context.Background(), Source{Code: code, Language: lang, Limits: DefaultRunLimits()})
+	return Compile(context.Background(), Source{Code: code, Language: lang})
 }
 
 func runCode(workDir, inputData string, lang contracts.Language, timeLimit float64, memoryLimit int, additionalArgs []string) ExecutionResult {
 	limits := Limits{TimeSeconds: timeLimit, MemoryMB: memoryLimit}
-	program := CompiledProgram{Dir: workDir, Language: lang, Limits: limits}
+	program := CompiledProgram{Dir: workDir, Language: lang}
 	return Run(context.Background(), program, inputData, additionalArgs, limits)
+}
+
+func TestNormalizeLimitsUsesExecutorDefaults(t *testing.T) {
+	got := normalizeLimits(Limits{})
+	want := DefaultRunLimits()
+	if got != want {
+		t.Fatalf("normalizeLimits() = %+v, want %+v", got, want)
+	}
 }
 
 func truncateText(value string, maxChars, maxLines int) string {
@@ -458,9 +466,10 @@ int main(int argc, char* argv[]) {
 	if !compileResult.Success {
 		t.Fatalf("compileCodeCached() failed: %+v", compileResult)
 	}
-	checker := CompiledProgram{Dir: compileResult.Directory, Language: contracts.LanguageCpp23, Limits: Limits{TimeSeconds: 2, MemoryMB: 1024}}
+	checker := CompiledProgram{Dir: compileResult.Directory, Language: contracts.LanguageCpp23}
+	checkerLimits := Limits{TimeSeconds: 2, MemoryMB: 1024}
 
-	acceptedResult := RunChecker(context.Background(), checker, "1 2\n", "3\n", "3\n", checker.Limits)
+	acceptedResult := RunChecker(context.Background(), checker, "1 2\n", "3\n", "3\n", checkerLimits)
 	if !acceptedResult.Success {
 		t.Fatalf("RunChecker() accepted case failed: %+v", acceptedResult)
 	}
@@ -468,7 +477,7 @@ int main(int argc, char* argv[]) {
 		t.Fatalf("RunChecker() accepted verdict = %q, want %q", acceptedResult.Verdict, contracts.VerdictAccepted)
 	}
 
-	wrongResult := RunChecker(context.Background(), checker, "1 2\n", "4\n", "3\n", checker.Limits)
+	wrongResult := RunChecker(context.Background(), checker, "1 2\n", "4\n", "3\n", checkerLimits)
 	if !wrongResult.Success {
 		t.Fatalf("RunChecker() wrong-answer case failed: %+v", wrongResult)
 	}

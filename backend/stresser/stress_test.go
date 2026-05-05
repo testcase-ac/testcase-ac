@@ -479,7 +479,6 @@ func (f *fakeRuntime) compile(_ context.Context, source executor.Source) executo
 		Dir:      source.Code,
 		Label:    source.Code,
 		Language: source.Language,
-		Limits:   source.Limits,
 	}
 	return executor.CompileResult{Success: true, Program: program}
 }

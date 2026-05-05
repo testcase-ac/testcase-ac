@@ -139,14 +139,7 @@ func verifyTestcaseText(report *VerifyReport, filename, content string) {
 func (v verifier) compileAll(ctx context.Context, report *VerifyReport, problem loader.Problem) compiledFiles {
 	out := compiledFiles{}
 	for _, file := range allSourceFiles(problem) {
-		limits := limitsFor(problem, file.Language)
-		if loader.IsRoleFile(file.Filename, "generator") || loader.IsRoleFile(file.Filename, "singlegen") {
-			limits = generatorLimits()
-		}
-		if file.Filename == "validator.cpp" || file.Filename == "checker.cpp" {
-			limits = helperLimits()
-		}
-		result := v.compile(ctx, executor.Source{Label: file.Filename, Code: file.Content, Language: file.Language, Limits: limits})
+		result := v.compile(ctx, executor.Source{Label: file.Filename, Code: file.Content, Language: file.Language})
 		if !result.Success {
 			add(report, SeverityError, StageCompile, file.Filename, nil, "compilation failed", result.Stdout, result.Stderr)
 			continue
@@ -272,11 +265,12 @@ func (v verifier) verifySample(ctx context.Context, report *VerifyReport, proble
 
 	var jury string
 	primaryOK := false
-	primary := compiled[problem.CorrectCodes[0].Filename]
+	primaryCode := problem.CorrectCodes[0]
+	primary := compiled[primaryCode.Filename]
 	if primary != nil {
-		primaryRun := v.run(ctx, *primary, s.Content, nil, primary.Limits)
+		primaryRun := v.run(ctx, *primary, s.Content, nil, limitsFor(problem, primaryCode.Language))
 		if !primaryRun.Success {
-			addExecution(report, StageCorrectConsistency, problem.CorrectCodes[0].Filename, s.Seed, "correct solution failed on sampled testcase", primaryRun)
+			addExecution(report, StageCorrectConsistency, primaryCode.Filename, s.Seed, "correct solution failed on sampled testcase", primaryRun)
 		} else {
 			jury = util.CleanStdout(primaryRun.Stdout, "no")
 			primaryOK = true
@@ -296,7 +290,7 @@ func (v verifier) verifySample(ctx context.Context, report *VerifyReport, proble
 		if program == nil {
 			continue
 		}
-		result := v.run(ctx, *program, s.Content, nil, program.Limits)
+		result := v.run(ctx, *program, s.Content, nil, limitsFor(problem, correct.Language))
 		if !result.Success {
 			addExecution(report, StageCorrectConsistency, correct.Filename, s.Seed, "correct solution failed on sampled testcase", result)
 			continue

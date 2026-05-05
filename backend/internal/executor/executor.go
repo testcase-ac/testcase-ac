@@ -42,7 +42,6 @@ type Source struct {
 	Label    string
 	Code     string
 	Language contracts.Language
-	Limits   Limits
 }
 
 type Limits struct {
@@ -56,7 +55,6 @@ type CompiledProgram struct {
 	Dir      string
 	Label    string
 	Language contracts.Language
-	Limits   Limits
 }
 
 type CompileResult struct {
@@ -240,7 +238,7 @@ func compileCode(ctx context.Context, source Source, workDir string, spec langua
 }
 
 func compileSuccess(source Source, directory string) CompileResult {
-	program := &CompiledProgram{Dir: directory, Label: source.Label, Language: source.Language, Limits: source.Limits}
+	program := &CompiledProgram{Dir: directory, Label: source.Label, Language: source.Language}
 	return CompileResult{Success: true, Program: program, Directory: directory}
 }
 
@@ -253,7 +251,7 @@ func Run(ctx context.Context, program CompiledProgram, inputData string, args []
 		slog.Error("work_directory_missing", "work_dir", program.Dir, "err", err)
 		return ExecutionResult{Success: false, Verdict: contracts.VerdictInternalError, ReturnCode: -100}
 	}
-	limits = normalizeLimits(limits, program.Limits)
+	limits = normalizeLimits(limits)
 
 	inputFilePath := ""
 	var stdinFile *os.File
@@ -458,19 +456,7 @@ func appendOutputLimitMessage(text, streamName string, limitBytes int) string {
 	return text + message
 }
 
-func normalizeLimits(requested, fallback Limits) Limits {
-	if requested.TimeSeconds == 0 {
-		requested.TimeSeconds = fallback.TimeSeconds
-	}
-	if requested.MemoryMB == 0 {
-		requested.MemoryMB = fallback.MemoryMB
-	}
-	if requested.StdoutBytes == 0 {
-		requested.StdoutBytes = fallback.StdoutBytes
-	}
-	if requested.StderrBytes == 0 {
-		requested.StderrBytes = fallback.StderrBytes
-	}
+func normalizeLimits(requested Limits) Limits {
 	defaults := DefaultRunLimits()
 	if requested.TimeSeconds == 0 {
 		requested.TimeSeconds = defaults.TimeSeconds

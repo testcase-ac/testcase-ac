@@ -223,7 +223,6 @@ func (f *fakeExecutor) Compile(_ context.Context, source executor.Source) execut
 		Dir:      source.Label,
 		Label:    source.Label,
 		Language: source.Language,
-		Limits:   source.Limits,
 	}
 	return executor.CompileResult{Success: true, Program: program}
 }
