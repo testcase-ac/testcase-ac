@@ -4,6 +4,9 @@ timeLimitMs: 1000
 memoryLimitMb: 512
 isSpecialJudge: false
 
+codes:
+  correct_migrated.py: pypy3
+
 authors:
   correct_migrated.py: "INTERCAL"
   generator_migrated.py: "INTERCAL"
