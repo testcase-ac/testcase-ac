@@ -1,0 +1,10 @@
+title: "대결"
+externalLink: "https://www.acmicpc.net/problem/1489"
+timeLimitMs: 2000
+memoryLimitMb: 128
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "성이름"
+  generator_migrated.py: "성이름"
+  validator.cpp: "성이름"

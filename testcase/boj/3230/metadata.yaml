@@ -1,0 +1,10 @@
+title: "금메달, 은메달, 동메달은 누가?"
+externalLink: "https://www.acmicpc.net/problem/3230"
+timeLimitMs: 1000
+memoryLimitMb: 128
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "성이름"
+  generator_migrated.py: "성이름"
+  validator.cpp: "성이름"
