@@ -1,4 +1,8 @@
-from random import randint
+from random import randint, seed
+import sys
+
+if len(sys.argv) > 1:
+  seed(sys.argv[1])
 
 a=randint(0,3)
 
