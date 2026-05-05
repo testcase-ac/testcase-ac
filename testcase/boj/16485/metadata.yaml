@@ -3,3 +3,8 @@ externalLink: "https://www.acmicpc.net/problem/16485"
 timeLimitMs: 1000
 memoryLimitMb: 512
 isSpecialJudge: true
+
+authors:
+  checker.cpp: "INTERCAL"
+  correct_migrated.cpp: "INTERCAL"
+  validator.cpp: "INTERCAL"

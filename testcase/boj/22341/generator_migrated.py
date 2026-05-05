@@ -1,0 +1,13 @@
+from random import randint
+
+a=randint(0,3)
+
+if a:
+  n,c=randint(1,10000),randint(1,randint(2,10000))
+  print(n,c)
+  for i in range(c):
+    print(randint(1,n),randint(1,n))
+else:
+  n,c=randint(1,10000),1
+  print(n,c)
+  print(randint(1,n),randint(1,n))
