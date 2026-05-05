@@ -1,1 +1,7 @@
-print(__import__("random").randint(0,9))
+import random
+import sys
+
+if len(sys.argv) > 1:
+    random.seed(sys.argv[1])
+
+print(random.randint(0,9))
