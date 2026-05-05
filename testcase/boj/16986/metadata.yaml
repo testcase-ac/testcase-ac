@@ -1,0 +1,10 @@
+title: "인싸들의 가위바위보"
+externalLink: "https://www.acmicpc.net/problem/16986"
+timeLimitMs: 2000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "성이름"
+  generator_migrated.py: "성이름"
+  validator.cpp: "성이름"

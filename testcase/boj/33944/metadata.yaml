@@ -1,0 +1,11 @@
+title: "3단 가시"
+externalLink: "https://www.acmicpc.net/problem/33944"
+timeLimitMs: 2000
+memoryLimitMb: 1024
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "성이름"
+  generator_migrated.py: "성이름"
+  testcase_migrated_1.txt: "성이름"
+  validator.cpp: "성이름"

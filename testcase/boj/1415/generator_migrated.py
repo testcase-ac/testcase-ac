@@ -1,0 +1,13 @@
+import random
+ranset = random.randint
+Type = ranset(1, 3)
+if Type <= 2 :
+  N = ranset(1, 10)
+  print(N)
+  for i in range(N) :
+    print(ranset(1, 10))
+else :
+  N = ranset(1, 50)
+  print(N)
+  for i in range(N) :
+    print(ranset(1, 10000))
