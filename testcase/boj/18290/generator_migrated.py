@@ -1,4 +1,9 @@
 import random
+import sys
+
+if len(sys.argv) > 1:
+    random.seed(int(sys.argv[1]))
+
 ranset = random.randint
 
 Type = ranset(0, 27)

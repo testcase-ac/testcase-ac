@@ -1,4 +1,9 @@
 import random
+import sys
+
+if len(sys.argv) > 1:
+    random.seed(int(sys.argv[1]))
+
 ranset = random.randint
 lim = ranset(9, 20)
 N, M = ranset(1, 10), ranset(5, 20)

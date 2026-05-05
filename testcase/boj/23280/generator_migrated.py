@@ -1,4 +1,9 @@
 import random
+import sys
+
+if len(sys.argv) > 1:
+    random.seed(int(sys.argv[1]))
+
 ranset = random.randint
 N = 0
 Type = ranset(1, 4)
