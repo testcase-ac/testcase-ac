@@ -139,7 +139,7 @@ func verifyTestcaseText(report *VerifyReport, filename, content string) {
 func (v verifier) compileAll(ctx context.Context, report *VerifyReport, problem loader.Problem) compiledFiles {
 	out := compiledFiles{}
 	for _, file := range allSourceFiles(problem) {
-		result := v.compile(ctx, executor.Source{Label: file.Filename, Code: file.Content, Language: file.Language})
+		result := v.compile(ctx, executor.Source{Code: file.Content, Language: file.Language})
 		if !result.Success {
 			add(report, SeverityError, StageCompile, file.Filename, nil, "compilation failed", result.Stdout, result.Stderr)
 			continue

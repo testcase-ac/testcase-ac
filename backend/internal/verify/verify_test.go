@@ -183,17 +183,24 @@ func fakeProblem(corrects []string, validator *loader.CodeFile, testcases []load
 		Title:         "Fake",
 		TimeLimitMS:   2000,
 		MemoryLimitMB: 256,
-		Validator:     validator,
 		Testcases:     testcases,
+	}
+	if validator != nil {
+		validatorCopy := *validator
+		if validatorCopy.Content == "" {
+			validatorCopy.Content = validatorCopy.Filename
+		}
+		problem.Validator = &validatorCopy
 	}
 	for _, filename := range corrects {
 		problem.CorrectCodes = append(problem.CorrectCodes, loader.CodeFile{
 			Filename: filename,
+			Content:  filename,
 			Language: contracts.LanguagePython3,
 		})
 	}
 	if withChecker {
-		problem.Checker = &loader.CodeFile{Filename: "checker.cpp", Language: contracts.LanguageCpp23}
+		problem.Checker = &loader.CodeFile{Filename: "checker.cpp", Content: "checker.cpp", Language: contracts.LanguageCpp23}
 	}
 	return problem
 }
@@ -220,30 +227,29 @@ func newFakeExecutor() *fakeExecutor {
 
 func (f *fakeExecutor) Compile(_ context.Context, source executor.Source) executor.CompileResult {
 	program := &executor.CompiledProgram{
-		Dir:      source.Label,
-		Label:    source.Label,
+		Dir:      source.Code,
 		Language: source.Language,
 	}
 	return executor.CompileResult{Success: true, Program: program}
 }
 
 func (f *fakeExecutor) Run(_ context.Context, program executor.CompiledProgram, input string, args []string, _ executor.Limits) executor.ExecutionResult {
-	call := fmt.Sprintf("run %s input=%s", program.Label, cleanCallInput(input))
+	call := fmt.Sprintf("run %s input=%s", program.Dir, cleanCallInput(input))
 	if len(args) > 0 {
 		call += " args=" + strings.Join(args, ",")
 	}
 	f.calls = append(f.calls, call)
 
-	if queued := f.runResults[program.Label]; len(queued) > 0 {
+	if queued := f.runResults[program.Dir]; len(queued) > 0 {
 		result := queued[0]
-		f.runResults[program.Label] = queued[1:]
+		f.runResults[program.Dir] = queued[1:]
 		return result
 	}
 	return executor.ExecutionResult{
 		Success:    true,
 		Verdict:    contracts.VerdictAccepted,
 		ReturnCode: 0,
-		Stdout:     program.Label + "\n",
+		Stdout:     program.Dir + "\n",
 	}
 }
 

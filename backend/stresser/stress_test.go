@@ -477,14 +477,13 @@ func (f *fakeRuntime) compile(_ context.Context, source executor.Source) executo
 	}
 	program := &executor.CompiledProgram{
 		Dir:      source.Code,
-		Label:    source.Code,
 		Language: source.Language,
 	}
 	return executor.CompileResult{Success: true, Program: program}
 }
 
 func (f *fakeRuntime) run(_ context.Context, program executor.CompiledProgram, input string, args []string, _ executor.Limits) executor.ExecutionResult {
-	switch program.Label {
+	switch program.Dir {
 	case "sum":
 		return accepted(sumOutput(input))
 	case "buggy-three":
@@ -508,13 +507,13 @@ func (f *fakeRuntime) run(_ context.Context, program executor.CompiledProgram, i
 	case "fail-generator":
 		return executor.ExecutionResult{Success: false, Verdict: contracts.VerdictRuntimeError, ReturnCode: 1, Stderr: "generator failed"}
 	}
-	if content, ok := strings.CutPrefix(program.Label, "case:"); ok {
+	if content, ok := strings.CutPrefix(program.Dir, "case:"); ok {
 		if len(args) > 0 && args[0] == "" {
 			return executor.ExecutionResult{Success: false, Verdict: contracts.VerdictInternalError, ReturnCode: -100}
 		}
 		return accepted(content + "\n")
 	}
-	return accepted(program.Label + "\n")
+	return accepted(program.Dir + "\n")
 }
 
 func (f *fakeRuntime) runChecker(_ context.Context, _ executor.CompiledProgram, input, participant, jury string, _ executor.Limits) executor.ExecutionResult {

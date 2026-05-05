@@ -39,7 +39,6 @@ var (
 )
 
 type Source struct {
-	Label    string
 	Code     string
 	Language contracts.Language
 }
@@ -53,14 +52,12 @@ type Limits struct {
 
 type CompiledProgram struct {
 	Dir      string
-	Label    string
 	Language contracts.Language
 }
 
 type CompileResult struct {
 	Success    bool
 	Program    *CompiledProgram
-	Directory  string
 	Stderr     string
 	Stdout     string
 	ReturnCode int
@@ -238,8 +235,8 @@ func compileCode(ctx context.Context, source Source, workDir string, spec langua
 }
 
 func compileSuccess(source Source, directory string) CompileResult {
-	program := &CompiledProgram{Dir: directory, Label: source.Label, Language: source.Language}
-	return CompileResult{Success: true, Program: program, Directory: directory}
+	program := &CompiledProgram{Dir: directory, Language: source.Language}
+	return CompileResult{Success: true, Program: program}
 }
 
 func Run(ctx context.Context, program CompiledProgram, inputData string, args []string, limits Limits) ExecutionResult {

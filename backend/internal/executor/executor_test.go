@@ -237,7 +237,7 @@ int main() {
 				t.Fatalf("compileCodeCached() failed: %+v", compileResult)
 			}
 
-			runResult := runCode(compileResult.Directory, "", tt.lang, 2, 256, nil)
+			runResult := runCode(compileResult.Program.Dir, "", tt.lang, 2, 256, nil)
 			if !runResult.Success {
 				t.Fatalf("runCode() failed: %+v", runResult)
 			}
@@ -258,7 +258,7 @@ func TestRunCodeRuntimeErrorVerdict(t *testing.T) {
 		t.Fatalf("compileCodeCached() failed: %+v", compileResult)
 	}
 
-	runResult := runCode(compileResult.Directory, "", "python3", 2, 256, nil)
+	runResult := runCode(compileResult.Program.Dir, "", "python3", 2, 256, nil)
 	if runResult.Success {
 		t.Fatalf("runCode() unexpectedly succeeded: %+v", runResult)
 	}
@@ -285,7 +285,7 @@ func TestRunCodeTimeoutVerdict(t *testing.T) {
 		t.Fatalf("compileCodeCached() failed: %+v", compileResult)
 	}
 
-	runResult := runCode(compileResult.Directory, "", "python3", 1, 256, nil)
+	runResult := runCode(compileResult.Program.Dir, "", "python3", 1, 256, nil)
 	if runResult.Success {
 		t.Fatalf("runCode() unexpectedly succeeded: %+v", runResult)
 	}
@@ -312,7 +312,7 @@ sys.stdout.write("x" * %d)
 		t.Fatalf("compileCodeCached() failed: %+v", compileResult)
 	}
 
-	runResult := runCode(compileResult.Directory, "", "python3", 2, 256, nil)
+	runResult := runCode(compileResult.Program.Dir, "", "python3", 2, 256, nil)
 	if runResult.Success {
 		t.Fatalf("runCode() unexpectedly succeeded: %+v", runResult)
 	}
@@ -347,7 +347,7 @@ int main() {
 		t.Fatalf("compileCodeCached() failed: %+v", compileResult)
 	}
 
-	runResult := runCode(compileResult.Directory, "", "cpp23", 5, 64, nil)
+	runResult := runCode(compileResult.Program.Dir, "", "cpp23", 5, 64, nil)
 	if runResult.Success {
 		t.Fatalf("runCode() unexpectedly succeeded: %+v", runResult)
 	}
@@ -375,7 +375,7 @@ int main() {
 		t.Fatalf("compileCodeCached() failed: %+v", compileResult)
 	}
 
-	runResult := runCode(compileResult.Directory, "1 2\n", "cpp23", 2, 4, nil)
+	runResult := runCode(compileResult.Program.Dir, "1 2\n", "cpp23", 2, 4, nil)
 	if !runResult.Success {
 		t.Fatalf("runCode() failed under low native memory limit: %+v", runResult)
 	}
@@ -404,7 +404,7 @@ int main() {
 		t.Fatalf("compileCodeCached() failed: %+v", compileResult)
 	}
 
-	runResult := runCode(compileResult.Directory, "", "cpp23", 2, 512, nil)
+	runResult := runCode(compileResult.Program.Dir, "", "cpp23", 2, 512, nil)
 	if !runResult.Success {
 		t.Fatalf("runCode() failed with stack allocation inside memory limit: %+v", runResult)
 	}
@@ -428,7 +428,7 @@ func TestRunCodeSimpleAPlusBSupportedLanguages(t *testing.T) {
 			if tc.Lang == contracts.LanguageNodeJS {
 				timeLimit = 5.0
 			}
-			runResult := runCode(compileResult.Directory, tc.Input, tc.Lang, timeLimit, 256, nil)
+			runResult := runCode(compileResult.Program.Dir, tc.Input, tc.Lang, timeLimit, 256, nil)
 			if !runResult.Success {
 				t.Fatalf("runCode() failed: %+v", runResult)
 			}
@@ -466,7 +466,7 @@ int main(int argc, char* argv[]) {
 	if !compileResult.Success {
 		t.Fatalf("compileCodeCached() failed: %+v", compileResult)
 	}
-	checker := CompiledProgram{Dir: compileResult.Directory, Language: contracts.LanguageCpp23}
+	checker := CompiledProgram{Dir: compileResult.Program.Dir, Language: contracts.LanguageCpp23}
 	checkerLimits := Limits{TimeSeconds: 2, MemoryMB: 1024}
 
 	acceptedResult := RunChecker(context.Background(), checker, "1 2\n", "3\n", "3\n", checkerLimits)
