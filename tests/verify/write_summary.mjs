@@ -10,8 +10,8 @@ const raw = fs.readFileSync(reportPath, "utf8");
 const parsed = JSON.parse(raw);
 const reports = Array.isArray(parsed) ? parsed : [parsed];
 
-const ok = reports.filter((report) => report.status === "ok").length;
-const failed = reports.filter((report) => report.status !== "ok").length;
+const ok = reports.filter((report) => !report.hasErrorFinding).length;
+const failed = reports.filter((report) => report.hasErrorFinding).length;
 const findings = reports.reduce((sum, report) => sum + (report.findings?.length ?? 0), 0);
 
 const lines = [
@@ -25,7 +25,8 @@ const lines = [
 
 for (const report of reports) {
   const problem = report.problemPath ?? `${report.problemType ?? ""}/${report.externalId ?? ""}`;
-  lines.push(`| ${escapeMarkdown(problem)} | ${report.status} | ${report.sampledCasesCount ?? 0} | ${report.findings?.length ?? 0} |`);
+  const status = report.hasErrorFinding ? "failed" : "ok";
+  lines.push(`| ${escapeMarkdown(problem)} | ${status} | ${report.sampledCasesCount ?? 0} | ${report.findings?.length ?? 0} |`);
 }
 
 if (findings > 0) {

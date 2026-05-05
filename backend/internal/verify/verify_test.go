@@ -23,11 +23,29 @@ func TestMissingValidatorFails(t *testing.T) {
 
 	report := fakeVerifier(newFakeExecutor()).verifyProblem(context.Background(), problem)
 
-	if report.Status != StatusFailed {
-		t.Fatalf("status = %s, want %s", report.Status, StatusFailed)
+	if !report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = false, want true")
 	}
 	if !hasFinding(report, SeverityError, StageStatic, "validator.cpp") {
 		t.Fatalf("expected missing validator finding, got %+v", report.Findings)
+	}
+}
+
+func TestWarningFindingDoesNotMarkReportFailed(t *testing.T) {
+	problem := fakeProblem(
+		nil,
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		[]loader.TestcaseFile{{Filename: "testcase_1.txt", Content: "1\n"}},
+		false,
+	)
+
+	report := fakeVerifier(newFakeExecutor()).verifyProblem(context.Background(), problem)
+
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
+	}
+	if !hasFinding(report, SeverityWarning, StageStatic, "") {
+		t.Fatalf("expected no-correct warning finding, got %+v", report.Findings)
 	}
 }
 
@@ -45,8 +63,8 @@ func TestSamplePipelineIsSerial(t *testing.T) {
 
 	report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
 
-	if report.Status != StatusOK {
-		t.Fatalf("status = %s, findings = %+v", report.Status, report.Findings)
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
 	}
 	want := []string{
 		"run validator.cpp input=1",
@@ -83,8 +101,8 @@ func TestValidatorRejectStopsSample(t *testing.T) {
 
 	report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
 
-	if report.Status != StatusFailed {
-		t.Fatalf("status = %s, want %s", report.Status, StatusFailed)
+	if !report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = false, want true")
 	}
 	want := []string{
 		"run validator.cpp input=bad",
@@ -111,8 +129,8 @@ func TestPrimaryCorrectFailureStillRunsRemainingCorrects(t *testing.T) {
 
 	report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
 
-	if report.Status != StatusFailed {
-		t.Fatalf("status = %s, want %s", report.Status, StatusFailed)
+	if !report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = false, want true")
 	}
 	want := []string{
 		"run validator.cpp input=1",
@@ -139,8 +157,8 @@ func TestSingleCorrectStillRunsAndCheckerSmokeRuns(t *testing.T) {
 
 	report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
 
-	if report.Status != StatusOK {
-		t.Fatalf("status = %s, findings = %+v", report.Status, report.Findings)
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
 	}
 	want := []string{
 		"run validator.cpp input=1",
@@ -163,8 +181,8 @@ func TestCorrectConsistencyUsesPrimaryAgainstOthers(t *testing.T) {
 
 	report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
 
-	if report.Status != StatusOK {
-		t.Fatalf("status = %s, findings = %+v", report.Status, report.Findings)
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
 	}
 	want := []string{
 		"checker input=1 participant=correct_a.py jury=correct_a.py",

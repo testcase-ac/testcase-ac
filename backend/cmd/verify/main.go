@@ -30,7 +30,7 @@ func main() {
 	exitCode := 0
 	for _, path := range problemPaths {
 		report := verifyProblem(path)
-		if report.Status != verify.StatusOK {
+		if report.HasErrorFinding {
 			exitCode = 1
 		}
 		reports = append(reports, report)
@@ -43,17 +43,11 @@ func main() {
 func verifyProblem(problemPath string) verify.VerifyReport {
 	problem, err := loader.LoadProblem(problemPath, loader.Options{AllowUnknownFiles: true})
 	if err != nil {
-		return verify.VerifyReport{
+		report := verify.VerifyReport{
 			ProblemPath: problemPath,
-			Status:      verify.StatusFailed,
-			Findings: []verify.Finding{
-				{
-					Severity: verify.SeverityError,
-					Stage:    verify.StageStatic,
-					Message:  fmt.Sprintf("load problem: %v", err),
-				},
-			},
 		}
+		report.AddFinding(verify.SeverityError, verify.StageStatic, "", nil, fmt.Sprintf("load problem: %v", err), "", "")
+		return report
 	}
 
 	report := verify.VerifyProblem(context.Background(), problem)
@@ -88,7 +82,7 @@ func printTextReport(report verify.VerifyReport) {
 		fmt.Printf("Path: %s\n", report.ProblemPath)
 	}
 	fmt.Printf("Problem: %s/%s\n", report.ProblemType, report.ExternalID)
-	fmt.Printf("Status: %s\n", report.Status)
+	fmt.Printf("Status: %s\n", reportStatus(report))
 	fmt.Printf("Sampled cases: %d\n", report.SampledCasesCount)
 	fmt.Printf("Runtime: %.3fs\n", report.RuntimeSeconds)
 	if len(report.Findings) == 0 {
@@ -115,6 +109,13 @@ func printTextReport(report verify.VerifyReport) {
 			fmt.Printf("  stdout: %s\n", oneLine(finding.Stdout))
 		}
 	}
+}
+
+func reportStatus(report verify.VerifyReport) string {
+	if report.HasErrorFinding {
+		return "failed"
+	}
+	return "ok"
 }
 
 func oneLine(value string) string {
