@@ -1,4 +1,8 @@
 import random
+import sys
+
+if len(sys.argv) > 1:
+    random.seed(sys.argv[1])
 
 # 최대 어디까지 틀리는지 확인하는 코드
 def sub_str_int(s, n):
