@@ -27,6 +27,8 @@ dij_fr1 = dijkstra(graph,friend1)
 dij_fr2 = dijkstra(graph,friend2)
 dij_fr3 = dijkstra(graph,friend3)
 result = [0] * (a+1)
+# Index 0 is not a valid land number, so it must not win a zero-distance tie.
+result[0] = -1
 for i in range(1, a+1):
     result[i] = min(dij_fr1[i], dij_fr2[i], dij_fr3[i])
 print(result.index(max(result)))
