@@ -1,0 +1,11 @@
+title: "Подарок"
+externalLink: "https://www.acmicpc.net/problem/21669"
+timeLimitMs: 2000
+memoryLimitMb: 512
+isSpecialJudge: true
+
+authors:
+  checker.cpp: "PKEarth"
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

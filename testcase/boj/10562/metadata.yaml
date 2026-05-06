@@ -1,0 +1,10 @@
+title: "나이트"
+externalLink: "https://www.acmicpc.net/problem/10562"
+timeLimitMs: 60000
+memoryLimitMb: 256
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

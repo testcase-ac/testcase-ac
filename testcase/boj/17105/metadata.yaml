@@ -1,0 +1,10 @@
+title: "골드바흐 트리플"
+externalLink: "https://www.acmicpc.net/problem/17105"
+timeLimitMs: 2000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

@@ -1,0 +1,10 @@
+title: "RSA 인수 분해"
+externalLink: "https://www.acmicpc.net/problem/3734"
+timeLimitMs: 1000
+memoryLimitMb: 128
+isSpecialJudge: false
+
+authors:
+  correct_migrated.py: "PKEarth"
+  generator_migrated.py: "PKEarth"
+  validator.cpp: "PKEarth"

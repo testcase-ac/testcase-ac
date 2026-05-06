@@ -1,0 +1,10 @@
+title: "N! mod P (3)"
+externalLink: "https://www.acmicpc.net/problem/17468"
+timeLimitMs: 3000
+memoryLimitMb: 1024
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

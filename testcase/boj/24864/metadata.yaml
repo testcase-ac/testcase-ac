@@ -1,0 +1,10 @@
+title: "Yurik and Woodwork Lesson"
+externalLink: "https://www.acmicpc.net/problem/24864"
+timeLimitMs: 1000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

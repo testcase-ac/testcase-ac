@@ -1,0 +1,10 @@
+title: "비밀의 채팅방"
+externalLink: "https://www.acmicpc.net/problem/28093"
+timeLimitMs: 2000
+memoryLimitMb: 1024
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

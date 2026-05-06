@@ -1,0 +1,10 @@
+title: "Numbers (Small)"
+externalLink: "https://www.acmicpc.net/problem/12727"
+timeLimitMs: 5000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

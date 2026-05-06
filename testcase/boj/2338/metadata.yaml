@@ -1,0 +1,10 @@
+title: "긴자리 계산"
+externalLink: "https://www.acmicpc.net/problem/2338"
+timeLimitMs: 2000
+memoryLimitMb: 128
+isSpecialJudge: false
+
+authors:
+  correct_migrated.py: "PKEarth"
+  generator_migrated.py: "PKEarth"
+  validator.cpp: "PKEarth"

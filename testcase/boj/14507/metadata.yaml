@@ -1,0 +1,11 @@
+title: "Stars in a Can"
+externalLink: "https://www.acmicpc.net/problem/14507"
+timeLimitMs: 2000
+memoryLimitMb: 512
+isSpecialJudge: true
+
+authors:
+  checker.cpp: "PKEarth"
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

@@ -1,0 +1,10 @@
+title: "큰 수 A+B"
+externalLink: "https://www.acmicpc.net/problem/10757"
+timeLimitMs: 1000
+memoryLimitMb: 256
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.py: "PKEarth"
+  validator.cpp: "PKEarth"

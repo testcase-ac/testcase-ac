@@ -1,0 +1,11 @@
+title: "제곱수"
+externalLink: "https://www.acmicpc.net/problem/23287"
+timeLimitMs: 2000
+memoryLimitMb: 1024
+isSpecialJudge: true
+
+authors:
+  checker.cpp: "PKEarth"
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

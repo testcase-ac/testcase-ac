@@ -1,0 +1,10 @@
+title: "Keep Calm and Sell Balloons"
+externalLink: "https://www.acmicpc.net/problem/17539"
+timeLimitMs: 500
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

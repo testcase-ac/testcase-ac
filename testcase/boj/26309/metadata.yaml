@@ -1,0 +1,10 @@
+title: "Etched Emerald Orbs"
+externalLink: "https://www.acmicpc.net/problem/26309"
+timeLimitMs: 3000
+memoryLimitMb: 1024
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

@@ -1,0 +1,11 @@
+title: "소수가 아닌 수 4"
+externalLink: "https://www.acmicpc.net/problem/35295"
+timeLimitMs: 1000
+memoryLimitMb: 1024
+isSpecialJudge: true
+
+authors:
+  checker.cpp: "PKEarth"
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

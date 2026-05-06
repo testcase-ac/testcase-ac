@@ -1,0 +1,11 @@
+title: "LCS 7"
+externalLink: "https://www.acmicpc.net/problem/18440"
+timeLimitMs: 2000
+memoryLimitMb: 8
+isSpecialJudge: true
+
+authors:
+  checker.cpp: "PKEarth"
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

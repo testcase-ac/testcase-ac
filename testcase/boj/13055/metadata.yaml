@@ -1,0 +1,10 @@
+title: "K-Inversions"
+externalLink: "https://www.acmicpc.net/problem/13055"
+timeLimitMs: 10000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

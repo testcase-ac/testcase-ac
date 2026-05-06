@@ -1,0 +1,10 @@
+title: "Subdividing a Land"
+externalLink: "https://www.acmicpc.net/problem/22711"
+timeLimitMs: 8000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

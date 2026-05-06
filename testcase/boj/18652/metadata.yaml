@@ -1,0 +1,10 @@
+title: "Fibonacci Strikes Back"
+externalLink: "https://www.acmicpc.net/problem/18652"
+timeLimitMs: 3000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

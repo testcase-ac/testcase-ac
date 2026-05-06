@@ -1,0 +1,10 @@
+title: "최대공약수 행렬식"
+externalLink: "https://www.acmicpc.net/problem/3752"
+timeLimitMs: 1000
+memoryLimitMb: 128
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

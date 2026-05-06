@@ -1,0 +1,10 @@
+title: "그림 그리기"
+externalLink: "https://www.acmicpc.net/problem/14707"
+timeLimitMs: 2000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

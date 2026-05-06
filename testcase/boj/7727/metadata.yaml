@@ -1,0 +1,11 @@
+title: "Byephone"
+externalLink: "https://www.acmicpc.net/problem/7727"
+timeLimitMs: 2000
+memoryLimitMb: 3
+isSpecialJudge: true
+
+authors:
+  checker.cpp: "PKEarth"
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

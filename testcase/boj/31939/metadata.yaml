@@ -1,0 +1,10 @@
+title: "멀티버스를 여행하는 성재를 위한 안내서"
+externalLink: "https://www.acmicpc.net/problem/31939"
+timeLimitMs: 3000
+memoryLimitMb: 1024
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"
