@@ -1,3 +1,7 @@
+import sys
+import random
+if len(sys.argv) > 1:
+    random.seed(int(sys.argv[1]))
 import random
 def generate_random_large_numbers():
     m_len = random.randint(1, 499)

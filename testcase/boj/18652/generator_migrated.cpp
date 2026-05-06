@@ -1,9 +1,32 @@
 //GPT 코드
 #include<bits/stdc++.h>
+#include <random>
+#include <cstdlib>
+#include <chrono>
 using namespace std;
+
+static std::mt19937_64 seedRng;
+
+static void initSeed(int argc, char* argv[]) {
+    unsigned long long seed = argc > 1
+        ? std::strtoull(argv[1], nullptr, 10)
+        : static_cast<unsigned long long>(std::chrono::steady_clock::now().time_since_epoch().count());
+    seedRng.seed(seed);
+    std::srand(static_cast<unsigned>(seed));
+}
+
+struct seeded_random_device {
+    using result_type = unsigned long long;
+    static constexpr result_type min() { return 0; }
+    static constexpr result_type max() { return ~0ULL; }
+    result_type operator()() { return seedRng(); }
+};
+
+#define random_device seeded_random_device
+
 using ll=long long;
 
-mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+mt19937_64 rng;
 
 ll rd(ll l,ll r){
 	return uniform_int_distribution<ll>(l,r)(rng);
@@ -15,7 +38,9 @@ ll pw10(int k){
 	return r;
 }
 
-int main(){
+int main(int argc, char* argv[]) {
+    initSeed(argc, argv);
+    rng.seed(seedRng());
 	int T=rd(1,30);
 	cout<<T<<'\n';
 

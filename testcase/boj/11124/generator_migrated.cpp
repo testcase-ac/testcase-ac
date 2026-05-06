@@ -2,6 +2,26 @@
 #include <bits/stdc++.h>
 using namespace std;
 
+static std::mt19937_64 seedRng;
+
+static void initSeed(int argc, char* argv[]) {
+    unsigned long long seed = argc > 1
+        ? std::strtoull(argv[1], nullptr, 10)
+        : static_cast<unsigned long long>(std::chrono::steady_clock::now().time_since_epoch().count());
+    seedRng.seed(seed);
+    std::srand(static_cast<unsigned>(seed));
+}
+
+struct seeded_random_device {
+    using result_type = unsigned long long;
+    static constexpr result_type min() { return 0; }
+    static constexpr result_type max() { return ~0ULL; }
+    result_type operator()() { return seedRng(); }
+};
+
+#define random_device seeded_random_device
+
+
 const int m[3][3][4]={
 	{{0,14,20,4},{13,23,7,3},{19,18,17,16}},
 	{{7,19,15,11},{18,14,10,6},{23,22,21,20}},
@@ -12,7 +32,7 @@ const int mp[24]={
 	0,1,3,2,4,5,8,9,12,13,16,17,
 	7,6,11,10,15,14,19,18,20,21,23,22
 };
-mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+mt19937 rng;
 struct C {
 	array<char,24> s;
 
@@ -66,7 +86,9 @@ struct C {
 	}
 };
 
-int main(){
+int main(int argc, char* argv[]) {
+    initSeed(argc, argv);
+    rng.seed(seedRng());
 
 	int T=rng()%10+1;
 	cout<<T<<'\n';

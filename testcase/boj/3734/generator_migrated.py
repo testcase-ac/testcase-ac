@@ -1,3 +1,7 @@
+import sys
+import random
+if len(sys.argv) > 1:
+    random.seed(int(sys.argv[1]))
 # GPT 코드
 import random
 

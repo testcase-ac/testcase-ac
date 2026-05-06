@@ -3,10 +3,32 @@
 #include <unordered_set>
 #include <cstdlib>
 #include <chrono>
+#include <random>
 
 using namespace std;
 
-int main() {
+static std::mt19937_64 seedRng;
+
+static void initSeed(int argc, char* argv[]) {
+    unsigned long long seed = argc > 1
+        ? std::strtoull(argv[1], nullptr, 10)
+        : static_cast<unsigned long long>(std::chrono::steady_clock::now().time_since_epoch().count());
+    seedRng.seed(seed);
+    std::srand(static_cast<unsigned>(seed));
+}
+
+struct seeded_random_device {
+    using result_type = unsigned long long;
+    static constexpr result_type min() { return 0; }
+    static constexpr result_type max() { return ~0ULL; }
+    result_type operator()() { return seedRng(); }
+};
+
+#define random_device seeded_random_device
+
+
+int main(int argc, char* argv[]) {
+    initSeed(argc, argv);
     ios_base::sync_with_stdio(false);
     cin.tie(0);
     
@@ -16,10 +38,6 @@ int main() {
         "codingsh", "codinghs", "sondaycoding", "startrink", "icerink", "programming", 
         "algorithm", "datastructures", "contest", "debugging", "compiler", "binarytree"
     };
-    
-    auto now = chrono::high_resolution_clock::now();
-    unsigned seed = chrono::duration_cast<chrono::milliseconds>(now.time_since_epoch()).count();
-    srand(seed);
     
     int N = rand() % 10 + 1;
     int M = rand() % 10 + 1;
