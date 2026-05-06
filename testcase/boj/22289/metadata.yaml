@@ -3,3 +3,7 @@ externalLink: "https://www.acmicpc.net/problem/22289"
 timeLimitMs: 1000
 memoryLimitMb: 512
 isSpecialJudge: false
+
+authors:
+  generator_migrated.py: "INTERCAL"
+  validator.cpp: "INTERCAL"

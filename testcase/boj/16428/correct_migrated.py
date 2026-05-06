@@ -1,0 +1,5 @@
+a,b = map(int, input().split())
+q = int((a-a%abs(b))//b)
+r = a%abs(b)
+print(q)
+print(r)

@@ -1,0 +1,9 @@
+title: "N-Queen"
+externalLink: "https://www.acmicpc.net/problem/3344"
+timeLimitMs: 1000
+memoryLimitMb: 128
+isSpecialJudge: true
+
+authors:
+  correct_migrated.py: "INTERCAL"
+  generator_migrated.cpp: "INTERCAL"
