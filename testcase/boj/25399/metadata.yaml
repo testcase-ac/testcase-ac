@@ -3,3 +3,7 @@ externalLink: "https://www.acmicpc.net/problem/25399"
 timeLimitMs: 1000
 memoryLimitMb: 512
 isSpecialJudge: true
+
+authors:
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

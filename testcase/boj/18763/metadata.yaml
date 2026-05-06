@@ -1,0 +1,10 @@
+title: "Knowledge-Oriented Problem"
+externalLink: "https://www.acmicpc.net/problem/18763"
+timeLimitMs: 5000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

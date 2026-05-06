@@ -1,0 +1,10 @@
+title: "짧은 코드로 빠르게 많은 소수 세기"
+externalLink: "https://www.acmicpc.net/problem/30919"
+timeLimitMs: 5000
+memoryLimitMb: 1024
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

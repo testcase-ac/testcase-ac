@@ -1,0 +1,10 @@
+title: "Square Root Partitioning"
+externalLink: "https://www.acmicpc.net/problem/18609"
+timeLimitMs: 3000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

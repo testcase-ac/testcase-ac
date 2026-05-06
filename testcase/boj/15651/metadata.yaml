@@ -1,0 +1,10 @@
+title: "N과 M (3)"
+externalLink: "https://www.acmicpc.net/problem/15651"
+timeLimitMs: 1000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

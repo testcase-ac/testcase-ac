@@ -1,0 +1,10 @@
+title: "아몬드 초콜릿"
+externalLink: "https://www.acmicpc.net/problem/31469"
+timeLimitMs: 2000
+memoryLimitMb: 1024
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

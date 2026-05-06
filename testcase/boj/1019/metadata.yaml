@@ -5,5 +5,7 @@ memoryLimitMb: 128
 isSpecialJudge: false
 
 authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
   generator_migrated.py: "성이름"
   validator.cpp: "성이름"

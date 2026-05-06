@@ -1,0 +1,10 @@
+title: "비로소 서로소"
+externalLink: "https://www.acmicpc.net/problem/32240"
+timeLimitMs: 5000
+memoryLimitMb: 1024
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

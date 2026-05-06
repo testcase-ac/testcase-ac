@@ -1,0 +1,10 @@
+title: "Matrix and Queries"
+externalLink: "https://www.acmicpc.net/problem/19562"
+timeLimitMs: 5000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

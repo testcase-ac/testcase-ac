@@ -1,0 +1,10 @@
+title: "파댕이의 예술작품"
+externalLink: "https://www.acmicpc.net/problem/30986"
+timeLimitMs: 1000
+memoryLimitMb: 1024
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

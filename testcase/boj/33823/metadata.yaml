@@ -1,0 +1,10 @@
+title: "Akwarium"
+externalLink: "https://www.acmicpc.net/problem/33823"
+timeLimitMs: 10000
+memoryLimitMb: 2048
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

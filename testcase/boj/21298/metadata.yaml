@@ -1,0 +1,9 @@
+title: "하이퍼 배열 돌리기"
+externalLink: "https://www.acmicpc.net/problem/21298"
+timeLimitMs: 11111
+memoryLimitMb: 1111
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"

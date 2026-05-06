@@ -1,0 +1,10 @@
+title: "세 수 고르기"
+externalLink: "https://www.acmicpc.net/problem/1503"
+timeLimitMs: 2000
+memoryLimitMb: 128
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

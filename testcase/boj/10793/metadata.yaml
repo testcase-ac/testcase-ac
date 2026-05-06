@@ -1,0 +1,10 @@
+title: "Tile Cutting"
+externalLink: "https://www.acmicpc.net/problem/10793"
+timeLimitMs: 15000
+memoryLimitMb: 256
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

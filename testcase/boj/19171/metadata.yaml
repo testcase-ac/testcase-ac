@@ -1,0 +1,11 @@
+title: "Euclid"
+externalLink: "https://www.acmicpc.net/problem/19171"
+timeLimitMs: 1000
+memoryLimitMb: 512
+isSpecialJudge: true
+
+authors:
+  checker.cpp: "PKEarth"
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

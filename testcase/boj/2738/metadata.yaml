@@ -1,0 +1,9 @@
+title: "행렬 덧셈"
+externalLink: "https://www.acmicpc.net/problem/2738"
+timeLimitMs: 1000
+memoryLimitMb: 128
+isSpecialJudge: false
+
+authors:
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

@@ -1,0 +1,10 @@
+title: "バクテリアの増殖 (Small)"
+externalLink: "https://www.acmicpc.net/problem/12445"
+timeLimitMs: 5000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

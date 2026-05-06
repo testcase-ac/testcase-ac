@@ -1,0 +1,10 @@
+title: "GCD"
+externalLink: "https://www.acmicpc.net/problem/19329"
+timeLimitMs: 4000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

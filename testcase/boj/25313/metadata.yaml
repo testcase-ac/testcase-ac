@@ -1,0 +1,10 @@
+title: "Race for the Galaxy"
+externalLink: "https://www.acmicpc.net/problem/25313"
+timeLimitMs: 4000
+memoryLimitMb: 1024
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"

@@ -1,0 +1,10 @@
+title: "Radioactive Islands (Large)"
+externalLink: "https://www.acmicpc.net/problem/14347"
+timeLimitMs: 300000
+memoryLimitMb: 512
+isSpecialJudge: true
+
+authors:
+  testcase_migrated_1.txt: "PKEarth"
+  testcase_migrated_2.txt: "PKEarth"
+  validator.cpp: "PKEarth"

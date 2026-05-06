@@ -5,5 +5,7 @@ memoryLimitMb: 512
 isSpecialJudge: false
 
 authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
   singlegen_migrated.py: "INTERCAL"
   validator.cpp: "INTERCAL"

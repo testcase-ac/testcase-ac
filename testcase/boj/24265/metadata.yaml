@@ -1,0 +1,10 @@
+title: "알고리즘 수업 - 알고리즘의 수행 시간 4"
+externalLink: "https://www.acmicpc.net/problem/24265"
+timeLimitMs: 1000
+memoryLimitMb: 512
+isSpecialJudge: false
+
+authors:
+  correct_migrated.cpp: "PKEarth"
+  generator_migrated.cpp: "PKEarth"
+  validator.cpp: "PKEarth"
