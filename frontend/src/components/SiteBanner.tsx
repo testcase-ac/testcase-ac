@@ -14,7 +14,9 @@ export default function SiteBanner() {
 
   return (
     <div className="border-b bg-accent text-accent-foreground">
-      <div className="container py-2 text-sm leading-6">{renderInlineLinks(message)}</div>
+      <div className="container py-2 text-xs leading-5 sm:text-sm sm:leading-6">
+        {renderInlineLinks(message)}
+      </div>
     </div>
   );
 }
