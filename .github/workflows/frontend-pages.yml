@@ -6,6 +6,7 @@ on:
     paths:
       - "frontend/**"
       - "backend/contracts/**"
+      - "testcase/boj/**"
       - ".github/workflows/frontend-pages.yml"
   workflow_dispatch:
 
@@ -44,6 +45,9 @@ jobs:
           VITE_GITHUB_REPO_URL: https://github.com/testcase-ac/testcase-ac
           VITE_GITHUB_REPO_BRANCH: main
         run: npm run build
+
+      - name: Add extension compatibility data
+        run: python3 scripts/write_extension_problems.py
 
       - name: Add custom domain
         run: echo "testcase.ac" > dist/CNAME
