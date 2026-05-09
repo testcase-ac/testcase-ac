@@ -7,4 +7,3 @@ isSpecialJudge: true
 authors:
   testcase_migrated_1.txt: "PKEarth"
   testcase_migrated_2.txt: "PKEarth"
-  validator.cpp: "PKEarth"

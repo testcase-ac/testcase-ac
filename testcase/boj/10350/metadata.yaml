@@ -6,4 +6,3 @@ isSpecialJudge: false
 
 authors:
   generator_migrated.cpp: "PKEarth"
-  validator.cpp: "PKEarth"

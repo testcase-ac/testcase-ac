@@ -8,4 +8,3 @@ authors:
   correct_migrated.cpp: "milt"
   generator_migrated.cpp: "milt"
   testcase_migrated_1.txt: "milt"
-  validator.cpp: "milt"

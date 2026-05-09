@@ -7,4 +7,3 @@ isSpecialJudge: true
 authors:
   checker.cpp: "erick12"
   correct_migrated.cpp: "erick12"
-  validator.cpp: "erick12"

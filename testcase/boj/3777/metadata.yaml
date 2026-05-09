@@ -7,4 +7,3 @@ isSpecialJudge: false
 authors:
   correct_migrated.py: "PKEarth"
   generator_migrated.cpp: "PKEarth"
-  validator.cpp: "PKEarth"

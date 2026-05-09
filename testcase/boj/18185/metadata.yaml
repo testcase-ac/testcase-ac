@@ -6,4 +6,3 @@ isSpecialJudge: false
 
 authors:
   generator_migrated.py: "성이름"
-  validator.cpp: "성이름"

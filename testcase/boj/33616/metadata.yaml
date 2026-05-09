@@ -7,4 +7,3 @@ isSpecialJudge: true
 authors:
   checker.cpp: "milt"
   correct_migrated.cpp: "milt"
-  validator.cpp: "milt"

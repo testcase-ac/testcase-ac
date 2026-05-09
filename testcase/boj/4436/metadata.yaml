@@ -6,4 +6,3 @@ isSpecialJudge: false
 
 authors:
   correct_migrated.java: "INTERCAL"
-  validator.cpp: "INTERCAL"

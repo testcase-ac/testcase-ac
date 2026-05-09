@@ -7,4 +7,3 @@ isSpecialJudge: false
 authors:
   correct_migrated.py: "여철준"
   generator_migrated.cpp: "여철준"
-  validator.cpp: "여철준"

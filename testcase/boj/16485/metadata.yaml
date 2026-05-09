@@ -7,4 +7,3 @@ isSpecialJudge: true
 authors:
   checker.cpp: "INTERCAL"
   correct_migrated.cpp: "INTERCAL"
-  validator.cpp: "INTERCAL"

@@ -6,4 +6,3 @@ isSpecialJudge: true
 
 authors:
   checker.cpp: "PKEarth"
-  validator.cpp: "PKEarth"

@@ -6,4 +6,3 @@ isSpecialJudge: false
 
 authors:
   testcase_migrated_1.txt: "milt"
-  validator.cpp: "milt"

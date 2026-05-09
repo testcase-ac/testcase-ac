@@ -7,4 +7,3 @@ isSpecialJudge: false
 authors:
   correct_migrated.cpp: "전설의추억"
   generator_migrated.cpp: "전설의추억"
-  validator.cpp: "전설의추억"

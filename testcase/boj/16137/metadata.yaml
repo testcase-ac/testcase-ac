@@ -7,4 +7,3 @@ isSpecialJudge: false
 authors:
   correct_migrated.cpp: "milt"
   generator_migrated.cpp: "milt"
-  validator.cpp: "milt"

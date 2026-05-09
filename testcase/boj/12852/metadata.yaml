@@ -6,4 +6,3 @@ isSpecialJudge: true
 
 authors:
   testcase_migrated_1.txt: "INTERCAL"
-  validator.cpp: "INTERCAL"

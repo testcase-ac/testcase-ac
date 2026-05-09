@@ -7,4 +7,3 @@ isSpecialJudge: true
 authors:
   checker.cpp: "hyper1423"
   correct_migrated.cpp: "hyper1423"
-  validator.cpp: "hyper1423"
