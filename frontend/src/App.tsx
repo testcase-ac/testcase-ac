@@ -2,6 +2,7 @@ import { Languages, Moon, Sun } from "lucide-react";
 import { Link, Outlet } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
+import SiteBanner from "@/components/SiteBanner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +28,7 @@ export default function App() {
           </div>
         </div>
       </header>
+      <SiteBanner />
       <main className="container py-8">
         <Outlet />
       </main>

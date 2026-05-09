@@ -9,6 +9,7 @@ import HomePage from "./pages/HomePage";
 import { ThemeProvider } from "./lib/theme";
 import { I18nProvider, useI18n } from "./lib/i18n";
 import { PersistentSettingsProvider } from "./lib/persistentSettings";
+import { SiteConfigProvider } from "./lib/siteConfig";
 import "./index.css";
 
 // ProblemPage pulls in CodeMirror; keep it out of the landing chunk.
@@ -89,9 +90,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <PersistentSettingsProvider>
       <ThemeProvider>
         <I18nProvider>
-          <QueryClientProvider client={queryClient}>
-            <RouterProvider router={router} />
-          </QueryClientProvider>
+          <SiteConfigProvider>
+            <QueryClientProvider client={queryClient}>
+              <RouterProvider router={router} />
+            </QueryClientProvider>
+          </SiteConfigProvider>
         </I18nProvider>
       </ThemeProvider>
     </PersistentSettingsProvider>
