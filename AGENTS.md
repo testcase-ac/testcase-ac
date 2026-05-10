@@ -4,7 +4,7 @@
 
 ## Basic Data Flow
 
-The repository contains code to help find counterexamples for each problem: `correct_*` is the reference answer. `generator_*`, `singlegen_*`, and `testcase_*.txt` provide inputs to test against it.
+The repository contains code to help find counterexamples for each problem: `correct_*` is the reference solution. `generator_*`, `singlegen_*`, and fixed input files provide inputs to test against it. Optional answer files provide expected outputs for selected fixed inputs and singlegens.
 
 The frontend sends user code to the API to find counterexamples, the API loads the problem and calls the stresser, and the stresser runs everything and returns any mismatching input as a counterexample to the frontend.
 
@@ -16,7 +16,7 @@ The frontend sends user code to the API to find counterexamples, the API loads t
 - `backend/` is a Go module containing:
   - `api/` for the HTTP API used by the frontend.
   - `stresser/` for execution/stress logic
-  - `internal/loader/` for loading testcase problem directories, metadata, source files, and fixed testcase files into structured problem data.
+  - `internal/loader/` for loading testcase problem directories, metadata, source files, fixed input files, and answer files into structured problem data.
   - `internal/executor/` for compiling and running source programs with language runtimes, limits, validators, and checkers.
   - `internal/verify/` for repository problem verification used by CI and testcase contribution checks; it builds on `loader` and `executor`.
   - `contracts/` for shared types

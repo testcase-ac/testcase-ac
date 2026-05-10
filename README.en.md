@@ -54,8 +54,8 @@ Frontend only, against the remote API:
 The full local stack expects Docker, Go, and Node. See the component docs for
 details.
 
-- [backend/README.md](backend/README.md)
-- [frontend/README.md](frontend/README.md)
+- [backend/README.en.md](backend/README.en.md)
+- [frontend/README.en.md](frontend/README.en.md)
 
 Validation commands:
 
@@ -85,7 +85,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 Repository infrastructure and application code are licensed under the MIT
 License. See [LICENSE](LICENSE).
 
-Contributions to problem data under `testcase/`, including reference solutions,
-generators, and checkers, are licensed under the same terms unless a file notes
-otherwise. Some files may include small attributed third-party algorithm snippets;
-those snippets remain under their original terms where noted.
+Problem data contributed under `testcase/` is licensed under the same terms
+unless a file notes otherwise. Some files may include small attributed
+third-party algorithm snippets; those snippets remain under their original terms
+where noted.

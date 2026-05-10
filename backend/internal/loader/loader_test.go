@@ -3,6 +3,8 @@ package loader
 import (
 	"os"
 	"path/filepath"
+	"reflect"
+	"slices"
 	"sort"
 	"testing"
 
@@ -209,6 +211,68 @@ func TestLoadProblemInfersAndSortsFiles(t *testing.T) {
 	if !problem.Runnable {
 		t.Fatal("Runnable = false, want true")
 	}
+}
+
+func TestLoadProblemClassifiesAnswerFiles(t *testing.T) {
+	// Given: a problem directory with testcase, .in, and singlegen answer naming patterns.
+	dir := t.TempDir()
+	problemDir := filepath.Join(dir, "boj", "1000")
+	if err := os.MkdirAll(problemDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]string{
+		"correct.cpp":           "int main(){}",
+		"validator.cpp":         "int main(){}",
+		"case.in.data":          "4 5\n",
+		"case.out.data":         "9\n",
+		"testcase_1.in.txt":     "1 2\n",
+		"testcase_1.out.txt":    "3\n",
+		"testcase_legacy.data":  "6 7\n",
+		"singlegen_edge.py":     "print('6 7')",
+		"singlegen_edge.py.out": "13\n",
+	}
+	for name, content := range files {
+		if err := os.WriteFile(filepath.Join(problemDir, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// When: the loader classifies the problem files.
+	problem, err := LoadProblem(problemDir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Then: input providers and answer files are separated with the expected provider links.
+	gotTestcases := testcaseFilenames(problem.Testcases)
+	wantTestcases := []string{"case.in.data", "testcase_1.in.txt", "testcase_legacy.data"}
+	if !slices.Equal(gotTestcases, wantTestcases) {
+		t.Fatalf("testcases = %v, want %v", gotTestcases, wantTestcases)
+	}
+
+	gotAnswers := map[string]string{}
+	for _, answer := range problem.AnswerFiles {
+		gotAnswers[answer.Filename] = answer.TargetProviderFilename
+	}
+	wantAnswers := map[string]string{
+		"case.out.data":         "case.in.data",
+		"singlegen_edge.py.out": "singlegen_edge.py",
+		"testcase_1.out.txt":    "testcase_1.in.txt",
+	}
+	if !reflect.DeepEqual(gotAnswers, wantAnswers) {
+		t.Fatalf("answers = %v, want %v", gotAnswers, wantAnswers)
+	}
+	if len(problem.UnknownFiles) != 0 {
+		t.Fatalf("UnknownFiles = %v, want none", problem.UnknownFiles)
+	}
+}
+
+func testcaseFilenames(files []TestcaseFile) []string {
+	out := make([]string, 0, len(files))
+	for _, file := range files {
+		out = append(out, file.Filename)
+	}
+	return out
 }
 
 func TestLoadProblemComputesRunnable(t *testing.T) {

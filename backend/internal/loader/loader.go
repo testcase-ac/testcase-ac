@@ -57,6 +57,14 @@ func (f TestcaseFile) FilenameValue() string {
 	return f.Filename
 }
 
+type AnswerFile struct {
+	Filename   string
+	Content    string
+	AuthorName string
+	// TargetProviderFilename is the testcase or singlegen file answered by this file.
+	TargetProviderFilename string
+}
+
 type Problem struct {
 	ProblemType    string
 	ExternalID     string
@@ -72,6 +80,7 @@ type Problem struct {
 	Validator      *CodeFile
 	Checker        *CodeFile
 	Testcases      []TestcaseFile
+	AnswerFiles    []AnswerFile
 	UnknownFiles   []string
 	Runnable       bool
 }
@@ -293,11 +302,15 @@ func walkProblemDirs(dirPath, relPath string, visit func(relPath, problemPath st
 }
 
 func isProblemDir(entries []os.DirEntry) bool {
+	answerTargets := collectAnswerFileTargets(entries, nil)
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
 		}
 		name := entry.Name()
+		if _, ok := answerTargets[name]; ok {
+			continue
+		}
 		switch {
 		case name == "metadata.yaml" || name == "description.md":
 			return true
@@ -305,7 +318,7 @@ func isProblemDir(entries []os.DirEntry) bool {
 			return true
 		case IsRoleFile(name, "correct"), IsRoleFile(name, "generator"), IsRoleFile(name, "singlegen"):
 			return true
-		case IsRoleFile(name, "testcase") && strings.EqualFold(filepath.Ext(name), ".txt"):
+		case isTestcaseFile(name):
 			return true
 		}
 	}
@@ -361,6 +374,7 @@ func LoadProblem(dirPath string, options Options) (Problem, error) {
 	if err != nil {
 		return Problem{}, err
 	}
+	answerTargets := collectAnswerFileTargets(entries, meta.Codes)
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -375,6 +389,15 @@ func LoadProblem(dirPath string, options Options) (Problem, error) {
 			return Problem{}, err
 		}
 		authorName := sourceAuthor(name, meta.Authors, options.AuthorByRelPath, problemType, externalID)
+		if target, ok := answerTargets[name]; ok {
+			problem.AnswerFiles = append(problem.AnswerFiles, AnswerFile{
+				Filename:               name,
+				Content:                string(contentBytes),
+				AuthorName:             authorName,
+				TargetProviderFilename: target,
+			})
+			continue
+		}
 		switch {
 		case name == "validator.cpp":
 			file := CodeFile{Filename: name, Language: contracts.LanguageCpp23, Content: string(contentBytes), AuthorName: authorName}
@@ -400,7 +423,7 @@ func LoadProblem(dirPath string, options Options) (Problem, error) {
 				return Problem{}, err
 			}
 			problem.Singlegens = append(problem.Singlegens, CodeFile{Filename: name, Language: lang, Content: string(contentBytes), AuthorName: authorName})
-		case IsRoleFile(name, "testcase") && strings.EqualFold(filepath.Ext(name), ".txt"):
+		case isTestcaseFile(name):
 			problem.Testcases = append(problem.Testcases, TestcaseFile{Filename: name, Content: string(contentBytes), AuthorName: authorName})
 		default:
 			problem.UnknownFiles = append(problem.UnknownFiles, name)
@@ -425,6 +448,7 @@ func LoadProblem(dirPath string, options Options) (Problem, error) {
 	slices.SortFunc(problem.Generators, func(a, b CodeFile) int { return strings.Compare(a.Filename, b.Filename) })
 	slices.SortFunc(problem.Singlegens, func(a, b CodeFile) int { return strings.Compare(a.Filename, b.Filename) })
 	slices.SortFunc(problem.Testcases, func(a, b TestcaseFile) int { return strings.Compare(a.Filename, b.Filename) })
+	slices.SortFunc(problem.AnswerFiles, func(a, b AnswerFile) int { return strings.Compare(a.Filename, b.Filename) })
 	slices.Sort(problem.UnknownFiles)
 	problem.Runnable = isRunnableProblem(problem)
 	return problem, nil
@@ -447,6 +471,55 @@ func sourceAuthor(filename string, authors map[string]string, authorByRelPath ma
 func IsRoleFile(filename, role string) bool {
 	base := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 	return base == role || strings.HasPrefix(base, role+"_")
+}
+
+func isTestcaseFile(filename string) bool {
+	base := filepath.Base(filename)
+	return strings.HasPrefix(base, "testcase") || strings.Contains(base, ".in")
+}
+
+func collectAnswerFileTargets(entries []os.DirEntry, overrides map[string]string) map[string]string {
+	names := map[string]struct{}{}
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			names[entry.Name()] = struct{}{}
+		}
+	}
+
+	answerTargets := map[string]string{}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if answerName, ok := testcaseAnswerFilename(name); ok {
+			if _, exists := names[answerName]; exists {
+				answerTargets[answerName] = name
+			}
+		}
+		if isSinglegenSourceFile(name, overrides) {
+			answerName := name + ".out"
+			if _, exists := names[answerName]; exists {
+				answerTargets[answerName] = name
+			}
+		}
+	}
+	return answerTargets
+}
+
+func testcaseAnswerFilename(filename string) (string, bool) {
+	if !strings.Contains(filename, ".in") {
+		return "", false
+	}
+	return strings.Replace(filename, ".in", ".out", 1), true
+}
+
+func isSinglegenSourceFile(filename string, overrides map[string]string) bool {
+	if !IsRoleFile(filename, "singlegen") {
+		return false
+	}
+	_, err := InferLanguage(filename, overrides)
+	return err == nil
 }
 
 func InferLanguage(filename string, overrides map[string]string) (contracts.Language, error) {

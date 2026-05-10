@@ -9,8 +9,8 @@ A problem is a directory at `testcase/<problemType>/<externalId>/`. The
 
 All files in a problem directory are optional, but a runnable/stressable problem
 needs at least one `correct_*` solution. To allow an actual stress run, the
-problem also needs at least one `generator_*`, `singlegen_*`, or
-`testcase_*.txt` file.
+problem also needs at least one `generator_*`, `singlegen_*`, or fixed input
+file.
 
 ### `metadata.yaml` (optional)
 
@@ -78,7 +78,7 @@ Problem statement in Markdown. Omit this when you do not hold the copyright
 to the original statement, such as third-party problems mirrored from external
 judges.
 
-### `correct_*` (at least one required for a stressable problem)
+### Reference Solution Code (`correct_*`) (required)
 
 Reference solution. The filename must start with `correct` to be loaded as a
 reference solution. Examples: `correct_basic.cpp`, `correct.py`. Language is
@@ -87,25 +87,45 @@ inferred from the extension unless overridden by `metadata.yaml`.
 When multiple `correct_*` files exist, all are shown to users and one can be
 selected for a stress request. The default order is lexicographic by filename.
 
-### `generator_*` (optional)
+### Generator Code (`generator_*`) (optional)
 
-Parametric random test generator. The filename must start with `generator` to
-be loaded as a generator. Example: `generator_random.cpp`. The resulting binary
-must accept the seed as its first positional argument, and must produce
-byte-identical output for the same seed.
+Random test generator. A file is loaded as a generator when its filename starts
+with `generator`. Example: `generator_random.cpp`. The executable must accept
+the seed as its first command-line argument and produce the same output for the
+same seed. Generators using `testlib.h` automatically receive the seed as the
+first command-line argument.
 
-### `singlegen_*` (optional)
+### Single Generator Code (`singlegen_*`) (optional)
 
-One-off generator that produces a fixed output without reading a seed. Useful
-when the output is too large to commit as plaintext but the generation logic
-is deterministic. The filename must start with `singlegen` to be loaded as a
-single-generator. Example: `singlegen_large.py`.
+Generator that produces fixed output. Use it when the output is too large to
+commit as text. A file is loaded as a single generator when its filename starts
+with `singlegen`. Example: `singlegen_large.py`.
 
-### `testcase_*.txt` (optional)
+### Fixed Input Files (`testcase_*` / `.in`) (optional)
 
-Plaintext fixed inputs. The filename must start with `testcase` and end with
-`.txt` to be loaded as a fixed input. Example: `testcase_sample.txt`. Must be
-valid UTF-8 text.
+Plaintext fixed inputs. A file is recognized as a fixed input file when:
+
+- The filename starts with `testcase`, for example `testcase_1.txt`.
+- The filename contains `.in`, for example `sample.in` or `sample.in.txt`.
+
+### Fixed Answer Files (optional)
+
+For single generator code and fixed input files, you can provide the expected
+output for that input as a fixed answer file.
+
+For single generator code and fixed input files, the matching fixed answer file
+is selected by these rules:
+
+- `.in` fixed input file: if a file with the first `.in` replaced by `.out`
+  exists, it is recognized as the fixed answer file. Example:
+  `testcase_1.in.txt` -> `testcase_1.out.txt`.
+- `singlegen_*`: if a file with `.out` appended to the filename exists, it is
+  recognized as the fixed answer file. Example:
+  `singlegen_1.py` -> `singlegen_1.py.out`.
+
+Verification checks that reference solution output matches the answer file.
+When `checker.cpp` exists, verification uses the checker. Otherwise it uses the
+default output comparison.
 
 ### `validator.cpp` (required)
 
