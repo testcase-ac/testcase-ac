@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -107,6 +108,31 @@ type Options struct {
 	ExternalID        string
 }
 
+type filesystem interface {
+	Stat(string) (fs.FileInfo, error)
+	ReadDir(string) ([]fs.DirEntry, error)
+	ReadFile(string) ([]byte, error)
+}
+
+type problemLoader struct {
+	files          filesystem
+	gitAuthorIndex func(testcaseRoot string) map[string]string
+}
+
+type osFilesystem struct{}
+
+func (osFilesystem) Stat(path string) (fs.FileInfo, error) {
+	return os.Stat(path)
+}
+
+func (osFilesystem) ReadDir(path string) ([]fs.DirEntry, error) {
+	return os.ReadDir(path)
+}
+
+func (osFilesystem) ReadFile(path string) ([]byte, error) {
+	return os.ReadFile(path)
+}
+
 type metadataFile struct {
 	Title          string            `yaml:"title"`
 	ExternalLink   string            `yaml:"externalLink"`
@@ -129,10 +155,33 @@ type rawTypeMetadataSegment struct {
 }
 
 func BuildCatalog(testcaseRoot string) (map[[2]string]Problem, error) {
+	return newProblemLoader().buildCatalog(testcaseRoot)
+}
+
+func BuildTypeMetadata(testcaseRoot string) (map[string]TypeMetadata, error) {
+	return newProblemLoader().buildTypeMetadata(testcaseRoot)
+}
+
+func LoadTypeMetadata(typePath string) (*TypeMetadata, error) {
+	return newProblemLoader().loadTypeMetadata(typePath)
+}
+
+func LoadProblem(dirPath string, options Options) (Problem, error) {
+	return newProblemLoader().loadProblem(dirPath, options)
+}
+
+func newProblemLoader() problemLoader {
+	return problemLoader{
+		files:          osFilesystem{},
+		gitAuthorIndex: buildGitAuthorIndex,
+	}
+}
+
+func (l problemLoader) buildCatalog(testcaseRoot string) (map[[2]string]Problem, error) {
 	catalog := make(map[[2]string]Problem)
-	info, err := os.Stat(testcaseRoot)
+	info, err := l.files.Stat(testcaseRoot)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
+		if errors.Is(err, fs.ErrNotExist) {
 			slog.Warn("testcase_root_missing", "testcase_root", testcaseRoot)
 			return catalog, nil
 		}
@@ -142,8 +191,8 @@ func BuildCatalog(testcaseRoot string) (map[[2]string]Problem, error) {
 		return nil, fmt.Errorf("testcase root is not a directory: %s", testcaseRoot)
 	}
 
-	authorByRelPath := loadAuthorIndex(testcaseRoot)
-	typeDirs, err := os.ReadDir(testcaseRoot)
+	authorByRelPath := l.loadAuthorIndex(testcaseRoot)
+	typeDirs, err := l.files.ReadDir(testcaseRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -152,8 +201,8 @@ func BuildCatalog(testcaseRoot string) (map[[2]string]Problem, error) {
 			continue
 		}
 		typePath := filepath.Join(testcaseRoot, typeDir.Name())
-		err := walkProblemDirs(typePath, "", func(relPath, problemPath string) {
-			problem, err := LoadProblem(problemPath, Options{
+		err := l.walkProblemDirs(typePath, "", func(relPath, problemPath string) {
+			problem, err := l.loadProblem(problemPath, Options{
 				AllowUnknownFiles: true,
 				AuthorByRelPath:   authorByRelPath,
 				ProblemType:       typeDir.Name(),
@@ -173,11 +222,11 @@ func BuildCatalog(testcaseRoot string) (map[[2]string]Problem, error) {
 	return catalog, nil
 }
 
-func BuildTypeMetadata(testcaseRoot string) (map[string]TypeMetadata, error) {
+func (l problemLoader) buildTypeMetadata(testcaseRoot string) (map[string]TypeMetadata, error) {
 	metadata := make(map[string]TypeMetadata)
-	info, err := os.Stat(testcaseRoot)
+	info, err := l.files.Stat(testcaseRoot)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return metadata, nil
 		}
 		return nil, err
@@ -186,7 +235,7 @@ func BuildTypeMetadata(testcaseRoot string) (map[string]TypeMetadata, error) {
 		return nil, fmt.Errorf("testcase root is not a directory: %s", testcaseRoot)
 	}
 
-	typeDirs, err := os.ReadDir(testcaseRoot)
+	typeDirs, err := l.files.ReadDir(testcaseRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +244,7 @@ func BuildTypeMetadata(testcaseRoot string) (map[string]TypeMetadata, error) {
 			continue
 		}
 		typePath := filepath.Join(testcaseRoot, typeDir.Name())
-		typeMeta, err := LoadTypeMetadata(typePath)
+		typeMeta, err := l.loadTypeMetadata(typePath)
 		if err != nil {
 			return nil, fmt.Errorf("load type metadata %s: %w", typeDir.Name(), err)
 		}
@@ -206,11 +255,11 @@ func BuildTypeMetadata(testcaseRoot string) (map[string]TypeMetadata, error) {
 	return metadata, nil
 }
 
-func LoadTypeMetadata(typePath string) (*TypeMetadata, error) {
+func (l problemLoader) loadTypeMetadata(typePath string) (*TypeMetadata, error) {
 	metadataPath := filepath.Join(typePath, typeMetadataName)
-	data, err := os.ReadFile(metadataPath)
+	data, err := l.files.ReadFile(metadataPath)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return nil, nil
 		}
 		return nil, err
@@ -263,8 +312,8 @@ func parseOrderedSegmentLabels(labelsNode yaml.Node) ([]TypeMetadataSegmentLabel
 	return labels, nil
 }
 
-func walkProblemDirs(dirPath, relPath string, visit func(relPath, problemPath string)) error {
-	entries, err := os.ReadDir(dirPath)
+func (l problemLoader) walkProblemDirs(dirPath, relPath string, visit func(relPath, problemPath string)) error {
+	entries, err := l.files.ReadDir(dirPath)
 	if err != nil {
 		return err
 	}
@@ -279,29 +328,29 @@ func walkProblemDirs(dirPath, relPath string, visit func(relPath, problemPath st
 		childPath := filepath.Join(dirPath, entry.Name())
 		childRelPath := filepath.Join(relPath, entry.Name())
 		if entry.IsDir() {
-			if err := walkProblemDirs(childPath, childRelPath, visit); err != nil {
+			if err := l.walkProblemDirs(childPath, childRelPath, visit); err != nil {
 				return err
 			}
 			continue
 		}
-		if entry.Type()&os.ModeSymlink == 0 {
+		if entry.Type()&fs.ModeSymlink == 0 {
 			continue
 		}
-		info, err := os.Stat(childPath)
+		info, err := l.files.Stat(childPath)
 		if err != nil {
 			return err
 		}
 		if !info.IsDir() {
 			continue
 		}
-		if err := walkProblemDirs(childPath, childRelPath, visit); err != nil {
+		if err := l.walkProblemDirs(childPath, childRelPath, visit); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func isProblemDir(entries []os.DirEntry) bool {
+func isProblemDir(entries []fs.DirEntry) bool {
 	answerTargets := collectAnswerFileTargets(entries, nil)
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -325,7 +374,7 @@ func isProblemDir(entries []os.DirEntry) bool {
 	return false
 }
 
-func LoadProblem(dirPath string, options Options) (Problem, error) {
+func (l problemLoader) loadProblem(dirPath string, options Options) (Problem, error) {
 	problemType := filepath.Base(filepath.Dir(dirPath))
 	externalID := filepath.Base(dirPath)
 	if options.ProblemType != "" {
@@ -337,24 +386,24 @@ func LoadProblem(dirPath string, options Options) (Problem, error) {
 
 	meta := metadataFile{TimeLimitMS: defaultTimeLimitMS, MemoryLimitMB: defaultMemoryMB}
 	metadataPath := filepath.Join(dirPath, "metadata.yaml")
-	if data, err := os.ReadFile(metadataPath); err == nil {
+	if data, err := l.files.ReadFile(metadataPath); err == nil {
 		decoder := yaml.NewDecoder(bytes.NewReader(data))
 		decoder.KnownFields(true)
 		if err := decoder.Decode(&meta); err != nil {
 			return Problem{}, fmt.Errorf("parse metadata: %w", err)
 		}
-	} else if !errors.Is(err, os.ErrNotExist) {
+	} else if !errors.Is(err, fs.ErrNotExist) {
 		return Problem{}, err
 	}
 	if meta.Codes == nil {
 		meta.Codes = map[string]string{}
 	}
 
-	descriptionBytes, err := os.ReadFile(filepath.Join(dirPath, "description.md"))
+	descriptionBytes, err := l.files.ReadFile(filepath.Join(dirPath, "description.md"))
 	description := ""
 	if err == nil {
 		description = string(descriptionBytes)
-	} else if !errors.Is(err, os.ErrNotExist) {
+	} else if !errors.Is(err, fs.ErrNotExist) {
 		return Problem{}, err
 	}
 
@@ -370,7 +419,7 @@ func LoadProblem(dirPath string, options Options) (Problem, error) {
 	}
 
 	seen := map[string]struct{}{}
-	entries, err := os.ReadDir(dirPath)
+	entries, err := l.files.ReadDir(dirPath)
 	if err != nil {
 		return Problem{}, err
 	}
@@ -384,7 +433,7 @@ func LoadProblem(dirPath string, options Options) (Problem, error) {
 		if name == "metadata.yaml" || name == "description.md" {
 			continue
 		}
-		contentBytes, err := os.ReadFile(filepath.Join(dirPath, name))
+		contentBytes, err := l.files.ReadFile(filepath.Join(dirPath, name))
 		if err != nil {
 			return Problem{}, err
 		}
@@ -478,7 +527,7 @@ func isTestcaseFile(filename string) bool {
 	return strings.HasPrefix(base, "testcase") || strings.Contains(base, ".in")
 }
 
-func collectAnswerFileTargets(entries []os.DirEntry, overrides map[string]string) map[string]string {
+func collectAnswerFileTargets(entries []fs.DirEntry, overrides map[string]string) map[string]string {
 	names := map[string]struct{}{}
 	for _, entry := range entries {
 		if !entry.IsDir() {
@@ -555,9 +604,9 @@ func CompareExternalID(a, b string) int {
 	}
 }
 
-func loadAuthorIndex(testcaseRoot string) map[string]string {
+func (l problemLoader) loadAuthorIndex(testcaseRoot string) map[string]string {
 	manifestPath := filepath.Join(testcaseRoot, authorIndexName)
-	data, err := os.ReadFile(manifestPath)
+	data, err := l.files.ReadFile(manifestPath)
 	if err == nil {
 		var authorByRelPath map[string]string
 		if err := json.Unmarshal(data, &authorByRelPath); err != nil {
@@ -565,10 +614,13 @@ func loadAuthorIndex(testcaseRoot string) map[string]string {
 		} else {
 			return authorByRelPath
 		}
-	} else if !errors.Is(err, os.ErrNotExist) {
+	} else if !errors.Is(err, fs.ErrNotExist) {
 		slog.Warn("author_index_read_failed", "path", manifestPath, "err", err)
 	}
-	return buildGitAuthorIndex(testcaseRoot)
+	if l.gitAuthorIndex == nil {
+		return map[string]string{}
+	}
+	return l.gitAuthorIndex(testcaseRoot)
 }
 
 func buildGitAuthorIndex(testcaseRoot string) map[string]string {

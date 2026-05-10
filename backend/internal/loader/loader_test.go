@@ -1,61 +1,79 @@
 package loader
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
 	"sort"
 	"testing"
+	"testing/fstest"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 )
 
+func newFakeProblemLoader(files map[string]string) problemLoader {
+	return problemLoader{
+		files: newMapFilesystem(files),
+		gitAuthorIndex: func(string) map[string]string {
+			return map[string]string{}
+		},
+	}
+}
+
+type mapFilesystem struct {
+	fsys fstest.MapFS
+}
+
+func newMapFilesystem(files map[string]string) mapFilesystem {
+	fsys := fstest.MapFS{}
+	for path, content := range files {
+		fsys[filepath.ToSlash(path)] = &fstest.MapFile{Data: []byte(content), Mode: 0o644}
+	}
+	return mapFilesystem{fsys: fsys}
+}
+
+func (m mapFilesystem) Stat(path string) (fs.FileInfo, error) {
+	return fs.Stat(m.fsys, filepath.ToSlash(path))
+}
+
+func (m mapFilesystem) ReadDir(path string) ([]fs.DirEntry, error) {
+	return fs.ReadDir(m.fsys, filepath.ToSlash(path))
+}
+
+func (m mapFilesystem) ReadFile(path string) ([]byte, error) {
+	return fs.ReadFile(m.fsys, filepath.ToSlash(path))
+}
+
 func TestLoadProblemRejectsUnknownMetadataField(t *testing.T) {
-	dir := t.TempDir()
-	problemDir := filepath.Join(dir, "boj", "1000")
-	if err := os.MkdirAll(problemDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(problemDir, "metadata.yaml"), []byte("title: A+B\nunknown: true\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := LoadProblem(problemDir, Options{}); err == nil {
+	loader := newFakeProblemLoader(map[string]string{
+		"boj/1000/metadata.yaml": "title: A+B\nunknown: true\n",
+	})
+
+	if _, err := loader.loadProblem("boj/1000", Options{}); err == nil {
 		t.Fatalf("LoadProblem() succeeded with unknown metadata field")
 	}
 }
 
 func TestLoadProblemRejectsDirectoryWideAuthor(t *testing.T) {
-	dir := t.TempDir()
-	problemDir := filepath.Join(dir, "koi", "2019", "1", "elem", "1")
-	if err := os.MkdirAll(problemDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(problemDir, "metadata.yaml"), []byte("title: A+B\nauthor: 한국정보올림피아드\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := LoadProblem(problemDir, Options{}); err == nil {
+	loader := newFakeProblemLoader(map[string]string{
+		"koi/2019/1/elem/1/metadata.yaml": "title: A+B\nauthor: 한국정보올림피아드\n",
+	})
+
+	if _, err := loader.loadProblem("koi/2019/1/elem/1", Options{}); err == nil {
 		t.Fatalf("LoadProblem() succeeded with directory-wide author")
 	}
 }
 
 func TestLoadProblemMetadataAuthorsOverrideGitAuthorByFilename(t *testing.T) {
-	dir := t.TempDir()
-	problemDir := filepath.Join(dir, "koi", "2019", "1", "elem", "1")
-	if err := os.MkdirAll(problemDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(problemDir, "metadata.yaml"), []byte("title: A+B\nauthors:\n  correct_reference.cpp: 한국정보올림피아드\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(problemDir, "correct_reference.cpp"), []byte("int main(){}\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(problemDir, "generator_1.cpp"), []byte("int main(){}\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	loader := newFakeProblemLoader(map[string]string{
+		"koi/2019/1/elem/1/metadata.yaml":         "title: A+B\nauthors:\n  correct_reference.cpp: 한국정보올림피아드\n",
+		"koi/2019/1/elem/1/correct_reference.cpp": "int main(){}\n",
+		"koi/2019/1/elem/1/generator_1.cpp":       "int main(){}\n",
+	})
 
-	problem, err := LoadProblem(problemDir, Options{
+	problem, err := loader.loadProblem("koi/2019/1/elem/1", Options{
 		ProblemType: "koi",
 		ExternalID:  "2019/1/elem/1",
 		AuthorByRelPath: map[string]string{
@@ -77,6 +95,40 @@ func TestLoadProblemMetadataAuthorsOverrideGitAuthorByFilename(t *testing.T) {
 	}
 	if got := problem.Generators[0].AuthorName; got != "generator-author" {
 		t.Fatalf("Generators[0].AuthorName = %q, want git author", got)
+	}
+}
+
+func TestBuildCatalogUsesInjectedFilesystemAndAuthorIndex(t *testing.T) {
+	loader := newFakeProblemLoader(map[string]string{
+		`testcase/.author-index.json`:             `{"boj/1000/correct.cpp":"alice"}`,
+		"testcase/boj/1000/metadata.yaml":         "title: A+B\n",
+		"testcase/boj/1000/correct.cpp":           "int main(){}\n",
+		"testcase/boj/1000/testcase_1.txt":        "1 2\n",
+		"testcase/koi/2020/1/elem/1/title":        "ignored\n",
+		"testcase/koi/2020/1/elem/1/README":       "ignored\n",
+		"testcase/koi/2020/1/mid/2/metadata.yaml": "title: KOI\n",
+	})
+
+	catalog, err := loader.buildCatalog("testcase")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bojProblem, ok := catalog[[2]string{"boj", "1000"}]
+	if !ok {
+		t.Fatalf("catalog missing boj/1000: %+v", catalog)
+	}
+	if got := bojProblem.Title; got != "A+B" {
+		t.Fatalf("boj/1000 title = %q, want A+B", got)
+	}
+	if got := bojProblem.CorrectCodes[0].AuthorName; got != "alice" {
+		t.Fatalf("boj/1000 correct author = %q, want alice", got)
+	}
+	if _, ok := catalog[[2]string{"koi", "2020/1/mid/2"}]; !ok {
+		t.Fatalf("catalog missing nested koi problem: %+v", catalog)
+	}
+	if _, ok := catalog[[2]string{"koi", "2020/1/elem/1"}]; ok {
+		t.Fatalf("catalog included non-problem directory: %+v", catalog)
 	}
 }
 
@@ -127,12 +179,8 @@ func TestBuildCatalogFindsNestedProblemsAndSymlinkDirs(t *testing.T) {
 }
 
 func TestLoadTypeMetadataPreservesOrderedLabels(t *testing.T) {
-	dir := t.TempDir()
-	typeDir := filepath.Join(dir, "koi")
-	if err := os.MkdirAll(typeDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	content := []byte(`schemaVersion: 1
+	loader := newFakeProblemLoader(map[string]string{
+		"koi/" + typeMetadataName: `schemaVersion: 1
 label: KOI
 segments:
   - label: "{}년"
@@ -142,12 +190,10 @@ segments:
       mid: "중등부"
       high: "고등부"
   - label: "{}번"
-`)
-	if err := os.WriteFile(filepath.Join(typeDir, typeMetadataName), content, 0o644); err != nil {
-		t.Fatal(err)
-	}
+`,
+	})
 
-	metadata, err := LoadTypeMetadata(typeDir)
+	metadata, err := loader.loadTypeMetadata("koi")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,29 +219,20 @@ segments:
 }
 
 func TestLoadProblemInfersAndSortsFiles(t *testing.T) {
-	dir := t.TempDir()
-	problemDir := filepath.Join(dir, "boj", "1000")
-	if err := os.MkdirAll(problemDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	files := map[string]string{
-		"metadata.yaml":       "title: A+B\ncodes:\n  correct_slow.cpp: cpp14\n",
-		"correct.cpp":         "int main(){}",
-		"correct_slow.cpp":    "int main(){}",
-		"correct_fast.js":     "console.log(0)",
-		"generator.py":        "print('1 2')",
-		"generator_random.js": "console.log('1 2')",
-		"singlegen.py":        "print('1 2')",
-		"singlegen_edge.js":   "console.log('1 2')",
-		"testcase.txt":        "1 2\n",
-		"testcase_sample.txt": "1 2\n",
-	}
-	for name, content := range files {
-		if err := os.WriteFile(filepath.Join(problemDir, name), []byte(content), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
-	problem, err := LoadProblem(problemDir, Options{})
+	loader := newFakeProblemLoader(map[string]string{
+		"boj/1000/metadata.yaml":       "title: A+B\ncodes:\n  correct_slow.cpp: cpp14\n",
+		"boj/1000/correct.cpp":         "int main(){}",
+		"boj/1000/correct_slow.cpp":    "int main(){}",
+		"boj/1000/correct_fast.js":     "console.log(0)",
+		"boj/1000/generator.py":        "print('1 2')",
+		"boj/1000/generator_random.js": "console.log('1 2')",
+		"boj/1000/singlegen.py":        "print('1 2')",
+		"boj/1000/singlegen_edge.js":   "console.log('1 2')",
+		"boj/1000/testcase.txt":        "1 2\n",
+		"boj/1000/testcase_sample.txt": "1 2\n",
+	})
+
+	problem, err := loader.loadProblem("boj/1000", Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,30 +252,20 @@ func TestLoadProblemInfersAndSortsFiles(t *testing.T) {
 
 func TestLoadProblemClassifiesAnswerFiles(t *testing.T) {
 	// Given: a problem directory with testcase, .in, and singlegen answer naming patterns.
-	dir := t.TempDir()
-	problemDir := filepath.Join(dir, "boj", "1000")
-	if err := os.MkdirAll(problemDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	files := map[string]string{
-		"correct.cpp":           "int main(){}",
-		"validator.cpp":         "int main(){}",
-		"case.in.data":          "4 5\n",
-		"case.out.data":         "9\n",
-		"testcase_1.in.txt":     "1 2\n",
-		"testcase_1.out.txt":    "3\n",
-		"testcase_legacy.data":  "6 7\n",
-		"singlegen_edge.py":     "print('6 7')",
-		"singlegen_edge.py.out": "13\n",
-	}
-	for name, content := range files {
-		if err := os.WriteFile(filepath.Join(problemDir, name), []byte(content), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
+	loader := newFakeProblemLoader(map[string]string{
+		"boj/1000/correct.cpp":           "int main(){}",
+		"boj/1000/validator.cpp":         "int main(){}",
+		"boj/1000/case.in.data":          "4 5\n",
+		"boj/1000/case.out.data":         "9\n",
+		"boj/1000/testcase_1.in.txt":     "1 2\n",
+		"boj/1000/testcase_1.out.txt":    "3\n",
+		"boj/1000/testcase_legacy.data":  "6 7\n",
+		"boj/1000/singlegen_edge.py":     "print('6 7')",
+		"boj/1000/singlegen_edge.py.out": "13\n",
+	})
 
 	// When: the loader classifies the problem files.
-	problem, err := LoadProblem(problemDir, Options{})
+	problem, err := loader.loadProblem("boj/1000", Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,17 +369,13 @@ func TestLoadProblemComputesRunnable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dir := t.TempDir()
-			problemDir := filepath.Join(dir, "boj", "1000")
-			if err := os.MkdirAll(problemDir, 0o755); err != nil {
-				t.Fatal(err)
-			}
+			files := map[string]string{}
 			for name, content := range tt.files {
-				if err := os.WriteFile(filepath.Join(problemDir, name), []byte(content), 0o644); err != nil {
-					t.Fatal(err)
-				}
+				files[filepath.Join("boj", "1000", name)] = content
 			}
-			problem, err := LoadProblem(problemDir, Options{})
+			loader := newFakeProblemLoader(files)
+
+			problem, err := loader.loadProblem("boj/1000", Options{})
 			if err != nil {
 				t.Fatal(err)
 			}
