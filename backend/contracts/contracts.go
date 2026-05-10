@@ -8,6 +8,7 @@ const (
 	ErrorTypeGeneratorCompilationFailed ErrorType = "GeneratorCompilationFailed"
 	ErrorTypeCorrectCompilationFailed   ErrorType = "CorrectCompilationFailed"
 	ErrorTypeCheckerCompilationFailed   ErrorType = "CheckerCompilationFailed"
+	ErrorTypeCompilationTimedOut        ErrorType = "CompilationTimedOut"
 	ErrorTypeTargetExecutionFailed      ErrorType = "TargetExecutionFailed"
 	ErrorTypeGeneratorExecutionFailed   ErrorType = "GeneratorExecutionFailed"
 	ErrorTypeCorrectExecutionFailed     ErrorType = "CorrectExecutionFailed"
@@ -72,6 +73,12 @@ type Operation string
 
 const OperationStress Operation = "stress"
 
+const (
+	MinTotalRuntimeLimitSeconds     = 1
+	DefaultTotalRuntimeLimitSeconds = 90
+	MaxTotalRuntimeLimitSeconds     = 90
+)
+
 type CaseProviderType string
 
 const (
@@ -108,6 +115,7 @@ const (
 	StressStatusRuntimeError   StressStatus = "runtime_error"
 	StressStatusInvalidProblem StressStatus = "invalid_problem"
 	StressStatusRateLimited    StressStatus = "rate_limited"
+	StressStatusCompileTimeout StressStatus = "compile_timeout"
 	StressStatusInternalError  StressStatus = "internal_error"
 )
 
@@ -120,19 +128,20 @@ type CaseProvider struct {
 }
 
 type StressEvent struct {
-	Operation          Operation      `json:"operation"`
-	RequestID          string         `json:"requestId,omitempty"`
-	TargetCode         string         `json:"targetCode"`
-	TargetCodeLang     Language       `json:"targetCodeLang"`
-	CorrectCode        string         `json:"correctCode"`
-	CorrectCodeLang    Language       `json:"correctCodeLang"`
-	CheckerCode        string         `json:"checkerCode,omitempty"`
-	TargetTimeLimit    float64        `json:"targetTimeLimit"`
-	TargetMemoryLimit  int            `json:"targetMemoryLimit"`
-	CorrectTimeLimit   float64        `json:"correctTimeLimit"`
-	CorrectMemoryLimit int            `json:"correctMemoryLimit"`
-	Iterations         int            `json:"iterations"`
-	CaseProviders      []CaseProvider `json:"caseProviders"`
+	Operation                Operation      `json:"operation"`
+	RequestID                string         `json:"requestId,omitempty"`
+	TargetCode               string         `json:"targetCode"`
+	TargetCodeLang           Language       `json:"targetCodeLang"`
+	CorrectCode              string         `json:"correctCode"`
+	CorrectCodeLang          Language       `json:"correctCodeLang"`
+	CheckerCode              string         `json:"checkerCode,omitempty"`
+	TargetTimeLimit          float64        `json:"targetTimeLimit"`
+	TargetMemoryLimit        int            `json:"targetMemoryLimit"`
+	CorrectTimeLimit         float64        `json:"correctTimeLimit"`
+	CorrectMemoryLimit       int            `json:"correctMemoryLimit"`
+	Iterations               int            `json:"iterations"`
+	TotalRuntimeLimitSeconds int            `json:"totalRuntimeLimitSeconds,omitempty"`
+	CaseProviders            []CaseProvider `json:"caseProviders"`
 }
 
 type OutputTextMetadata struct {

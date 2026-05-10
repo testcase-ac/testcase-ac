@@ -21,6 +21,7 @@ const STATUS_KEY: Record<StressResponse["status"], TranslationKey> = {
   runtime_error: "stress.status.runtime_error",
   invalid_problem: "stress.status.invalid_problem",
   rate_limited: "stress.status.rate_limited",
+  compile_timeout: "stress.status.compile_timeout",
   internal_error: "stress.status.internal_error",
 };
 

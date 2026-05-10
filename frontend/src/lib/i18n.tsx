@@ -86,10 +86,14 @@ const translations = {
     "problem.iterations.label": "Iterations",
     "problem.iterations.hint":
       "How many cases to run in total ({min}–{max}). Fixed testcases and single generators always run first.",
+    "problem.totalRuntimeLimit.label": "Total runtime limit (s)",
+    "problem.totalRuntimeLimit.hint":
+      "Enter the maximum time to use for finding a counterexample. Includes both compilation time and execution time. (Max {max}s)",
     "problem.summary.generators": "{count} generators",
     "problem.summary.singlegens": "{count} singlegens",
     "problem.summary.testcases": "{count} testcases",
     "problem.summary.iterations": "{count} iterations",
+    "problem.summary.totalRuntimeLimit": "{seconds}s total limit",
     "problem.summary.checker": "checker",
     "problem.summary.validator": "validator",
     "problem.summary.none": "nothing selected",
@@ -113,11 +117,14 @@ const translations = {
       "Run by directly specifying the target code, reference code, generators, checker, textcases, and execution limits.",
     "custom.limits.title": "Execution limits",
     "custom.limits.subtitle":
-      "These limits are applied to both your submission and the reference code for this invocation.",
+      "Time and memory limits apply to both your submission and the reference code. The total runtime limit caps the whole run.",
     "custom.limits.time": "Time limit (ms)",
     "custom.limits.timeHint": "Integer from 1 to {max}. Example: 2000",
     "custom.limits.memory": "Memory limit (MB)",
     "custom.limits.memoryHint": "Integer from 1 to {max}. Example: 512",
+    "custom.limits.totalRuntime": "Total runtime limit (s)",
+    "custom.limits.totalRuntimeHint":
+      "Enter the maximum time to use for finding a counterexample. Includes both compilation time and execution time. (Max {max}s)",
     "custom.target.title": "Target submission",
     "custom.target.subtitle": "This is the code you want to stress-test.",
     "custom.correct.title": "Correct code",
@@ -155,6 +162,7 @@ const translations = {
     "stress.status.runtime_error": "Your code crashed",
     "stress.status.invalid_problem": "Problem data failed to run",
     "stress.status.rate_limited": "Rate limited",
+    "stress.status.compile_timeout": "Compilation timed out",
     "stress.status.internal_error": "Internal error",
     "stress.runtime": "runtime {seconds}s",
     "stress.notFoundDetail":
@@ -255,10 +263,14 @@ const translations = {
     "problem.iterations.label": "시도 횟수",
     "problem.iterations.hint":
       "총 몇 개의 케이스를 시도할지 정합니다 ({min}–{max}). 고정 테스트케이스와 단일 제너레이터가 항상 먼저 실행됩니다.",
+    "problem.totalRuntimeLimit.label": "총 실행 시간 제한 (초)",
+    "problem.totalRuntimeLimit.hint":
+      "반례를 찾기 위해 사용할 최대 시간을 입력합니다. 컴파일 시간과 실행 시간을 모두 포함합니다. (최대 {max}초)",
     "problem.summary.generators": "제너레이터 {count}개",
     "problem.summary.singlegens": "단일 제너레이터 {count}개",
     "problem.summary.testcases": "고정 테스트케이스 {count}개",
     "problem.summary.iterations": "{count}회 시도",
+    "problem.summary.totalRuntimeLimit": "총 {seconds}초 제한",
     "problem.summary.checker": "체커",
     "problem.summary.validator": "밸리데이터",
     "problem.summary.none": "선택된 항목 없음",
@@ -282,11 +294,14 @@ const translations = {
       "제출 코드, 정답 코드, 제너레이터, 체커, 텍스트 테스트케이스, 실행 제한을 모두 직접 지정해 실행합니다.",
     "custom.limits.title": "실행 제한",
     "custom.limits.subtitle":
-      "이번 실행에서는 제출 코드와 정답 코드 모두 이 시간/메모리 제한을 사용합니다.",
+      "시간/메모리 제한은 제출 코드와 정답 코드 모두에 적용됩니다. 총 실행 시간 제한은 전체 실행에 적용됩니다.",
     "custom.limits.time": "시간 제한 (ms)",
     "custom.limits.timeHint": "1부터 {max}까지의 정수를 입력하세요. 예: 2000",
     "custom.limits.memory": "메모리 제한 (MB)",
     "custom.limits.memoryHint": "1부터 {max}까지의 정수를 입력하세요. 예: 512",
+    "custom.limits.totalRuntime": "총 실행 시간 제한 (초)",
+    "custom.limits.totalRuntimeHint":
+      "반례를 찾기 위해 사용할 최대 시간을 입력합니다. 컴파일 시간과 실행 시간을 모두 포함합니다. (최대 {max}초)",
     "custom.target.title": "제출 코드",
     "custom.target.subtitle": "스트레스 테스트할 대상 코드입니다.",
     "custom.correct.title": "정답 코드",
@@ -324,6 +339,7 @@ const translations = {
     "stress.status.runtime_error": "실행 중 오류가 발생했습니다",
     "stress.status.invalid_problem": "문제 데이터 실행에 실패했습니다",
     "stress.status.rate_limited": "요청이 제한되었습니다",
+    "stress.status.compile_timeout": "컴파일 시간 초과",
     "stress.status.internal_error": "내부 오류",
     "stress.runtime": "실행 시간 {seconds}초",
     "stress.notFoundDetail":

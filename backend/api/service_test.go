@@ -49,6 +49,7 @@ func TestAdjustedExecutionLimitsLeavesNonBojLimitsUntouched(t *testing.T) {
 
 func TestBuildStresserEventAppliesAdjustedLimitsPerLanguage(t *testing.T) {
 	iterations := 1
+	totalRuntimeLimitSeconds := 17
 	event, statusCode, detail, ok := BuildStresserEvent(
 		Problem{
 			ProblemType:   "boj",
@@ -63,11 +64,12 @@ func TestBuildStresserEventAppliesAdjustedLimitsPerLanguage(t *testing.T) {
 			},
 		},
 		StressRequest{
-			TargetCode:          "console.log(0)",
-			TargetCodeLang:      "nodejs",
-			CorrectCodeFilename: stringPtr("correct.py"),
-			TestcaseFilenames:   []string{"sample.txt"},
-			Iterations:          &iterations,
+			TargetCode:               "console.log(0)",
+			TargetCodeLang:           "nodejs",
+			CorrectCodeFilename:      stringPtr("correct.py"),
+			TestcaseFilenames:        []string{"sample.txt"},
+			Iterations:               &iterations,
+			TotalRuntimeLimitSeconds: &totalRuntimeLimitSeconds,
 		},
 		"req-test",
 	)
@@ -85,6 +87,9 @@ func TestBuildStresserEventAppliesAdjustedLimitsPerLanguage(t *testing.T) {
 	}
 	if event.CorrectMemoryLimit != 288 {
 		t.Fatalf("CorrectMemoryLimit = %d, want 288", event.CorrectMemoryLimit)
+	}
+	if event.TotalRuntimeLimitSeconds != totalRuntimeLimitSeconds {
+		t.Fatalf("TotalRuntimeLimitSeconds = %d, want %d", event.TotalRuntimeLimitSeconds, totalRuntimeLimitSeconds)
 	}
 }
 
@@ -166,17 +171,19 @@ func TestBuildCustomStresserEventUsesExplicitLimits(t *testing.T) {
 	timeLimitMS := 3500
 	memoryLimitMB := 768
 	iterations := 9
+	totalRuntimeLimitSeconds := 12
 	checkerCode := "#include <bits/stdc++.h>\nint main(){return 0;}\n"
 
 	event, statusCode, detail, ok := BuildCustomStresserEvent(
 		StressRequest{
-			TargetCode:      "target",
-			TargetCodeLang:  "golang",
-			TimeLimitMS:     &timeLimitMS,
-			MemoryLimitMB:   &memoryLimitMB,
-			CorrectCode:     "correct",
-			CorrectCodeLang: "python3",
-			CheckerCode:     &checkerCode,
+			TargetCode:               "target",
+			TargetCodeLang:           "golang",
+			TimeLimitMS:              &timeLimitMS,
+			MemoryLimitMB:            &memoryLimitMB,
+			CorrectCode:              "correct",
+			CorrectCodeLang:          "python3",
+			CheckerCode:              &checkerCode,
+			TotalRuntimeLimitSeconds: &totalRuntimeLimitSeconds,
 			GeneratorSources: []InlineCodeInput{
 				{ID: "generator_inline.py", Code: "print(0)", Language: "python3"},
 			},
@@ -210,5 +217,23 @@ func TestBuildCustomStresserEventUsesExplicitLimits(t *testing.T) {
 	}
 	if event.Iterations != 9 {
 		t.Fatalf("Iterations = %d, want 9", event.Iterations)
+	}
+	if event.TotalRuntimeLimitSeconds != totalRuntimeLimitSeconds {
+		t.Fatalf("TotalRuntimeLimitSeconds = %d, want %d", event.TotalRuntimeLimitSeconds, totalRuntimeLimitSeconds)
+	}
+}
+
+func TestTransformStresserResponseMapsCompilationTimeout(t *testing.T) {
+	response := transformStresserResponse(contracts.StressResult{
+		Error:     true,
+		ErrorType: contracts.ErrorTypeCompilationTimedOut,
+		Message:   `{"message":"Compilation did not finish before the total runtime limit."}`,
+	}, "req-timeout")
+
+	if response.Status != contracts.StressStatusCompileTimeout {
+		t.Fatalf("Status = %q, want %q", response.Status, contracts.StressStatusCompileTimeout)
+	}
+	if response.ErrorMessage == nil || *response.ErrorMessage != "Compilation did not finish before the total runtime limit." {
+		t.Fatalf("ErrorMessage = %v, want timeout detail", response.ErrorMessage)
 	}
 }

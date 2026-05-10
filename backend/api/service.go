@@ -25,6 +25,7 @@ var errorTypeToStatus = map[contracts.ErrorType]StressStatus{
 	contracts.ErrorTypeMissingSourceCode:          contracts.StressStatusInvalidProblem,
 	contracts.ErrorTypeInvalidLanguage:            contracts.StressStatusInvalidProblem,
 	contracts.ErrorTypeInvalidOperation:           contracts.StressStatusInternalError,
+	contracts.ErrorTypeCompilationTimedOut:        contracts.StressStatusCompileTimeout,
 	contracts.ErrorTypeInternalServerError:        contracts.StressStatusInternalError,
 }
 
@@ -90,19 +91,20 @@ func BuildStresserEvent(problem Problem, request StressRequest, requestID string
 	targetTimeLimitS, targetMemoryLimitMB := adjustedExecutionLimits(problem.ProblemType, targetLang, problem.TimeLimitMS, problem.MemoryLimitMB)
 	correctTimeLimitS, correctMemoryLimitMB := adjustedExecutionLimits(problem.ProblemType, referenceLang, problem.TimeLimitMS, problem.MemoryLimitMB)
 	return contracts.StressEvent{
-		Operation:          contracts.OperationStress,
-		RequestID:          requestID,
-		TargetCode:         request.TargetCode,
-		TargetCodeLang:     targetLang,
-		CorrectCode:        referenceCode,
-		CorrectCodeLang:    referenceLang,
-		CheckerCode:        checkerCode,
-		TargetTimeLimit:    targetTimeLimitS,
-		TargetMemoryLimit:  targetMemoryLimitMB,
-		CorrectTimeLimit:   correctTimeLimitS,
-		CorrectMemoryLimit: correctMemoryLimitMB,
-		Iterations:         request.iterationsValue(),
-		CaseProviders:      caseProviders,
+		Operation:                contracts.OperationStress,
+		RequestID:                requestID,
+		TargetCode:               request.TargetCode,
+		TargetCodeLang:           targetLang,
+		CorrectCode:              referenceCode,
+		CorrectCodeLang:          referenceLang,
+		CheckerCode:              checkerCode,
+		TargetTimeLimit:          targetTimeLimitS,
+		TargetMemoryLimit:        targetMemoryLimitMB,
+		CorrectTimeLimit:         correctTimeLimitS,
+		CorrectMemoryLimit:       correctMemoryLimitMB,
+		Iterations:               request.iterationsValue(),
+		TotalRuntimeLimitSeconds: request.totalRuntimeLimitSecondsValue(),
+		CaseProviders:            caseProviders,
 	}, 0, "", true
 }
 
@@ -142,19 +144,20 @@ func BuildCustomStresserEvent(request StressRequest, requestID string) (contract
 	timeLimitSeconds := float64(*request.TimeLimitMS) / 1000.0
 	memoryLimitMB := *request.MemoryLimitMB
 	return contracts.StressEvent{
-		Operation:          contracts.OperationStress,
-		RequestID:          requestID,
-		TargetCode:         request.TargetCode,
-		TargetCodeLang:     request.targetLangValue(),
-		CorrectCode:        request.CorrectCode,
-		CorrectCodeLang:    request.correctLangValue(),
-		CheckerCode:        checkerCode,
-		TargetTimeLimit:    timeLimitSeconds,
-		TargetMemoryLimit:  memoryLimitMB,
-		CorrectTimeLimit:   timeLimitSeconds,
-		CorrectMemoryLimit: memoryLimitMB,
-		Iterations:         request.iterationsValue(),
-		CaseProviders:      caseProviders,
+		Operation:                contracts.OperationStress,
+		RequestID:                requestID,
+		TargetCode:               request.TargetCode,
+		TargetCodeLang:           request.targetLangValue(),
+		CorrectCode:              request.CorrectCode,
+		CorrectCodeLang:          request.correctLangValue(),
+		CheckerCode:              checkerCode,
+		TargetTimeLimit:          timeLimitSeconds,
+		TargetMemoryLimit:        memoryLimitMB,
+		CorrectTimeLimit:         timeLimitSeconds,
+		CorrectMemoryLimit:       memoryLimitMB,
+		Iterations:               request.iterationsValue(),
+		TotalRuntimeLimitSeconds: request.totalRuntimeLimitSecondsValue(),
+		CaseProviders:            caseProviders,
 	}, 0, "", true
 }
 
@@ -301,6 +304,7 @@ func invokeStressEvent(ctx context.Context, event contracts.StressEvent, request
 		"request_id", requestID,
 		"case_providers", len(event.CaseProviders),
 		"iterations", event.Iterations,
+		"total_runtime_limit_seconds", event.TotalRuntimeLimitSeconds,
 	}
 	logAttrs = append(logAttrs, attrs...)
 	slog.Info(

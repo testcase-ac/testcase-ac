@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 
 import { ApiError, submitCustomStress } from "../api";
 import CodeEditor from "../components/CodeEditor";
+import InputNumber from "../components/InputNumber";
 import LanguageField from "../components/LanguageField";
 import StressResultView from "../components/StressResult";
 import { Button } from "@/components/ui/button";
@@ -11,9 +12,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useI18n, type TranslationKey } from "../lib/i18n";
-import { useElapsedSeconds } from "../lib/useElapsedSeconds";
 import { usePersistentSettings } from "../lib/persistentSettings";
 import { defaultSource } from "../lib/sourceTemplates";
+import { useElapsedSeconds } from "../lib/useElapsedSeconds";
 import { cn } from "../lib/utils";
 import type { LanguageValue, StressRequest } from "../types";
 import {
@@ -27,6 +28,9 @@ import {
   TIME_LIMIT_DEFAULT_MS,
   TIME_LIMIT_MAX_MS,
   TIME_LIMIT_MIN_MS,
+  TOTAL_RUNTIME_LIMIT_DEFAULT_SECONDS,
+  TOTAL_RUNTIME_LIMIT_MAX_SECONDS,
+  TOTAL_RUNTIME_LIMIT_MIN_SECONDS,
 } from "../types";
 
 type GeneratorDraft = {
@@ -61,6 +65,9 @@ export default function CustomInvocationPage() {
   const [correctSource, setCorrectSource] = useState(() => defaultSource(lastManualLanguage));
   const [timeLimitMs, setTimeLimitMs] = useState(TIME_LIMIT_DEFAULT_MS);
   const [memoryLimitMb, setMemoryLimitMb] = useState(MEMORY_LIMIT_DEFAULT_MB);
+  const [totalRuntimeLimitSeconds, setTotalRuntimeLimitSeconds] = useState(
+    TOTAL_RUNTIME_LIMIT_DEFAULT_SECONDS,
+  );
   const [generators, setGenerators] = useState<GeneratorDraft[]>([]);
   const [textcases, setTextcases] = useState<TextcaseDraft[]>([]);
   const [useChecker, setUseChecker] = useState(false);
@@ -140,7 +147,9 @@ export default function CustomInvocationPage() {
     timeLimitMs < TIME_LIMIT_MIN_MS ||
     timeLimitMs > TIME_LIMIT_MAX_MS ||
     memoryLimitMb < MEMORY_LIMIT_MIN_MB ||
-    memoryLimitMb > MEMORY_LIMIT_MAX_MB;
+    memoryLimitMb > MEMORY_LIMIT_MAX_MB ||
+    totalRuntimeLimitSeconds < TOTAL_RUNTIME_LIMIT_MIN_SECONDS ||
+    totalRuntimeLimitSeconds > TOTAL_RUNTIME_LIMIT_MAX_SECONDS;
   const payload = buildCustomStressRequest({
     targetSource,
     targetLanguage,
@@ -148,6 +157,7 @@ export default function CustomInvocationPage() {
     correctLanguage,
     timeLimitMs,
     memoryLimitMb,
+    totalRuntimeLimitSeconds,
     generators,
     textcases,
     useChecker,
@@ -185,20 +195,18 @@ export default function CustomInvocationPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">{t("custom.limits.title")}</CardTitle>
-          <CardDescription>{t("custom.limits.subtitle")}</CardDescription>
+          <CardDescription className="max-w-lg leading-6">
+            {t("custom.limits.subtitle")}
+          </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-x-12 gap-y-5">
+        <CardContent className="grid gap-x-12 gap-y-5 md:grid-cols-2">
           <NumberField
             id="custom-time-limit"
             label={t("custom.limits.time")}
             hint={t("custom.limits.timeHint", { max: TIME_LIMIT_MAX_MS })}
             value={timeLimitMs}
             onChange={setTimeLimitMs}
-            onBlur={() =>
-              setTimeLimitMs((current) =>
-                clampIntegerRange(current, TIME_LIMIT_DEFAULT_MS, TIME_LIMIT_MIN_MS, TIME_LIMIT_MAX_MS),
-              )
-            }
+            fallback={TIME_LIMIT_DEFAULT_MS}
             min={TIME_LIMIT_MIN_MS}
             max={TIME_LIMIT_MAX_MS}
           />
@@ -208,18 +216,21 @@ export default function CustomInvocationPage() {
             hint={t("custom.limits.memoryHint", { max: MEMORY_LIMIT_MAX_MB })}
             value={memoryLimitMb}
             onChange={setMemoryLimitMb}
-            onBlur={() =>
-              setMemoryLimitMb((current) =>
-                clampIntegerRange(
-                  current,
-                  MEMORY_LIMIT_DEFAULT_MB,
-                  MEMORY_LIMIT_MIN_MB,
-                  MEMORY_LIMIT_MAX_MB,
-                ),
-              )
-            }
+            fallback={MEMORY_LIMIT_DEFAULT_MB}
             min={MEMORY_LIMIT_MIN_MB}
             max={MEMORY_LIMIT_MAX_MB}
+          />
+          <NumberField
+            id="custom-total-runtime-limit"
+            label={t("custom.limits.totalRuntime")}
+            hint={t("custom.limits.totalRuntimeHint", {
+              max: TOTAL_RUNTIME_LIMIT_MAX_SECONDS,
+            })}
+            value={totalRuntimeLimitSeconds}
+            onChange={setTotalRuntimeLimitSeconds}
+            fallback={TOTAL_RUNTIME_LIMIT_DEFAULT_SECONDS}
+            min={TOTAL_RUNTIME_LIMIT_MIN_SECONDS}
+            max={TOTAL_RUNTIME_LIMIT_MAX_SECONDS}
           />
         </CardContent>
       </Card>
@@ -395,7 +406,9 @@ export default function CustomInvocationPage() {
               hint={t("problem.iterations.hint", { min: ITERATIONS_MIN, max: ITERATIONS_MAX })}
               value={iterations}
               onChange={setIterations}
-              onBlur={() => setIterations((current) => clampIterations(current))}
+              fallback={ITERATIONS_DEFAULT}
+              min={ITERATIONS_MIN}
+              max={ITERATIONS_MAX}
               layout="stacked"
             />
 
@@ -446,6 +459,7 @@ function buildCustomStressRequest({
   correctLanguage,
   timeLimitMs,
   memoryLimitMb,
+  totalRuntimeLimitSeconds,
   generators,
   textcases,
   useChecker,
@@ -458,6 +472,7 @@ function buildCustomStressRequest({
   correctLanguage: LanguageValue;
   timeLimitMs: number;
   memoryLimitMb: number;
+  totalRuntimeLimitSeconds: number;
   generators: GeneratorDraft[];
   textcases: TextcaseDraft[];
   useChecker: boolean;
@@ -478,6 +493,12 @@ function buildCustomStressRequest({
       MEMORY_LIMIT_DEFAULT_MB,
       MEMORY_LIMIT_MIN_MB,
       MEMORY_LIMIT_MAX_MB,
+    ),
+    totalRuntimeLimitSeconds: clampIntegerRange(
+      totalRuntimeLimitSeconds,
+      TOTAL_RUNTIME_LIMIT_DEFAULT_SECONDS,
+      TOTAL_RUNTIME_LIMIT_MIN_SECONDS,
+      TOTAL_RUNTIME_LIMIT_MAX_SECONDS,
     ),
     correctCode: correctSource,
     correctCodeLang: correctLanguage,
@@ -501,7 +522,7 @@ function NumberField({
   hint,
   value,
   onChange,
-  onBlur,
+  fallback,
   min = 1,
   max,
   layout = "inline",
@@ -511,9 +532,9 @@ function NumberField({
   hint?: string;
   value: number;
   onChange: (value: number) => void;
-  onBlur: () => void;
+  fallback: number;
   min?: number;
-  max?: number;
+  max: number;
   layout?: "inline" | "stacked";
 }) {
   const stacked = layout === "stacked";
@@ -524,28 +545,23 @@ function NumberField({
         "grid gap-2",
         stacked
           ? "justify-start"
-          : "sm:w-max sm:max-w-full sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-x-3",
+          : "w-full sm:grid-cols-[max-content_minmax(0,1fr)] sm:items-center sm:gap-x-3",
       )}
     >
       <label htmlFor={id} className={cn("text-sm font-medium", !stacked && "sm:text-right")}>
         {label}
       </label>
-      <input
+      <InputNumber
         id={id}
-        type="number"
         min={min}
         max={max}
-        step={1}
+        fallback={fallback}
         value={value}
-        onChange={(event) => {
-          const next = Number(event.target.value);
-          onChange(Number.isFinite(next) ? next : 0);
-        }}
-        onBlur={onBlur}
-        className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-40"
+        onChange={onChange}
+        className="text-sm sm:w-40"
       />
       {hint && (
-        <p className={cn("text-sm text-muted-foreground", !stacked && "sm:col-span-2 sm:whitespace-nowrap")}>
+        <p className={cn("max-w-md text-sm leading-6 text-muted-foreground", !stacked && "sm:col-span-2")}>
           {hint}
         </p>
       )}

@@ -16,6 +16,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
+	"github.com/testcase-ac/testcase-ac/backend/contracts"
 )
 
 const (
@@ -295,6 +296,8 @@ func validationDetail(err error) string {
 		return fmt.Sprintf("memoryLimitMb must be between %d and %d", minCustomMemoryLimitMB, maxCustomMemoryLimitMB)
 	case fieldName == "Iterations":
 		return "iterations must be between 1 and 500"
+	case fieldName == "TotalRuntimeLimitSeconds":
+		return fmt.Sprintf("totalRuntimeLimitSeconds must be between %d and %d", contracts.MinTotalRuntimeLimitSeconds, contracts.MaxTotalRuntimeLimitSeconds)
 	case fieldName == "TargetCodeLang":
 		return supportedTargetCodeLangDetail
 	case fieldName == "CorrectCodeLang":

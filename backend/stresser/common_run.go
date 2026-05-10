@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -13,8 +14,16 @@ import (
 
 type executionResult = executor.ExecutionResult
 
-func (s stresser) compileAndGetProgram(code string, lang contracts.Language, limits executor.Limits, errorType contracts.ErrorType) (*compiledProgram, error) {
-	result := s.compile(context.Background(), executor.Source{Code: code, Language: lang})
+var errTotalRuntimeLimitExceeded = errors.New("total runtime limit exceeded")
+
+func (s stresser) compileAndGetProgram(ctx context.Context, code string, lang contracts.Language, limits executor.Limits, errorType contracts.ErrorType) (*compiledProgram, error) {
+	if ctx.Err() != nil {
+		return nil, compilationTimedOutError(errorType)
+	}
+	result := s.compile(ctx, executor.Source{Code: code, Language: lang})
+	if ctx.Err() != nil {
+		return nil, compilationTimedOutError(errorType)
+	}
 	if !result.Success {
 		details := map[string]any{
 			"stderr":     result.Stderr,
@@ -39,8 +48,15 @@ func (s stresser) compileAndGetProgram(code string, lang contracts.Language, lim
 	return &compiledProgram{Program: *result.Program, Limits: limits}, nil
 }
 
-func (s stresser) stressTestIteration(targetCode, correctCode compiledProgram, checkerCode *compiledProgram, caseProvider compiledCaseProvider, randomSeed int) (stressIteration, error) {
-	testcase, generatedBy, generateError, err := s.generateCaseProvider(caseProvider, randomSeed)
+func compilationTimedOutError(compileErrorType contracts.ErrorType) *ResponseError {
+	return NewResponseError(contracts.ErrorTypeCompilationTimedOut, map[string]any{
+		"message":          "Compilation did not finish before the total runtime limit.",
+		"compileErrorType": compileErrorType,
+	})
+}
+
+func (s stresser) stressTestIteration(ctx context.Context, targetCode, correctCode compiledProgram, checkerCode *compiledProgram, caseProvider compiledCaseProvider, randomSeed int) (stressIteration, error) {
+	testcase, generatedBy, generateError, err := s.generateCaseProvider(ctx, caseProvider, randomSeed)
 	if err != nil {
 		return stressIteration{}, err
 	}
@@ -55,7 +71,10 @@ func (s stresser) stressTestIteration(targetCode, correctCode compiledProgram, c
 		})
 	}
 
-	correctExecution := s.run(context.Background(), correctCode.Program, testcase, nil, correctCode.Limits)
+	correctExecution := s.run(ctx, correctCode.Program, testcase, nil, correctCode.Limits)
+	if ctx.Err() != nil {
+		return stressIteration{}, errTotalRuntimeLimitExceeded
+	}
 	if !correctExecution.Success {
 		return stressIteration{}, NewResponseError(contracts.ErrorTypeCorrectExecutionFailed, map[string]any{
 			"verdict":    correctExecution.Verdict,
@@ -67,7 +86,10 @@ func (s stresser) stressTestIteration(targetCode, correctCode compiledProgram, c
 		})
 	}
 
-	targetExecution := s.run(context.Background(), targetCode.Program, testcase, nil, targetCode.Limits)
+	targetExecution := s.run(ctx, targetCode.Program, testcase, nil, targetCode.Limits)
+	if ctx.Err() != nil {
+		return stressIteration{}, errTotalRuntimeLimitExceeded
+	}
 	var runSummary targetRun
 	if !targetExecution.Success {
 		runSummary = targetRun{
@@ -80,7 +102,10 @@ func (s stresser) stressTestIteration(targetCode, correctCode compiledProgram, c
 	} else if checkerCode != nil {
 		cleanCorrect := util.CleanStdout(correctExecution.Stdout, "no")
 		cleanTarget := util.CleanStdout(targetExecution.Stdout, "no")
-		checkerExecution := s.runChecker(context.Background(), checkerCode.Program, testcase, cleanTarget, cleanCorrect, checkerCode.Limits)
+		checkerExecution := s.runChecker(ctx, checkerCode.Program, testcase, cleanTarget, cleanCorrect, checkerCode.Limits)
+		if ctx.Err() != nil {
+			return stressIteration{}, errTotalRuntimeLimitExceeded
+		}
 		if checkerExecution.Success {
 			runSummary = targetRun{
 				Verdict:       checkerExecution.Verdict,

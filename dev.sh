@@ -28,7 +28,7 @@ Useful overrides:
   STRESSER_PORT=9000
   TESTCASE_LOCAL_PATH=/absolute/path/to/repo-or-fixture
   REMOTE_API_BASE_URL=https://api.testcase.ac
-  REBUILD_STRESSER_IMAGE=1
+  REBUILD_STRESSER_IMAGE=1       Force rebuild stresser image even if sources are unchanged
 EOF
 }
 
@@ -93,10 +93,24 @@ start_backend() {
 }
 
 ensure_stresser_image() {
-  if [ "$REBUILD_STRESSER_IMAGE" = "1" ] || ! docker image inspect "$STRESSER_IMAGE" >/dev/null 2>&1; then
+  local source_hash
+  local image_hash
+  source_hash="$(stresser_source_hash)"
+  image_hash="$(docker image inspect -f '{{ index .Config.Labels "testcase-ac.stresser-source-hash" }}' "$STRESSER_IMAGE" 2>/dev/null || true)"
+  if [ "$REBUILD_STRESSER_IMAGE" = "1" ] || [ "$source_hash" != "$image_hash" ]; then
     echo "[dev] building stresser image ($STRESSER_IMAGE)"
-    docker build -q -f deploy/stresser.Dockerfile -t "$STRESSER_IMAGE" . >/dev/null
+    docker build -q \
+      -f deploy/stresser.Dockerfile \
+      --label "testcase-ac.stresser-source-hash=$source_hash" \
+      -t "$STRESSER_IMAGE" . >/dev/null
   fi
+}
+
+stresser_source_hash() {
+  {
+    git ls-files backend/stresser backend/internal backend/contracts backend/go.mod backend/go.sum deploy/stresser.Dockerfile
+    git ls-files --others --exclude-standard backend/stresser backend/internal backend/contracts backend/go.mod backend/go.sum deploy/stresser.Dockerfile
+  } | LC_ALL=C sort -u | xargs shasum | shasum | awk '{print $1}'
 }
 
 start_stresser() {

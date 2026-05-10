@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { guessLanguage, resolveDetectedLanguage } from "@/lib/languageDetection";
-import { useElapsedSeconds } from "@/lib/useElapsedSeconds";
 import { usePersistentSettings } from "@/lib/persistentSettings";
 import { defaultSource } from "@/lib/sourceTemplates";
+import { useElapsedSeconds } from "@/lib/useElapsedSeconds";
 import { cn } from "@/lib/utils";
 import { ApiError, getProblem, submitStress } from "../api";
 import CodeEditor from "../components/CodeEditor";
+import InputNumber from "../components/InputNumber";
 import LanguageField from "../components/LanguageField";
 import StressResultView from "../components/StressResult";
 import { problemDirUrl, sourceFileUrl } from "../github";
@@ -32,6 +33,9 @@ import {
   ITERATIONS_DEFAULT,
   ITERATIONS_MAX,
   ITERATIONS_MIN,
+  TOTAL_RUNTIME_LIMIT_DEFAULT_SECONDS,
+  TOTAL_RUNTIME_LIMIT_MAX_SECONDS,
+  TOTAL_RUNTIME_LIMIT_MIN_SECONDS,
 } from "../types";
 
 const PROBLEM_1000_DEFAULT_CPP_SOURCE = `#include <iostream>
@@ -106,6 +110,7 @@ function buildStressRequest({
   selectedSinglegens,
   selectedTestcases,
   iterations,
+  totalRuntimeLimitSeconds,
 }: {
   source: string;
   language: LanguageValue;
@@ -114,6 +119,7 @@ function buildStressRequest({
   selectedSinglegens: string[];
   selectedTestcases: string[];
   iterations: number;
+  totalRuntimeLimitSeconds: number;
 }): StressRequest {
   return {
     targetCode: source,
@@ -123,12 +129,21 @@ function buildStressRequest({
     singlegenFilenames: selectedSinglegens,
     testcaseFilenames: selectedTestcases,
     iterations,
+    totalRuntimeLimitSeconds,
   };
 }
 
 function clampIterations(value: number): number {
   if (!Number.isFinite(value)) return ITERATIONS_DEFAULT;
   return Math.min(ITERATIONS_MAX, Math.max(ITERATIONS_MIN, Math.floor(value)));
+}
+
+function clampTotalRuntimeLimitSeconds(value: number): number {
+  if (!Number.isFinite(value)) return TOTAL_RUNTIME_LIMIT_DEFAULT_SECONDS;
+  return Math.min(
+    TOTAL_RUNTIME_LIMIT_MAX_SECONDS,
+    Math.max(TOTAL_RUNTIME_LIMIT_MIN_SECONDS, Math.floor(value)),
+  );
 }
 
 export default function ProblemPage() {
@@ -177,6 +192,9 @@ export function ProblemWorkspace({
   const [selectedSinglegens, setSelectedSinglegens] = useState<string[]>([]);
   const [selectedTestcases, setSelectedTestcases] = useState<string[]>([]);
   const [iterations, setIterations] = useState<number>(ITERATIONS_DEFAULT);
+  const [totalRuntimeLimitSeconds, setTotalRuntimeLimitSeconds] = useState<number>(
+    TOTAL_RUNTIME_LIMIT_DEFAULT_SECONDS,
+  );
   const [lastSubmittedRequest, setLastSubmittedRequest] = useState<string | null>(null);
   const stressMutation = useMutation({
     mutationFn: (payload: StressRequest) => submitStress(problemType, externalId, payload),
@@ -222,6 +240,7 @@ export function ProblemWorkspace({
       selectedSinglegens,
       selectedTestcases,
       iterations: clampIterations(iterations),
+      totalRuntimeLimitSeconds: clampTotalRuntimeLimitSeconds(totalRuntimeLimitSeconds),
     });
     stressMutation.reset();
     setLastSubmittedRequest(JSON.stringify(payload));
@@ -260,6 +279,7 @@ export function ProblemWorkspace({
       selectedSinglegens,
       selectedTestcases,
       iterations: clampIterations(iterations),
+      totalRuntimeLimitSeconds: clampTotalRuntimeLimitSeconds(totalRuntimeLimitSeconds),
     }),
   );
   const showLatestResponse = currentRequest === lastSubmittedRequest;
@@ -352,6 +372,8 @@ export function ProblemWorkspace({
               setSelectedTestcases={setSelectedTestcases}
               iterations={iterations}
               setIterations={setIterations}
+              totalRuntimeLimitSeconds={totalRuntimeLimitSeconds}
+              setTotalRuntimeLimitSeconds={setTotalRuntimeLimitSeconds}
             />
 
             {selectedProviderCount === 0 && (
@@ -413,6 +435,8 @@ function AdvancedStressOptions({
   setSelectedTestcases,
   iterations,
   setIterations,
+  totalRuntimeLimitSeconds,
+  setTotalRuntimeLimitSeconds,
 }: {
   problem: ProblemDetail;
   open: boolean;
@@ -427,10 +451,15 @@ function AdvancedStressOptions({
   setSelectedTestcases: (filenames: string[]) => void;
   iterations: number;
   setIterations: (n: number) => void;
+  totalRuntimeLimitSeconds: number;
+  setTotalRuntimeLimitSeconds: (n: number) => void;
 }) {
   const { t } = useI18n();
   const summary = [
     t("problem.summary.iterations", { count: clampIterations(iterations) }),
+    t("problem.summary.totalRuntimeLimit", {
+      seconds: clampTotalRuntimeLimitSeconds(totalRuntimeLimitSeconds),
+    }),
     t("problem.summary.generators", { count: selectedGenerators.length }),
     t("problem.summary.singlegens", { count: selectedSinglegens.length }),
     t("problem.summary.testcases", { count: selectedTestcases.length }),
@@ -456,6 +485,10 @@ function AdvancedStressOptions({
       {open && (
         <div className="space-y-5 border-t px-4 py-4">
           <IterationsField value={iterations} onChange={setIterations} />
+          <TotalRuntimeLimitField
+            value={totalRuntimeLimitSeconds}
+            onChange={setTotalRuntimeLimitSeconds}
+          />
 
           <SelectableCodeGroup
             label={t("problem.option.correct")}
@@ -720,18 +753,40 @@ function IterationsField({
       label={t("problem.iterations.label")}
       hint={t("problem.iterations.hint", { min: ITERATIONS_MIN, max: ITERATIONS_MAX })}
     >
-      <input
-        type="number"
+      <InputNumber
         min={ITERATIONS_MIN}
         max={ITERATIONS_MAX}
-        step={1}
+        fallback={ITERATIONS_DEFAULT}
         value={value}
-        onChange={(e) => {
-          const next = Number(e.target.value);
-          onChange(Number.isFinite(next) ? next : ITERATIONS_DEFAULT);
-        }}
-        onBlur={() => onChange(clampIterations(value))}
-        className="h-10 w-32 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        onChange={onChange}
+        className="w-32 text-sm"
+      />
+    </SelectionGroupShell>
+  );
+}
+
+function TotalRuntimeLimitField({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <SelectionGroupShell
+      label={t("problem.totalRuntimeLimit.label")}
+      hint={t("problem.totalRuntimeLimit.hint", {
+        max: TOTAL_RUNTIME_LIMIT_MAX_SECONDS,
+      })}
+    >
+      <InputNumber
+        min={TOTAL_RUNTIME_LIMIT_MIN_SECONDS}
+        max={TOTAL_RUNTIME_LIMIT_MAX_SECONDS}
+        fallback={TOTAL_RUNTIME_LIMIT_DEFAULT_SECONDS}
+        value={value}
+        onChange={onChange}
+        className="w-32 text-sm"
       />
     </SelectionGroupShell>
   );
@@ -748,9 +803,9 @@ function SelectionGroupShell({
 }) {
   return (
     <div className="space-y-2">
-      <div className="flex items-baseline gap-2">
+      <div className="space-y-1">
         <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
-        {hint && <div className="text-[11px] text-muted-foreground/80">{hint}</div>}
+        {hint && <div className="max-w-lg text-[11px] leading-5 text-muted-foreground/80">{hint}</div>}
       </div>
       {children}
     </div>

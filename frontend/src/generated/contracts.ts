@@ -6,6 +6,7 @@ export const ERROR_TYPE_VALUES = [
   "GeneratorCompilationFailed",
   "CorrectCompilationFailed",
   "CheckerCompilationFailed",
+  "CompilationTimedOut",
   "TargetExecutionFailed",
   "GeneratorExecutionFailed",
   "CorrectExecutionFailed",
@@ -76,6 +77,7 @@ export const STRESS_STATUS_VALUES = [
   "runtime_error",
   "invalid_problem",
   "rate_limited",
+  "compile_timeout",
   "internal_error",
 ] as const;
 
@@ -102,6 +104,7 @@ export interface StressEvent {
   correctTimeLimit: number;
   correctMemoryLimit: number;
   iterations: number;
+  totalRuntimeLimitSeconds?: number;
   caseProviders: CaseProvider[];
 }
 

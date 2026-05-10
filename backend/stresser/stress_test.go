@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 	"github.com/testcase-ac/testcase-ac/backend/internal/executor"
@@ -72,6 +73,93 @@ func TestOperationStressSmoke(t *testing.T) {
 	}
 	if result.ExecutionFailedCasesCount != 0 {
 		t.Fatalf("ExecutionFailedCasesCount = %d, want 0", result.ExecutionFailedCasesCount)
+	}
+}
+
+func TestCompileAndGetProgramReportsTotalRuntimeLimitTimeout(t *testing.T) {
+	t.Run("before compile", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		_, err := fakeStresser(newFakeRuntime()).compileAndGetProgram(
+			ctx,
+			"sum",
+			contracts.LanguageCpp23,
+			executor.Limits{TimeSeconds: 2, MemoryMB: 256},
+			contracts.ErrorTypeTargetCompilationFailed,
+		)
+		assertCompilationTimedOut(t, err)
+	})
+
+	t.Run("during compile", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		stresser := fakeStresser(newFakeRuntime())
+		stresser.compile = func(_ context.Context, _ executor.Source) executor.CompileResult {
+			cancel()
+			return executor.CompileResult{Success: false, Stderr: "killed"}
+		}
+
+		_, err := stresser.compileAndGetProgram(
+			ctx,
+			"sum",
+			contracts.LanguageCpp23,
+			executor.Limits{TimeSeconds: 2, MemoryMB: 256},
+			contracts.ErrorTypeTargetCompilationFailed,
+		)
+		assertCompilationTimedOut(t, err)
+	})
+}
+
+func assertCompilationTimedOut(t *testing.T, err error) {
+	t.Helper()
+	if err == nil {
+		t.Fatalf("compileAndGetProgram() error = nil, want timeout")
+	}
+	responseErr, ok := err.(*ResponseError)
+	if !ok {
+		t.Fatalf("compileAndGetProgram() error = %T, want *ResponseError", err)
+	}
+	if responseErr.errorType != contracts.ErrorTypeCompilationTimedOut {
+		t.Fatalf("errorType = %q, want %q", responseErr.errorType, contracts.ErrorTypeCompilationTimedOut)
+	}
+	message, _ := responseErr.details["message"].(string)
+	if message != "Compilation did not finish before the total runtime limit." {
+		t.Fatalf("message = %q, want shorter total runtime limit explanation", message)
+	}
+}
+
+func TestOperationStressStopsAtTotalRuntimeLimit(t *testing.T) {
+	fake := newFakeRuntime()
+	fake.runDelay = 250 * time.Millisecond
+	start := time.Now()
+
+	result, err := fakeStresser(fake).operationStress(contracts.StressEvent{
+		Operation:                contracts.OperationStress,
+		TargetCode:               "sum",
+		TargetCodeLang:           contracts.LanguageCpp23,
+		CorrectCode:              "sum",
+		CorrectCodeLang:          contracts.LanguageCpp23,
+		TargetTimeLimit:          2,
+		TargetMemoryLimit:        256,
+		CorrectTimeLimit:         2,
+		CorrectMemoryLimit:       256,
+		Iterations:               100,
+		TotalRuntimeLimitSeconds: 1,
+		CaseProviders: []contracts.CaseProvider{
+			generatorProvider("gen-slow", "case:1 2"),
+		},
+	})
+	if err != nil {
+		t.Fatalf("operationStress() error = %v", err)
+	}
+	if result.Error {
+		t.Fatalf("operationStress() returned error result: %+v", result)
+	}
+	if result.TotalCases >= 100 {
+		t.Fatalf("TotalCases = %d, want fewer than requested iterations after total runtime limit", result.TotalCases)
+	}
+	if elapsed := time.Since(start); elapsed > 3*time.Second {
+		t.Fatalf("operationStress() elapsed = %s, want total runtime context to interrupt the loop", elapsed)
 	}
 }
 
@@ -454,6 +542,7 @@ func TestBuildStressResponseCleansReturnedStdout(t *testing.T) {
 
 type fakeRuntime struct {
 	compileFailures map[string]executor.CompileResult
+	runDelay        time.Duration
 }
 
 func newFakeRuntime() *fakeRuntime {
@@ -482,7 +571,14 @@ func (f *fakeRuntime) compile(_ context.Context, source executor.Source) executo
 	return executor.CompileResult{Success: true, Program: program}
 }
 
-func (f *fakeRuntime) run(_ context.Context, program executor.CompiledProgram, input string, args []string, _ executor.Limits) executor.ExecutionResult {
+func (f *fakeRuntime) run(ctx context.Context, program executor.CompiledProgram, input string, args []string, _ executor.Limits) executor.ExecutionResult {
+	if f.runDelay > 0 {
+		select {
+		case <-time.After(f.runDelay):
+		case <-ctx.Done():
+			return executor.ExecutionResult{Success: false, Verdict: contracts.VerdictTimeLimit, ReturnCode: -101}
+		}
+	}
 	switch program.Dir {
 	case "sum":
 		return accepted(sumOutput(input))

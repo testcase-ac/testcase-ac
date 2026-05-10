@@ -37,20 +37,21 @@ type AttemptedCase = contracts.GeneratedBy
 type StressStatus = contracts.StressStatus
 
 type StressRequest struct {
-	TargetCode          string                `json:"targetCode" validate:"required,min=1"`
-	TargetCodeLang      contracts.Language    `json:"targetCodeLang" validate:"omitempty,oneof=cpp23 cpp20 cpp17 cpp14 c11 c99 python3 java nodejs pypy3 golang kotlin rust2021 csharp"`
-	TimeLimitMS         *int                  `json:"timeLimitMs" validate:"omitempty,min=1,max=10000"`
-	MemoryLimitMB       *int                  `json:"memoryLimitMb" validate:"omitempty,min=1,max=1024"`
-	CorrectCodeFilename *string               `json:"correctCodeFilename"`
-	CorrectCode         string                `json:"correctCode" validate:"omitempty,min=1"`
-	CorrectCodeLang     contracts.Language    `json:"correctCodeLang" validate:"omitempty,oneof=cpp23 cpp20 cpp17 cpp14 c11 c99 python3 java nodejs pypy3 golang kotlin rust2021 csharp"`
-	CheckerCode         *string               `json:"checkerCode"`
-	GeneratorFilenames  []string              `json:"generatorFilenames" validate:"omitempty,dive,min=1"`
-	GeneratorSources    []InlineCodeInput     `json:"generatorSources"`
-	SinglegenFilenames  []string              `json:"singlegenFilenames" validate:"omitempty,dive,min=1"`
-	TestcaseFilenames   []string              `json:"testcaseFilenames" validate:"omitempty,dive,min=1"`
-	TextTestcases       []InlineTextcaseInput `json:"textTestcases"`
-	Iterations          *int                  `json:"iterations" validate:"omitempty,min=1,max=500"`
+	TargetCode               string                `json:"targetCode" validate:"required,min=1"`
+	TargetCodeLang           contracts.Language    `json:"targetCodeLang" validate:"omitempty,oneof=cpp23 cpp20 cpp17 cpp14 c11 c99 python3 java nodejs pypy3 golang kotlin rust2021 csharp"`
+	TimeLimitMS              *int                  `json:"timeLimitMs" validate:"omitempty,min=1,max=10000"`
+	MemoryLimitMB            *int                  `json:"memoryLimitMb" validate:"omitempty,min=1,max=1024"`
+	CorrectCodeFilename      *string               `json:"correctCodeFilename"`
+	CorrectCode              string                `json:"correctCode" validate:"omitempty,min=1"`
+	CorrectCodeLang          contracts.Language    `json:"correctCodeLang" validate:"omitempty,oneof=cpp23 cpp20 cpp17 cpp14 c11 c99 python3 java nodejs pypy3 golang kotlin rust2021 csharp"`
+	CheckerCode              *string               `json:"checkerCode"`
+	GeneratorFilenames       []string              `json:"generatorFilenames" validate:"omitempty,dive,min=1"`
+	GeneratorSources         []InlineCodeInput     `json:"generatorSources"`
+	SinglegenFilenames       []string              `json:"singlegenFilenames" validate:"omitempty,dive,min=1"`
+	TestcaseFilenames        []string              `json:"testcaseFilenames" validate:"omitempty,dive,min=1"`
+	TextTestcases            []InlineTextcaseInput `json:"textTestcases"`
+	Iterations               *int                  `json:"iterations" validate:"omitempty,min=1,max=500"`
+	TotalRuntimeLimitSeconds *int                  `json:"totalRuntimeLimitSeconds" validate:"omitempty,min=1,max=90"`
 }
 
 func (r StressRequest) iterationsValue() int {
@@ -58,6 +59,13 @@ func (r StressRequest) iterationsValue() int {
 		return 100
 	}
 	return *r.Iterations
+}
+
+func (r StressRequest) totalRuntimeLimitSecondsValue() int {
+	if r.TotalRuntimeLimitSeconds == nil {
+		return contracts.DefaultTotalRuntimeLimitSeconds
+	}
+	return *r.TotalRuntimeLimitSeconds
 }
 
 func (r StressRequest) targetLangValue() contracts.Language {

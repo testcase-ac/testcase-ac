@@ -442,6 +442,42 @@ func TestHandleCustomStressRejectsOversizedLimits(t *testing.T) {
 	}
 }
 
+func TestHandleCustomStressRejectsOversizedTotalRuntimeLimit(t *testing.T) {
+	app := newTestApp(
+		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
+		map[[2]string]Problem{},
+		&customInvocationStresserClient{t: t},
+	)
+
+	timeLimitMS := 2500
+	memoryLimitMB := 384
+	totalRuntimeLimitSeconds := contracts.MaxTotalRuntimeLimitSeconds + 1
+	body, err := json.Marshal(StressRequest{
+		TargetCode:               "target",
+		TargetCodeLang:           "cpp23",
+		TimeLimitMS:              &timeLimitMS,
+		MemoryLimitMB:            &memoryLimitMB,
+		TotalRuntimeLimitSeconds: &totalRuntimeLimitSeconds,
+		CorrectCode:              "inline-correct",
+		CorrectCodeLang:          "cpp23",
+		TextTestcases:            []InlineTextcaseInput{{ID: "sample.txt", Content: "1 2\n"}},
+	})
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/custom-invocation/stress", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	app.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "totalRuntimeLimitSeconds must be between 1 and 90") {
+		t.Fatalf("body = %s, want totalRuntimeLimitSeconds range error", rec.Body.String())
+	}
+}
+
 func TestHandleCustomStressRejectsOversizedBody(t *testing.T) {
 	app := newTestApp(
 		Settings{RateLimitMax: 100, RateLimitWindowS: 10},

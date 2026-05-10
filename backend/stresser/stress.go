@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -15,7 +16,7 @@ import (
 )
 
 const (
-	maxWallTimeSeconds          = 90
+	maxWallTimeSeconds          = contracts.MaxTotalRuntimeLimitSeconds
 	maxGeneratorExecutionErrors = 10
 	defaultIterations           = 100
 	caseLimitInResponse         = 3
@@ -97,6 +98,8 @@ func (s stresser) operationStress(event contracts.StressEvent) (contracts.Stress
 	normalized := normalizeStressEvent(event)
 	events := newEventRecorder()
 	startTime := time.Now()
+	stressCtx, cancel := context.WithTimeout(context.Background(), time.Duration(normalized.TotalRuntimeLimitSeconds)*time.Second)
+	defer cancel()
 
 	if normalized.TargetCode == "" || normalized.CorrectCode == "" {
 		return contracts.StressResult{}, NewResponseError(contracts.ErrorTypeMissingSourceCode, nil)
@@ -111,6 +114,7 @@ func (s stresser) operationStress(event contracts.StressEvent) (contracts.Stress
 	slog.Info("compile_start", "phase", "target")
 	events.record("target_compile_start", "")
 	targetProgram, err := s.compileAndGetProgram(
+		stressCtx,
 		normalized.TargetCode,
 		normalized.TargetCodeLang,
 		executor.Limits{TimeSeconds: normalized.TargetTimeLimit, MemoryMB: normalized.TargetMemoryLimit},
@@ -124,6 +128,7 @@ func (s stresser) operationStress(event contracts.StressEvent) (contracts.Stress
 	slog.Info("compile_start", "phase", "correct")
 	events.record("correct_compile_start", "")
 	correctProgram, err := s.compileAndGetProgram(
+		stressCtx,
 		normalized.CorrectCode,
 		normalized.CorrectCodeLang,
 		executor.Limits{TimeSeconds: normalized.CorrectTimeLimit, MemoryMB: normalized.CorrectMemoryLimit},
@@ -139,6 +144,7 @@ func (s stresser) operationStress(event contracts.StressEvent) (contracts.Stress
 		slog.Info("compile_start", "phase", "checker")
 		events.record("checker_compile_start", "")
 		checkerProgram, err = s.compileAndGetProgram(
+			stressCtx,
 			normalized.CheckerCode,
 			contracts.LanguageCpp23,
 			executor.Limits{TimeSeconds: 2, MemoryMB: 1024},
@@ -150,14 +156,16 @@ func (s stresser) operationStress(event contracts.StressEvent) (contracts.Stress
 		events.record("checker_compile_done", "")
 	}
 
-	providers, err := s.compileCaseProviders(normalized.CaseProviders, events)
+	providers, err := s.compileCaseProviders(stressCtx, normalized.CaseProviders, events)
 	if err != nil {
 		return contracts.StressResult{}, err
 	}
 
 	wrongCases, executionFailedCases, correctCases, err := s.runStressLoop(
+		stressCtx,
 		normalized.Iterations,
 		startTime,
+		normalized.TotalRuntimeLimitSeconds,
 		*targetProgram,
 		*correctProgram,
 		checkerProgram,
@@ -199,10 +207,16 @@ func normalizeStressEvent(event contracts.StressEvent) contracts.StressEvent {
 	if event.Iterations == 0 {
 		event.Iterations = defaultIterations
 	}
+	if event.TotalRuntimeLimitSeconds <= 0 {
+		event.TotalRuntimeLimitSeconds = contracts.DefaultTotalRuntimeLimitSeconds
+	}
+	if event.TotalRuntimeLimitSeconds > maxWallTimeSeconds {
+		event.TotalRuntimeLimitSeconds = maxWallTimeSeconds
+	}
 	return event
 }
 
-func (s stresser) compileCaseProviders(caseProviders []contracts.CaseProvider, events *eventRecorder) ([]compiledCaseProvider, error) {
+func (s stresser) compileCaseProviders(ctx context.Context, caseProviders []contracts.CaseProvider, events *eventRecorder) ([]compiledCaseProvider, error) {
 	out := make([]compiledCaseProvider, 0, len(caseProviders))
 	for _, provider := range caseProviders {
 		compiled := compiledCaseProvider{
@@ -213,6 +227,7 @@ func (s stresser) compileCaseProviders(caseProviders []contracts.CaseProvider, e
 		case contracts.CaseProviderGenerator, contracts.CaseProviderSinglegen:
 			events.record(string(provider.Type)+"_compile_start", provider.ID)
 			program, err := s.compileAndGetProgram(
+				ctx,
 				provider.Code,
 				provider.Language,
 				executor.Limits{TimeSeconds: 2, MemoryMB: 1024},
@@ -234,7 +249,7 @@ func (s stresser) compileCaseProviders(caseProviders []contracts.CaseProvider, e
 	return out, nil
 }
 
-func (s stresser) generateCaseProvider(p compiledCaseProvider, randomSeed int) (string, contracts.GeneratedBy, *executionResult, error) {
+func (s stresser) generateCaseProvider(ctx context.Context, p compiledCaseProvider, randomSeed int) (string, contracts.GeneratedBy, *executionResult, error) {
 	switch p.Type {
 	case contracts.CaseProviderText:
 		return util.CleanStdout(p.Content, "always"), contracts.GeneratedBy{
@@ -252,7 +267,10 @@ func (s stresser) generateCaseProvider(p compiledCaseProvider, randomSeed int) (
 			args = []string{seed}
 			generatedBy.Seed = stringPtr(seed)
 		}
-		execution := s.run(context.Background(), p.Program.Program, "", args, p.Program.Limits)
+		execution := s.run(ctx, p.Program.Program, "", args, p.Program.Limits)
+		if ctx.Err() != nil {
+			return "", contracts.GeneratedBy{}, nil, errTotalRuntimeLimitExceeded
+		}
 		if !execution.Success {
 			return "", contracts.GeneratedBy{}, &execution, nil
 		}
@@ -266,8 +284,10 @@ func (s stresser) generateCaseProvider(p compiledCaseProvider, randomSeed int) (
 }
 
 func (s stresser) runStressLoop(
+	ctx context.Context,
 	iterations int,
 	startTime time.Time,
+	totalRuntimeLimitSeconds int,
 	targetCode compiledProgram,
 	correctCode compiledProgram,
 	checkerCode *compiledProgram,
@@ -293,13 +313,14 @@ func (s stresser) runStressLoop(
 	executionFailedCases := []stressIteration{}
 	correctCases := []stressIteration{}
 	generatorExecutionErrors := []error{}
+	wallTimeLimit := time.Duration(totalRuntimeLimitSeconds) * time.Second
 
 	for iteration := 0; iteration < iterations; iteration++ {
-		events.record("iteration_start", itoa(iteration))
-		if time.Since(startTime) > maxWallTimeSeconds*time.Second {
-			slog.Info("stress_loop_exit", "reason", "wall_time_limit", "iteration", iteration, "max_wall_time_seconds", maxWallTimeSeconds)
+		if ctx.Err() != nil || time.Since(startTime) >= wallTimeLimit {
+			slog.Info("stress_loop_exit", "reason", "wall_time_limit", "iteration", iteration, "max_wall_time_seconds", totalRuntimeLimitSeconds)
 			break
 		}
+		events.record("iteration_start", itoa(iteration))
 		if iteration > 0 && iteration%10 == 0 && len(correctCases) < iteration/10 {
 			slog.Info("stress_loop_exit", "reason", "correct_rate_too_low", "iteration", iteration, "correct_cases", len(correctCases))
 			break
@@ -321,8 +342,12 @@ func (s stresser) runStressLoop(
 		}
 
 		randomSeed := random.Intn(1_000_000_000)
-		iterationResult, err := s.stressTestIteration(targetCode, correctCode, checkerCode, provider, randomSeed)
+		iterationResult, err := s.stressTestIteration(ctx, targetCode, correctCode, checkerCode, provider, randomSeed)
 		if err != nil {
+			if errors.Is(err, errTotalRuntimeLimitExceeded) {
+				slog.Info("stress_loop_exit", "reason", "wall_time_limit", "iteration", iteration, "max_wall_time_seconds", totalRuntimeLimitSeconds)
+				break
+			}
 			if responseErr, ok := err.(*ResponseError); ok && responseErr.errorType == contracts.ErrorTypeGeneratorExecutionFailed {
 				slog.Warn("generator_execution_failed", "iteration", iteration, "error_type", responseErr.errorType)
 				generatorExecutionErrors = append(generatorExecutionErrors, err)

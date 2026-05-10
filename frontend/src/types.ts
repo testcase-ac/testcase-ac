@@ -142,6 +142,9 @@ export interface InlineTextcaseInput {
 export const ITERATIONS_MIN = 1;
 export const ITERATIONS_MAX = 500;
 export const ITERATIONS_DEFAULT = 100;
+export const TOTAL_RUNTIME_LIMIT_MIN_SECONDS = 1;
+export const TOTAL_RUNTIME_LIMIT_MAX_SECONDS = 90;
+export const TOTAL_RUNTIME_LIMIT_DEFAULT_SECONDS = 90;
 export const TIME_LIMIT_MIN_MS = 1;
 export const TIME_LIMIT_MAX_MS = 10000;
 export const TIME_LIMIT_DEFAULT_MS = 2000;
@@ -164,6 +167,7 @@ export interface StressRequest {
   testcaseFilenames?: string[];
   textTestcases?: InlineTextcaseInput[];
   iterations?: number;
+  totalRuntimeLimitSeconds?: number;
 }
 
 const LANGUAGE_LABELS = {
