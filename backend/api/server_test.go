@@ -57,6 +57,44 @@ func (c okStresserClient) Invoke(_ context.Context, event contracts.StressEvent)
 	}, nil
 }
 
+type errorStresserClient struct {
+	err error
+}
+
+func (c errorStresserClient) Invoke(_ context.Context, _ contracts.StressEvent) (contracts.StressResult, error) {
+	return contracts.StressResult{}, c.err
+}
+
+func basicStressProblem() Problem {
+	return Problem{
+		ProblemType:   "boj",
+		ExternalID:    "1000",
+		TimeLimitMS:   2000,
+		MemoryLimitMB: 256,
+		CorrectCodes: []CodeFile{
+			{Filename: "correct.cpp", Language: "cpp23", Content: "correct"},
+		},
+		Testcases: []TestcaseFile{
+			{Filename: "sample.txt", Content: "1 2\n"},
+		},
+	}
+}
+
+func basicStressRequestBody(t *testing.T) []byte {
+	t.Helper()
+
+	iterations := 1
+	body, err := json.Marshal(StressRequest{
+		TargetCode:     "target",
+		TargetCodeLang: "cpp23",
+		Iterations:     &iterations,
+	})
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+	return body
+}
+
 func TestHandleStressAcceptsSupportedTargetLanguages(t *testing.T) {
 	for _, lang := range contracts.SupportedLanguageList {
 		t.Run(string(lang), func(t *testing.T) {
@@ -110,6 +148,64 @@ func TestHandleStressAcceptsSupportedTargetLanguages(t *testing.T) {
 				t.Fatalf("response.RuntimeSeconds = %v, want 2.345", response.RuntimeSeconds)
 			}
 		})
+	}
+}
+
+func TestHandleStressReportsClientClosedWhenRequestContextCanceled(t *testing.T) {
+	// Given: a valid stress request whose stresser invoke returns context.Canceled.
+	problem := basicStressProblem()
+	body := basicStressRequestBody(t)
+	app := newTestApp(
+		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
+		map[[2]string]Problem{{"boj", "1000"}: problem},
+		errorStresserClient{err: context.Canceled},
+	)
+	req := httptest.NewRequest(http.MethodPost, "/api/problems/boj/1000/stress", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+
+	// When: the stress handler receives the cancellation from the stresser client.
+	app.Handler().ServeHTTP(rec, req)
+
+	// Then: the API reports client-closed request instead of stresser unavailable.
+	if rec.Code != statusClientClosedRequest {
+		t.Fatalf("status = %d, want %d; body = %s", rec.Code, statusClientClosedRequest, rec.Body.String())
+	}
+
+	var response errorResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if response.Detail != clientClosedRequestDetail {
+		t.Fatalf("response.Detail = %q, want %q", response.Detail, clientClosedRequestDetail)
+	}
+}
+
+func TestHandleStressKeepsStresserInvokeErrorWhenRequestContextActive(t *testing.T) {
+	problem := basicStressProblem()
+	app := newTestApp(
+		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
+		map[[2]string]Problem{{"boj", "1000"}: problem},
+		errorStresserClient{err: &StresserInvokeError{
+			StatusCode: http.StatusServiceUnavailable,
+			Detail:     "Stresser is unavailable, try again shortly.",
+		}},
+	)
+	body := basicStressRequestBody(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/problems/boj/1000/stress", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	app.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want %d; body = %s", rec.Code, http.StatusServiceUnavailable, rec.Body.String())
+	}
+
+	var response errorResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if response.Detail != "Stresser is unavailable, try again shortly." {
+		t.Fatalf("response.Detail = %q, want stresser unavailable detail", response.Detail)
 	}
 }
 

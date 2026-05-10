@@ -56,6 +56,10 @@ func (c *LocalDockerStresserClient) Invoke(ctx context.Context, event contracts.
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.client.Do(req)
 	if err != nil {
+		if isRequestContextCanceled(ctx, err) {
+			slog.Info("stresser_invoke_canceled", "request_id", event.RequestID, "mode", "local_docker", "err", err, "elapsed_ms", time.Since(start).Milliseconds())
+			return contracts.StressResult{}, err
+		}
 		slog.Warn("stresser_invoke_failed", "request_id", event.RequestID, "mode", "local_docker", "err", err, "elapsed_ms", time.Since(start).Milliseconds())
 		return contracts.StressResult{}, &StresserInvokeError{StatusCode: http.StatusServiceUnavailable, Detail: "Stresser is unavailable, try again shortly."}
 	}
@@ -102,6 +106,10 @@ func (c *LambdaStresserClient) Invoke(ctx context.Context, event contracts.Stres
 		Payload:        payload,
 	})
 	if err != nil {
+		if isRequestContextCanceled(ctx, err) {
+			slog.Info("stresser_invoke_canceled", "request_id", event.RequestID, "mode", "lambda", "function", c.functionName, "err", err, "elapsed_ms", time.Since(start).Milliseconds())
+			return contracts.StressResult{}, err
+		}
 		if strings.Contains(err.Error(), "TooManyRequestsException") {
 			slog.Warn("stresser_invoke_failed", "request_id", event.RequestID, "mode", "lambda", "function", c.functionName, "err", err, "status", http.StatusTooManyRequests, "elapsed_ms", time.Since(start).Milliseconds())
 			return contracts.StressResult{}, &StresserInvokeError{StatusCode: http.StatusTooManyRequests, Detail: "Stresser is at capacity, try again shortly."}

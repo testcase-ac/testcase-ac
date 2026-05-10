@@ -29,6 +29,15 @@ var errorTypeToStatus = map[contracts.ErrorType]StressStatus{
 	contracts.ErrorTypeInternalServerError:        contracts.StressStatusInternalError,
 }
 
+const (
+	statusClientClosedRequest = 499
+	clientClosedRequestDetail = "Client closed request."
+)
+
+func isRequestContextCanceled(ctx context.Context, err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled)
+}
+
 type executionLimitPolicy struct {
 	timeMultiplier   int
 	timeAdditionMS   int
@@ -313,6 +322,10 @@ func invokeStressEvent(ctx context.Context, event contracts.StressEvent, request
 	)
 	stresserResp, err := stresser.Invoke(ctx, event)
 	if err != nil {
+		if isRequestContextCanceled(ctx, err) {
+			slog.Info("stress_request_canceled", "request_id", requestID)
+			return StressResponse{}, statusClientClosedRequest, clientClosedRequestDetail, false
+		}
 		var invokeErr *StresserInvokeError
 		if ok := errors.As(err, &invokeErr); ok {
 			return StressResponse{}, invokeErr.StatusCode, invokeErr.Detail, false
