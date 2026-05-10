@@ -16,6 +16,7 @@ const (
 	GeneratorRuns              = 100
 	MinimumDistinctGeneratorIO = 3
 	bytesPerMiB                = 1024 * 1024
+	MaxFixedTestcaseBytes      = 8 * 1024
 	MaxGeneratedTestcaseBytes  = 16 * bytesPerMiB
 	generatorTimeoutSeconds    = 2
 	helperTimeoutSeconds       = 2
@@ -122,8 +123,8 @@ func addStaticFindings(report *VerifyReport, problem loader.Problem) {
 }
 
 func verifyTestcaseText(report *VerifyReport, filename, content string) {
-	if len(content) > MaxGeneratedTestcaseBytes {
-		report.AddFinding(SeverityError, StageStatic, filename, nil, fmt.Sprintf("testcase exceeds %d bytes", MaxGeneratedTestcaseBytes), "", "")
+	if len(content) > MaxFixedTestcaseBytes {
+		report.AddFinding(SeverityError, StageStatic, filename, nil, fmt.Sprintf("fixed testcase file exceeds %d bytes; use generator_* or singlegen_* for large testcases", MaxFixedTestcaseBytes), "", "")
 	}
 }
 

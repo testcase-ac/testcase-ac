@@ -108,6 +108,9 @@ Plaintext fixed inputs. A file is recognized as a fixed input file when:
 - The filename starts with `testcase`, for example `testcase_1.txt`.
 - The filename contains `.in`, for example `sample.in` or `sample.in.txt`.
 
+Fixed input files must be at most 8 KiB (8192 bytes). Add larger inputs as
+`generator_*` or `singlegen_*` files.
+
 ### Fixed Answer Files (optional)
 
 For single generator code and fixed input files, you can provide the expected

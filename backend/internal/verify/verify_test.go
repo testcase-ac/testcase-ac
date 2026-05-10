@@ -305,6 +305,30 @@ func TestDuplicateAnswerFilesForProviderFailsStatically(t *testing.T) {
 	}
 }
 
+func TestLargeFixedTestcaseFileFailsStatically(t *testing.T) {
+	// Given: a committed fixed testcase file larger than 8 KiB.
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		[]loader.TestcaseFile{{Filename: "testcase_large.txt", Content: strings.Repeat("1", 8*1024+1)}},
+		false,
+	)
+
+	// When: verification performs static checks.
+	report := fakeVerifier(newFakeExecutor()).verifyProblem(context.Background(), problem)
+
+	// Then: the contributor sees the fixed-file limit and generator/singlegen guidance.
+	finding, ok := findFinding(report, SeverityError, StageStatic, "testcase_large.txt")
+	if !ok {
+		t.Fatalf("expected fixed testcase size finding, got %+v", report.Findings)
+	}
+	for _, want := range []string{"8192 bytes", "generator_*", "singlegen_*"} {
+		if !strings.Contains(finding.Message, want) {
+			t.Fatalf("finding message = %q, want to contain %q", finding.Message, want)
+		}
+	}
+}
+
 func fakeProblem(corrects []string, validator *loader.CodeFile, testcases []loader.TestcaseFile, withChecker bool) loader.Problem {
 	problem := loader.Problem{
 		ProblemType:   "boj",
@@ -451,10 +475,15 @@ func cleanCallInput(value string) string {
 }
 
 func hasFinding(report VerifyReport, severity Severity, stage Stage, filename string) bool {
+	_, ok := findFinding(report, severity, stage, filename)
+	return ok
+}
+
+func findFinding(report VerifyReport, severity Severity, stage Stage, filename string) (Finding, bool) {
 	for _, finding := range report.Findings {
 		if finding.Severity == severity && finding.Stage == stage && finding.Filename == filename {
-			return true
+			return finding, true
 		}
 	}
-	return false
+	return Finding{}, false
 }
