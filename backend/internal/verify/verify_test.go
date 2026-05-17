@@ -113,6 +113,103 @@ func TestValidatorRejectStopsInput(t *testing.T) {
 	}
 }
 
+func TestValidateInputsModeSkipsCorrectAndCheckerAfterValidatorAccepts(t *testing.T) {
+	fake := newFakeExecutor()
+	problem := fakeProblem(
+		[]string{"correct_a.py", "correct_b.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		[]loader.TestcaseFile{{Filename: "testcase_1.txt", Content: "1\n"}},
+		true,
+	)
+
+	report := fakeVerifier(fake).verifyProblemWithOptions(context.Background(), problem, VerifyOptions{Mode: VerifyModeValidateInputs})
+
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
+	}
+	want := []string{
+		"run validator.cpp input=1",
+	}
+	if !reflect.DeepEqual(fake.calls, want) {
+		t.Fatalf("calls:\n%s\nwant:\n%s", strings.Join(fake.calls, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+func TestValidateInputsModeRunsGeneratorsWithoutDiversityGate(t *testing.T) {
+	fake := newFakeExecutor()
+	fake.setSuccessfulRunResult("generator_a.py", "", []string{"0"}, "7\n")
+	fake.setSuccessfulRunResult("generator_a.py", "", []string{"1"}, "7\n")
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		nil,
+		false,
+	)
+	problem.Generators = []loader.CodeFile{{Filename: "generator_a.py", Language: contracts.LanguagePython3, Content: "generator_a.py"}}
+
+	report := fakeVerifier(fake).verifyProblemWithOptions(context.Background(), problem, VerifyOptions{Mode: VerifyModeValidateInputs})
+
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
+	}
+	wantPrefix := []string{
+		"run generator_a.py input= args=0",
+		"run validator.cpp input=7",
+		"run generator_a.py input= args=1",
+		"run validator.cpp input=7",
+	}
+	if len(fake.calls) < len(wantPrefix) || !reflect.DeepEqual(fake.calls[:len(wantPrefix)], wantPrefix) {
+		t.Fatalf("calls prefix:\n%s\nwant:\n%s", strings.Join(fake.calls[:min(len(fake.calls), len(wantPrefix))], "\n"), strings.Join(wantPrefix, "\n"))
+	}
+}
+
+func TestValidateInputsModeRunsSinglegenOnce(t *testing.T) {
+	fake := newFakeExecutor()
+	fake.setSuccessfulRunResult("singlegen_a.py", "", nil, "7\n")
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		nil,
+		false,
+	)
+	problem.Singlegens = []loader.CodeFile{{Filename: "singlegen_a.py", Language: contracts.LanguagePython3, Content: "singlegen_a.py"}}
+
+	report := fakeVerifier(fake).verifyProblemWithOptions(context.Background(), problem, VerifyOptions{Mode: VerifyModeValidateInputs})
+
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
+	}
+	want := []string{
+		"run singlegen_a.py input=",
+		"run validator.cpp input=7",
+	}
+	if !reflect.DeepEqual(fake.calls, want) {
+		t.Fatalf("calls:\n%s\nwant:\n%s", strings.Join(fake.calls, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+func TestValidateInputsModeSkipsOutputJudgingStaticChecks(t *testing.T) {
+	problem := fakeProblem(
+		nil,
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		[]loader.TestcaseFile{{Filename: "testcase_1.in", Content: "1\n"}},
+		false,
+	)
+	problem.AnswerFiles = []loader.AnswerFile{
+		{Filename: "first.out", Content: "1\n", TargetProviderFilename: "testcase_1.in"},
+		{Filename: "second.out", Content: "1\n", TargetProviderFilename: "testcase_1.in"},
+	}
+
+	report := fakeVerifier(newFakeExecutor()).verifyProblemWithOptions(context.Background(), problem, VerifyOptions{Mode: VerifyModeValidateInputs})
+
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
+	}
+	if len(report.Findings) != 0 {
+		t.Fatalf("findings = %+v, want none", report.Findings)
+	}
+}
+
 func TestPrimaryCorrectFailureStillRunsRemainingCorrects(t *testing.T) {
 	fake := newFakeExecutor()
 	fake.setRunResult("correct_a.py", "1", nil, executor.ExecutionResult{Success: false, Verdict: contracts.VerdictRuntimeError, ReturnCode: 1})

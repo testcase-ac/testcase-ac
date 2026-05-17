@@ -62,6 +62,17 @@ type VerifyReport struct {
 	RuntimeSeconds    float64   `json:"runtimeSeconds"`
 }
 
+type VerifyMode string
+
+const (
+	VerifyModeFull           VerifyMode = "full"
+	VerifyModeValidateInputs VerifyMode = "validate-inputs"
+)
+
+type VerifyOptions struct {
+	Mode VerifyMode
+}
+
 type testInput struct {
 	Content  string
 	Filename string
@@ -79,7 +90,11 @@ type verifier struct {
 }
 
 func VerifyProblem(ctx context.Context, problem loader.Problem) VerifyReport {
-	return newVerifier().verifyProblem(ctx, problem)
+	return VerifyProblemWithOptions(ctx, problem, VerifyOptions{})
+}
+
+func VerifyProblemWithOptions(ctx context.Context, problem loader.Problem, options VerifyOptions) VerifyReport {
+	return newVerifier().verifyProblemWithOptions(ctx, problem, options.normalized())
 }
 
 func newVerifier() verifier {
@@ -91,24 +106,36 @@ func newVerifier() verifier {
 	}
 }
 
+func (options VerifyOptions) normalized() VerifyOptions {
+	if options.Mode == "" {
+		options.Mode = VerifyModeFull
+	}
+	return options
+}
+
 func (v verifier) verifyProblem(ctx context.Context, problem loader.Problem) VerifyReport {
+	return v.verifyProblemWithOptions(ctx, problem, VerifyOptions{Mode: VerifyModeFull})
+}
+
+func (v verifier) verifyProblemWithOptions(ctx context.Context, problem loader.Problem, options VerifyOptions) VerifyReport {
+	options = options.normalized()
 	start := time.Now()
 	report := VerifyReport{ProblemType: problem.ProblemType, ExternalID: problem.ExternalID}
-	addStaticFindings(&report, problem)
+	addStaticFindings(&report, problem, options)
 
-	compiled := v.compileAll(ctx, &report, problem)
-	v.verifyInputs(ctx, &report, problem, compiled)
+	compiled := v.compileAll(ctx, &report, problem, options)
+	v.verifyInputs(ctx, &report, problem, compiled, options)
 
 	report.RuntimeSeconds = util.RoundSeconds(time.Since(start))
 	return report
 }
 
-func addStaticFindings(report *VerifyReport, problem loader.Problem) {
-	if len(problem.CorrectCodes) == 0 {
+func addStaticFindings(report *VerifyReport, problem loader.Problem, options VerifyOptions) {
+	if options.Mode != VerifyModeValidateInputs && len(problem.CorrectCodes) == 0 {
 		report.AddFinding(SeverityWarning, StageStatic, "", nil, "problem has no correct solution; skipping correct-solution checks", "", "")
 	}
 	if len(problem.Generators)+len(problem.Singlegens)+len(problem.Testcases) == 0 {
-		report.AddFinding(SeverityError, StageStatic, "", nil, "problem has no testcase provider", "", "")
+		report.AddFinding(SeverityError, StageStatic, "", nil, "problem has no case provider", "", "")
 	}
 	if problem.Validator == nil {
 		report.AddFinding(SeverityError, StageStatic, "validator.cpp", nil, "problem has no validator", "", "")
@@ -116,7 +143,9 @@ func addStaticFindings(report *VerifyReport, problem loader.Problem) {
 	for _, testcase := range problem.Testcases {
 		verifyTestcaseText(report, testcase.Filename, testcase.Content)
 	}
-	verifyAnswerFiles(report, problem.AnswerFiles)
+	if options.Mode != VerifyModeValidateInputs {
+		verifyAnswerFiles(report, problem.AnswerFiles)
+	}
 	for _, name := range problem.UnknownFiles {
 		report.AddFinding(SeverityError, StageStatic, name, nil, "unrecognized problem file", "", "")
 	}
@@ -142,9 +171,9 @@ func verifyAnswerFiles(report *VerifyReport, answerFiles []loader.AnswerFile) {
 	}
 }
 
-func (v verifier) compileAll(ctx context.Context, report *VerifyReport, problem loader.Problem) compiledFiles {
+func (v verifier) compileAll(ctx context.Context, report *VerifyReport, problem loader.Problem, options VerifyOptions) compiledFiles {
 	out := compiledFiles{}
-	for _, file := range allSourceFiles(problem) {
+	for _, file := range sourceFilesForMode(problem, options.Mode) {
 		result := v.compile(ctx, executor.Source{Code: file.Content, Language: file.Language})
 		if !result.Success {
 			report.AddFinding(SeverityError, StageCompile, file.Filename, nil, "compilation failed", result.Stdout, result.Stderr)
@@ -155,21 +184,23 @@ func (v verifier) compileAll(ctx context.Context, report *VerifyReport, problem 
 	return out
 }
 
-func allSourceFiles(problem loader.Problem) []loader.CodeFile {
+func sourceFilesForMode(problem loader.Problem, mode VerifyMode) []loader.CodeFile {
 	out := []loader.CodeFile{}
-	out = append(out, problem.CorrectCodes...)
+	if mode != VerifyModeValidateInputs {
+		out = append(out, problem.CorrectCodes...)
+	}
 	out = append(out, problem.Generators...)
 	out = append(out, problem.Singlegens...)
 	if problem.Validator != nil {
 		out = append(out, *problem.Validator)
 	}
-	if problem.Checker != nil {
+	if mode != VerifyModeValidateInputs && problem.Checker != nil {
 		out = append(out, *problem.Checker)
 	}
 	return out
 }
 
-func (v verifier) verifyInputs(ctx context.Context, report *VerifyReport, problem loader.Problem, compiled compiledFiles) {
+func (v verifier) verifyInputs(ctx context.Context, report *VerifyReport, problem loader.Problem, compiled compiledFiles, options VerifyOptions) {
 	if problem.Validator == nil {
 		return
 	}
@@ -187,7 +218,7 @@ func (v verifier) verifyInputs(ctx context.Context, report *VerifyReport, proble
 		content := util.CleanStdout(testcase.Content, "always")
 		if validGeneratedSize(report, StageStatic, testcase.Filename, nil, content) {
 			report.SampledCasesCount++
-			v.verifyInput(ctx, report, problem, compiled, *validator, checker, testInput{Content: content, Filename: testcase.Filename, Answer: answersByProvider[testcase.Filename]})
+			v.verifyInput(ctx, report, problem, compiled, *validator, checker, testInput{Content: content, Filename: testcase.Filename, Answer: answersByProvider[testcase.Filename]}, options)
 		}
 	}
 	for _, singlegen := range problem.Singlegens {
@@ -200,21 +231,23 @@ func (v verifier) verifyInputs(ctx context.Context, report *VerifyReport, proble
 			report.addExecution(StageSinglegen, singlegen.Filename, nil, "singlegen execution failed", first)
 			continue
 		}
-		v.sleep(time.Second)
-		second := v.run(ctx, *program, "", nil, generatorLimits())
-		if !second.Success {
-			report.addExecution(StageSinglegen, singlegen.Filename, nil, "singlegen repeat execution failed", second)
-			continue
-		}
 		firstOut := util.CleanStdout(first.Stdout, "always")
-		secondOut := util.CleanStdout(second.Stdout, "always")
-		if firstOut != secondOut {
-			report.AddFinding(SeverityError, StageSinglegen, singlegen.Filename, nil, "singlegen output changed between runs", first.Stdout, second.Stdout)
-			continue
+		if options.Mode != VerifyModeValidateInputs {
+			v.sleep(time.Second)
+			second := v.run(ctx, *program, "", nil, generatorLimits())
+			if !second.Success {
+				report.addExecution(StageSinglegen, singlegen.Filename, nil, "singlegen repeat execution failed", second)
+				continue
+			}
+			secondOut := util.CleanStdout(second.Stdout, "always")
+			if firstOut != secondOut {
+				report.AddFinding(SeverityError, StageSinglegen, singlegen.Filename, nil, "singlegen output changed between runs", first.Stdout, second.Stdout)
+				continue
+			}
 		}
 		if validGeneratedSize(report, StageSinglegen, singlegen.Filename, nil, firstOut) {
 			report.SampledCasesCount++
-			v.verifyInput(ctx, report, problem, compiled, *validator, checker, testInput{Content: firstOut, Filename: singlegen.Filename, Answer: answersByProvider[singlegen.Filename]})
+			v.verifyInput(ctx, report, problem, compiled, *validator, checker, testInput{Content: firstOut, Filename: singlegen.Filename, Answer: answersByProvider[singlegen.Filename]}, options)
 		}
 	}
 	for _, generator := range problem.Generators {
@@ -229,7 +262,7 @@ func (v verifier) verifyInputs(ctx context.Context, report *VerifyReport, proble
 			if !ok {
 				continue
 			}
-			if seed == 0 {
+			if options.Mode != VerifyModeValidateInputs && seed == 0 {
 				firstSeedOutput = output
 				repeat, repeatOK := v.runGenerator(ctx, report, generator.Filename, *program, seed)
 				if repeatOK && repeat != firstSeedOutput {
@@ -239,9 +272,9 @@ func (v verifier) verifyInputs(ctx context.Context, report *VerifyReport, proble
 			seen[output] = struct{}{}
 			s := seed
 			report.SampledCasesCount++
-			v.verifyInput(ctx, report, problem, compiled, *validator, checker, testInput{Content: output, Filename: generator.Filename, Seed: &s})
+			v.verifyInput(ctx, report, problem, compiled, *validator, checker, testInput{Content: output, Filename: generator.Filename, Seed: &s}, options)
 		}
-		if len(seen) < MinimumDistinctGeneratorIO {
+		if options.Mode != VerifyModeValidateInputs && len(seen) < MinimumDistinctGeneratorIO {
 			report.AddFinding(SeverityError, StageGenerator, generator.Filename, nil, fmt.Sprintf("generator produced %d distinct outputs across %d seeds; want at least %d", len(seen), GeneratorRuns, MinimumDistinctGeneratorIO), "", "")
 		}
 	}
@@ -269,10 +302,13 @@ func (v verifier) runGenerator(ctx context.Context, report *VerifyReport, filena
 	return output, true
 }
 
-func (v verifier) verifyInput(ctx context.Context, report *VerifyReport, problem loader.Problem, compiled compiledFiles, validator executor.CompiledProgram, checker *executor.CompiledProgram, input testInput) {
+func (v verifier) verifyInput(ctx context.Context, report *VerifyReport, problem loader.Problem, compiled compiledFiles, validator executor.CompiledProgram, checker *executor.CompiledProgram, input testInput, options VerifyOptions) {
 	result := v.run(ctx, validator, input.Content, nil, helperLimits())
 	if !result.Success || result.ReturnCode != 0 {
 		report.addExecution(StageValidator, input.Filename, input.Seed, "validator rejected testcase", result)
+		return
+	}
+	if options.Mode == VerifyModeValidateInputs {
 		return
 	}
 	if len(problem.CorrectCodes) == 0 {

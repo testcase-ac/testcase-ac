@@ -7,7 +7,33 @@ IMAGE_NAME="testcase-ac-dockertest"
 DOCKERFILE_PATH="${REPO_ROOT}/deploy/stresser.Dockerfile"
 
 if [ "$#" -lt 1 ]; then
-    echo "usage: $0 testcase/<type>/<id> [testcase/<type>/<id> ...]" >&2
+    echo "usage: $0 [--validate-inputs] testcase/<type>/<id> [testcase/<type>/<id> ...]" >&2
+    exit 2
+fi
+
+VERIFY_FLAGS=()
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --validate-inputs)
+            VERIFY_FLAGS+=("$1")
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -*)
+            echo "unknown option: $1" >&2
+            exit 2
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+if [ "$#" -lt 1 ]; then
+    echo "usage: $0 [--validate-inputs] testcase/<type>/<id> [testcase/<type>/<id> ...]" >&2
     exit 2
 fi
 
@@ -46,6 +72,7 @@ fi
 
 echo "Verifying ${#PROBLEM_ARGS[@]} problem directory/directories..."
 VERIFY_CMD=(run ./cmd/verify)
+VERIFY_CMD+=("${VERIFY_FLAGS[@]}")
 if [ -n "${VERIFY_REPORT_JSON:-}" ]; then
     VERIFY_CMD+=(--json)
 fi

@@ -15,6 +15,7 @@ import (
 func main() {
 	problemPath := flag.String("problem", "", "path to testcase/<type>/<id> problem directory")
 	jsonOutput := flag.Bool("json", false, "print JSON report")
+	validateInputs := flag.Bool("validate-inputs", false, "run case providers and validate produced inputs without output judging")
 	flag.Parse()
 
 	problemPaths := flag.Args()
@@ -29,7 +30,7 @@ func main() {
 	reports := make([]verify.VerifyReport, 0, len(problemPaths))
 	exitCode := 0
 	for _, path := range problemPaths {
-		report := verifyProblem(path)
+		report := verifyProblem(path, verifyOptions(*validateInputs))
 		if report.HasErrorFinding {
 			exitCode = 1
 		}
@@ -40,7 +41,14 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func verifyProblem(problemPath string) verify.VerifyReport {
+func verifyOptions(validateInputs bool) verify.VerifyOptions {
+	if validateInputs {
+		return verify.VerifyOptions{Mode: verify.VerifyModeValidateInputs}
+	}
+	return verify.VerifyOptions{}
+}
+
+func verifyProblem(problemPath string, options verify.VerifyOptions) verify.VerifyReport {
 	problem, err := loader.LoadProblem(problemPath, loader.Options{AllowUnknownFiles: true})
 	if err != nil {
 		report := verify.VerifyReport{
@@ -50,7 +58,7 @@ func verifyProblem(problemPath string) verify.VerifyReport {
 		return report
 	}
 
-	report := verify.VerifyProblem(context.Background(), problem)
+	report := verify.VerifyProblemWithOptions(context.Background(), problem, options)
 	report.ProblemPath = problemPath
 	return report
 }

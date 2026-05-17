@@ -10,7 +10,7 @@ A problem is a directory at `testcase/<problemType>/<externalId>/`. The
 All files in a problem directory are optional, but a runnable/stressable problem
 needs at least one `correct_*` solution. To allow an actual stress run, the
 problem also needs at least one `generator_*`, `singlegen_*`, or fixed input
-file.
+testcase.
 
 ### `metadata.yaml` (optional)
 
@@ -19,7 +19,7 @@ title: "A+B"
 externalLink: "https://www.acmicpc.net/problem/1000"
 authors:                  # optional per-file author/source overrides
   correct_reference.cpp: "problem source or reference-code author"
-  testcase_sample_1.txt: "problem source"
+  sample_1.in: "problem source"
 timeLimitMs: 2000
 memoryLimitMb: 256
 isSpecialJudge: false
@@ -101,25 +101,28 @@ Generator that produces fixed output. Use it when the output is too large to
 commit as text. A file is loaded as a single generator when its filename starts
 with `singlegen`. Example: `singlegen_large.py`.
 
-### Fixed Input Files (`testcase_*` / `.in`) (optional)
+### Fixed Testcases (`testcase_*` / `.in`) (optional)
 
-Plaintext fixed inputs. A file is recognized as a fixed input file when:
+Plaintext fixed testcases. A file is recognized as a fixed testcase when:
 
 - The filename starts with `testcase`, for example `testcase_1.txt`.
 - The filename contains `.in`, for example `sample.in` or `sample.in.txt`.
 
-Fixed input files must be at most 8 KiB (8192 bytes). Add larger inputs as
+Statement samples should use `sample_{i}.in` and, when the official output is
+available, `sample_{i}.out`.
+
+Fixed testcases must be at most 8 KiB (8192 bytes). Add larger inputs as
 `generator_*` or `singlegen_*` files.
 
 ### Fixed Answer Files (optional)
 
-For single generator code and fixed input files, you can provide the expected
+For single generator code and fixed testcases, you can provide the expected
 output for that input as a fixed answer file.
 
-For single generator code and fixed input files, the matching fixed answer file
+For single generator code and fixed testcases, the matching fixed answer file
 is selected by these rules:
 
-- `.in` fixed input file: if a file with the first `.in` replaced by `.out`
+- `.in` fixed testcase: if a file with the first `.in` replaced by `.out`
   exists, it is recognized as the fixed answer file. Example:
   `testcase_1.in.txt` -> `testcase_1.out.txt`.
 - `singlegen_*`: if a file with `.out` appended to the filename exists, it is

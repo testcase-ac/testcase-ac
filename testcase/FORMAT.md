@@ -10,7 +10,7 @@
 
 문제 디렉터리의 파일은 모두 선택 사항입니다. 단, 실행 가능한 문제로 만들려면
 `correct_*` 정답 코드가 하나 이상 필요합니다. 실제 스트레스 실행을 허용하려면
-`generator_*`, `singlegen_*`, 또는 고정 입력 파일 중 하나 이상도 필요합니다.
+`generator_*`, `singlegen_*`, 또는 고정 테스트케이스 중 하나 이상도 필요합니다.
 
 ### `metadata.yaml` (선택)
 
@@ -19,7 +19,7 @@ title: "A+B"
 externalLink: "https://www.acmicpc.net/problem/1000"
 authors:                  # 파일별 작성자/출처 덮어쓰기
   correct_reference.cpp: "problem source or reference-code author"
-  testcase_sample_1.txt: "problem source"
+  sample_1.in: "problem source"
 timeLimitMs: 2000
 memoryLimitMb: 256
 isSpecialJudge: false
@@ -95,24 +95,27 @@ Markdown 문제 설명입니다. 원문 문제 설명의 저작권을 가지고 
 `singlegen`으로 시작하면 단일 제너레이터로 읽힙니다. 예:
 `singlegen_large.py`.
 
-### 고정 입력 파일 (`testcase_*` / `.in`) (선택)
+### 고정 테스트케이스 (`testcase_*` / `.in`) (선택)
 
-고정 입력 텍스트입니다. 파일 이름이 아래와 같으면 고정 입력 파일로 인식됩니다.
+고정 입력 텍스트입니다. 파일 이름이 아래와 같으면 고정 테스트케이스로 인식됩니다.
 
 - 파일 이름이 `testcase`로 시작함 (예: `testcase_1.txt`)
 - 파일 이름에 `.in`이 들어 있으면 고정 입력으로 읽힙니다. (예:
 `sample.in`, `sample.in.txt`)
 
-고정 입력 파일은 8 KiB(8192 바이트) 이하여야 합니다. 더 큰 입력은
+공식 예제 입력은 `sample_{i}.in`을 사용하고, 공식 예제 출력이 있으면
+`sample_{i}.out`을 사용합니다.
+
+고정 테스트케이스는 8 KiB(8192 바이트) 이하여야 합니다. 더 큰 입력은
 `generator_*` 또는 `singlegen_*` 파일로 추가하세요.
 
 ### 고정 정답 파일 (선택)
 
-단일 제너레이터 코드와 고정 입력 파일에 대해서는, 해당 입력의 기대 출력을 고정 정답 파일로 지정할 수 있습니다.
+단일 제너레이터 코드와 고정 테스트케이스에 대해서는, 해당 입력의 기대 출력을 고정 정답 파일로 지정할 수 있습니다.
 
-단일 제너레이터 코드와 고정 입력 파일에 대해, 아래와 같은 규칙으로 대응되는 고정 정답 파일이 선택됩니다.
+단일 제너레이터 코드와 고정 테스트케이스에 대해, 아래와 같은 규칙으로 대응되는 고정 정답 파일이 선택됩니다.
 
-- `.in` 고정 입력 파일: 첫 번째 `.in`을 `.out`으로 바꾼 파일명과 같은 파일이 있을 경우 고정 정답 파일로 인식됩니다. 예:
+- `.in` 고정 테스트케이스: 첫 번째 `.in`을 `.out`으로 바꾼 파일명과 같은 파일이 있을 경우 고정 정답 파일로 인식됩니다. 예:
   `testcase_1.in.txt` -> `testcase_1.out.txt`.
 - `singlegen_*`: 파일 이름 뒤에 `.out`을 붙인 파일명과 같은 파일이 있을 경우 고정 정답 파일로 인식됩니다. 예:
   `singlegen_1.py` -> `singlegen_1.py.out`.
