@@ -72,7 +72,9 @@ fi
 
 echo "Verifying ${#PROBLEM_ARGS[@]} problem directory/directories..."
 VERIFY_CMD=(run ./cmd/verify)
-VERIFY_CMD+=("${VERIFY_FLAGS[@]}")
+if [ "${#VERIFY_FLAGS[@]}" -gt 0 ]; then
+    VERIFY_CMD+=("${VERIFY_FLAGS[@]}")
+fi
 if [ -n "${VERIFY_REPORT_JSON:-}" ]; then
     VERIFY_CMD+=(--json)
 fi
