@@ -5,6 +5,8 @@ Use these rules when writing `validator.cpp` for testcase.ac problem data.
 ## Scope
 
 - Validate from the input-validator perspective, not the solution perspective.
+- Reject vacuous, undefined, or impractically huge inputs even when the
+  statement forgot a boundary.
 - Validate every stated input constraint and every stated input guarantee that a correct solution may rely on.
 - Do validate statement assumptions such as connected graphs, valid simulation states, answer existence guarantees, bounded answers, and non-degenerate geometry.
 - Do not validate the answer predicate itself when contestants are supposed to determine it.
@@ -28,11 +30,9 @@ Use these rules when writing `validator.cpp` for testcase.ac problem data.
 - `readInt`, `readLong`, and related numeric readers already handle ordinary decimal integers.
 - For huge integers, base-B numbers, or special numeric tokens read as strings, manually reject invalid leading zeroes, invalid signs, and out-of-alphabet digits.
 - Do not enforce numeric canonical form for strings of digits or binary strings unless the statement says they are numbers.
+- In xor/bitwise contexts, treat integer values as nonnegative unless the
+  statement explicitly allows negatives.
 - Use `long long` or `__int128_t` for validator-side computations that can overflow smaller types.
-
-## Testcase Count Defaults
-
-- If the statement does not specify a maximum number of test cases, assume up to `100000`.
 
 ## Fixed-Size Relaxations
 
@@ -67,6 +67,43 @@ Compute or simulate whole-input properties when the statement guarantees them:
 - aggregate bounds such as total `N` over test cases
 
 Use clear `ensuref` messages that include the failing index or value.
+
+## Practical Size Bounds
+
+- If an input-size count has no upper bound, add a practical cap from nearby
+  constraints.
+- Add a nearby `// CHECK` comment for practical caps that are not written in
+  the statement.
+- Example: if `N <= 1000`, cap graph edges at `1000000` because that matches
+  the `N^2` scale.
+- For primarily numeric input, reject inputs that force around `5000000` or
+  more scalar tokens, unless the statement explicitly allows a larger input.
+- For primarily string input, reject inputs around `10000000` or more
+  characters, unless the statement explicitly allows a larger input.
+- If the statement does not specify a maximum number of test cases, assume up to
+  `100000`.
+
+## Ambiguous Input Contracts
+
+When the statement leaves one constraint unclear, identify the stricter
+validator rule and the less restrictive rule it would replace. Choose between
+those two rules by answering these questions in order.
+
+1. Would accepting the broader case make the central problem object absent or
+   contradict how it is defined? If yes, enforce the stricter rule.
+   Example: if `N` is the size of a group, collection, or game instance, and
+   the written bounds only say `N` is an integer below some upper limit, do not
+   allow `N = 0` unless the statement explicitly allows an empty instance.
+2. Otherwise, is the stricter rule explicitly stated, needed by a stated input
+   guarantee, or needed to keep the input useful and well-defined? Unless so,
+   use the less restrictive rule. Example: if the input gives positions of `N`
+   marked points on a line but does not say the positions are distinct, accept
+   two points with the same coordinate.
+
+Whenever either choice depends on this ambiguity judgment, add a nearby comment
+containing `// CHECK`. This includes common structural checks such as distinct
+values, unique edges, no self-loops, positive weights, connectivity, or
+feasibility, whether the validator enforces or omits the stricter rule.
 
 ## Pattern
 

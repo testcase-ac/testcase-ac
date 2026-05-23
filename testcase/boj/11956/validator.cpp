@@ -1,35 +1,28 @@
 #include "testlib.h"
 using namespace std;
 
-static const long long A_UP = 1000000000000000000LL - 1; // a_i < 1e18
-static const long long LR_UP = 1000000000000000000LL;    // l_i, r_i <= 1e18
+static const long long MAX_INITIAL_VALUE = 1000000000000000000LL - 1;
+static const long long MAX_QUERY_INDEX = 1000000000000000000LL;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read K
-    int K = inf.readInt(1, 100000, "K");
+    int k = inf.readInt(1, 100000, "K");
     inf.readEoln();
 
-    // Read initial sequence a_1 ... a_K, each 0 <= a_i < 1e18
-    inf.readLongs(K, 0LL, A_UP, "a_i");
+    inf.readLongs(k, 0LL, MAX_INITIAL_VALUE, "a_i");
     inf.readEoln();
 
-    // Read Q
-    int Q = inf.readInt(1, 1000000, "Q");
+    int q = inf.readInt(1, 1000000, "Q");
     inf.readEoln();
 
-    // Read Q queries
-    for (int i = 0; i < Q; i++) {
-        long long l = inf.readLong(1LL, LR_UP, "l_i");
+    for (int i = 0; i < q; ++i) {
+        long long l = inf.readLong(1LL, MAX_QUERY_INDEX, "l_i");
         inf.readSpace();
-        long long r = inf.readLong(1LL, LR_UP, "r_i");
+        long long r = inf.readLong(1LL, MAX_QUERY_INDEX, "r_i");
         inf.readEoln();
-        ensuref(l <= r,
-                "Query %d is invalid: l_i (%lld) > r_i (%lld)", 
-                i+1, l, r);
+        ensuref(l <= r, "query %d has l_i > r_i: %lld > %lld", i + 1, l, r);
     }
 
     inf.readEof();
-    return 0;
 }

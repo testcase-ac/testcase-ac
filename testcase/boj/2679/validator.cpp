@@ -1,67 +1,65 @@
 #include "testlib.h"
-#include <vector>
+
 #include <queue>
+#include <vector>
+
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Number of test cases
-    int T = inf.readInt(1, 1000, "T");
+    const int maxN = 1000;
+    const int maxE = maxN * maxN + 1;
+
+    int t = inf.readInt(1, 1000, "T");
     inf.readEoln();
 
-    for (int tc = 1; tc <= T; tc++) {
+    for (int tc = 1; tc <= t; ++tc) {
         setTestCase(tc);
-        // Read N, E, A, B
-        int N = inf.readInt(2, 1000, "N");
+
+        int n = inf.readInt(2, maxN, "N");
         inf.readSpace();
-        // No explicit upper bound for E in problem; we cap it by 1e6 to avoid absurd sizes
-        int E = inf.readInt(1, 1000000, "E");
+        // CHECK: E has no written upper bound; cap it near the N^2 graph scale.
+        int e = inf.readInt(1, maxE, "E");
         inf.readSpace();
-        int A = inf.readInt(0, N - 1, "A");
+        int a = inf.readInt(0, n - 1, "A");
         inf.readSpace();
-        int B = inf.readInt(0, N - 1, "B");
+        int b = inf.readInt(0, n - 1, "B");
         inf.readEoln();
 
-        ensuref(A != B, "In test case %d, A (%d) must not equal B (%d)", tc, A, B);
+        ensuref(a != b, "A and B must differ in test case %d", tc);
 
-        // Build adjacency for reachability check
-        vector<vector<int>> adj(N);
-        for (int i = 0; i < E; i++) {
-            int U = inf.readInt(0, N - 1, "U");
+        vector<vector<int>> graph(n);
+        for (int i = 0; i < e; ++i) {
+            int u = inf.readInt(0, n - 1, "U");
             inf.readSpace();
-            int V = inf.readInt(0, N - 1, "V");
+            int v = inf.readInt(0, n - 1, "V");
             inf.readSpace();
-            int W = inf.readInt(1, 1000, "W");
+            int w = inf.readInt(1, 1000, "W");
             inf.readEoln();
 
-            ensuref(U != V,
-                    "Loop detected at edge index %d in test case %d: (%d -> %d)",
-                    i, tc, U, V);
-
-            // Record edge for reachability
-            adj[U].push_back(V);
+            ensuref(u != v, "self-loop at edge %d in test case %d", i + 1, tc);
+            graph[u].push_back(v);
+            (void)w;
         }
 
-        // Check that B is reachable from A
-        vector<char> vis(N, 0);
+        // CHECK: the requested ratio is undefined when no path exists.
+        vector<char> seen(n, false);
         queue<int> q;
-        vis[A] = 1;
-        q.push(A);
+        seen[a] = true;
+        q.push(a);
         while (!q.empty()) {
-            int u = q.front(); q.pop();
-            for (int v : adj[u]) {
-                if (!vis[v]) {
-                    vis[v] = 1;
+            int u = q.front();
+            q.pop();
+            for (int v : graph[u]) {
+                if (!seen[v]) {
+                    seen[v] = true;
                     q.push(v);
                 }
             }
         }
-        ensuref(vis[B],
-                "In test case %d, node B (%d) is not reachable from A (%d)",
-                tc, B, A);
+        ensuref(seen[b], "B must be reachable from A in test case %d", tc);
     }
 
     inf.readEof();
-    return 0;
 }

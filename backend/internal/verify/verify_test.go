@@ -49,6 +49,32 @@ func TestWarningFindingDoesNotMarkReportFailed(t *testing.T) {
 	}
 }
 
+func TestLocalValidatorInspectionArtifactsDoNotFailStaticVerification(t *testing.T) {
+	problem := fakeProblem(
+		[]string{"correct_main.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		[]loader.TestcaseFile{{Filename: "testcase_1.txt", Content: "1\n"}},
+		false,
+	)
+	problem.UnknownFiles = []string{
+		"validator_inspection_summary.txt",
+		"testcase_validator_inspection_case.txt",
+		"notes.txt",
+	}
+
+	report := fakeVerifier(newFakeExecutor()).verifyProblem(context.Background(), problem)
+
+	if !hasFinding(report, SeverityError, StageStatic, "notes.txt") {
+		t.Fatalf("expected unrelated unknown file finding, got %+v", report.Findings)
+	}
+	if hasFinding(report, SeverityError, StageStatic, "validator_inspection_summary.txt") {
+		t.Fatalf("inspection summary should be ignored, got %+v", report.Findings)
+	}
+	if hasFinding(report, SeverityError, StageStatic, "testcase_validator_inspection_case.txt") {
+		t.Fatalf("inspection testcase should be ignored, got %+v", report.Findings)
+	}
+}
+
 func TestInputPipelineIsSerial(t *testing.T) {
 	fake := newFakeExecutor()
 	problem := fakeProblem(

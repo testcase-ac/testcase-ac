@@ -147,8 +147,16 @@ func addStaticFindings(report *VerifyReport, problem loader.Problem, options Ver
 		verifyAnswerFiles(report, problem.AnswerFiles)
 	}
 	for _, name := range problem.UnknownFiles {
+		if isLocalValidatorInspectionArtifact(name) {
+			continue
+		}
 		report.AddFinding(SeverityError, StageStatic, name, nil, "unrecognized problem file", "", "")
 	}
+}
+
+func isLocalValidatorInspectionArtifact(name string) bool {
+	return name == "validator_inspection_summary.txt" ||
+		strings.HasPrefix(name, "testcase_validator_inspection_")
 }
 
 func verifyTestcaseText(report *VerifyReport, filename, content string) {

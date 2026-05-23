@@ -1,25 +1,18 @@
 #include "testlib.h"
-#include <vector>
-#include <algorithm>
-#include <set>
+#include <bits/stdc++.h>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read N and L
-    int N = inf.readInt(1, 1000, "N");
+    int n = inf.readInt(1, 1000, "n");
     inf.readSpace();
-    int L = inf.readInt(1, 1000, "L");
+    inf.readInt(1, 1000, "l");
     inf.readEoln();
 
-    // Read leak positions
-    vector<int> leaks = inf.readInts(N, 1, 1000, "leak_position");
+    // CHECK: leak positions may plausibly be distinct, but the statement does not say so.
+    inf.readInts(n, 1, 1000, "position");
     inf.readEoln();
-
-    // Check for duplicate leak positions
-    set<int> leak_set(leaks.begin(), leaks.end());
-    ensuref((int)leak_set.size() == N, "Duplicate leak positions are not allowed.");
 
     inf.readEof();
 }

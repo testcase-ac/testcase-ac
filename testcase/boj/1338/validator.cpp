@@ -1,28 +1,30 @@
 #include "testlib.h"
+#include <bits/stdc++.h>
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read first line: two integers a, b (range endpoints)
-    int a = inf.readInt(-2147483648, 2147483647, "a");
+    const long long kIntMin = -(1LL << 31);
+    const long long kIntMax = (1LL << 31) - 1;
+
+    inf.readLong(kIntMin, kIntMax, "range_endpoint_1");
     inf.readSpace();
-    int b = inf.readInt(-2147483648, 2147483647, "b");
+    inf.readLong(kIntMin, kIntMax, "range_endpoint_2");
     inf.readEoln();
 
-    // Read second line: x (divisor), y (remainder)
-    int x = inf.readInt(-2147483648, 2147483647, "x");
+    long long x = inf.readLong(kIntMin, kIntMax, "x");
     inf.readSpace();
-    int y = inf.readInt(-2147483648, 2147483647, "y");
+    long long y = inf.readLong(kIntMin, kIntMax, "y");
     inf.readEoln();
 
-    // |x| must not be zero for modulus to make sense
-    ensuref(x != 0, "x (divisor) must not be zero");
+    ensuref(x != 0, "x must be nonzero because the remainder is modulo |x|");
 
-    // y must be in [0, |x| - 1]
-    int abs_x = x > 0 ? x : -x;
-    ensuref(y >= 0 && y < abs_x, "y (remainder) must satisfy 0 <= y < |x|, but got y=%d, x=%d", y, x);
+    long long absX = x < 0 ? -x : x;
+    ensuref(0 <= y && y < absX,
+            "remainder y must satisfy 0 <= y < |x|, got x=%lld y=%lld",
+            x, y);
 
     inf.readEof();
 }
