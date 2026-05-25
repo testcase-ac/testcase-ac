@@ -1,33 +1,24 @@
 #include "testlib.h"
-#include <set>
-#include <vector>
+#include <bits/stdc++.h>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Number of pillars
-    int N = inf.readInt(1, 1000, "N");
+    int n = inf.readInt(1, 1000, "N");
     inf.readEoln();
 
-    vector<int> Ls(N), Hs(N);
-    set<int> usedL;
-    for (int i = 0; i < N; i++) {
-        // Read position and height
-        int L = inf.readInt(1, 1000, "L_i");
+    set<int> positions;
+    for (int i = 0; i < n; ++i) {
+        int l = inf.readInt(1, 1000, "L_i");
         inf.readSpace();
-        int H = inf.readInt(1, 1000, "H_i");
+        inf.readInt(1, 1000, "H_i");
         inf.readEoln();
 
-        // No two pillars should share the same left position
-        ensuref(!usedL.count(L),
-                "Duplicate pillar position L=%d at line %d", L, i + 2);
-        usedL.insert(L);
-
-        Ls[i] = L;
-        Hs[i] = H;
+        // CHECK: duplicate left positions would make unit-width pillars overlap.
+        ensuref(positions.insert(l).second,
+                "duplicate pillar left position at line %d: %d", i + 2, l);
     }
 
     inf.readEof();
-    return 0;
 }

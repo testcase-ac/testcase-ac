@@ -5,27 +5,17 @@ using namespace std;
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read R: number of regular boxes (each holds 8 cupcakes), R >= 0
-    // No explicit upper bound given; assume a reasonable cap to avoid overflow.
-    // Since we must simulate and total cupcakes >= 28, but no upper limit in
-    // statement, we conservatively allow up to 10^9 to stay within 64-bit safe range.
-    long long R = inf.readLong(0LL, 1000000000LL, "R");
+    // CHECK: The statement gives no upper bound; this cap keeps inputs finite
+    // and within the existing reference solution's int arithmetic.
+    const long long max_boxes = 100000000LL;
+
+    long long r = inf.readLong(0LL, max_boxes, "R");
+    inf.readEoln();
+    long long s = inf.readLong(0LL, max_boxes, "S");
     inf.readEoln();
 
-    // Read S: number of small boxes (each holds 3 cupcakes), S >= 0
-    long long S = inf.readLong(0LL, 1000000000LL, "S");
-    inf.readEoln();
-
-    // Validate the implied global constraint:
-    // There are "a total of at least 28 cupcakes."
-    // Total cupcakes = 8*R + 3*S >= 28
-    __int128 total = (__int128)8 * R + (__int128)3 * S;
-    ensuref(total >= 28, "Total cupcakes must be at least 28, but got %lld",
-            (long long)total);
-
-    // Also ensure no overflow into negative with given bounds (sanity check)
-    ensuref(total <= (__int128)8 * 1000000000LL + (__int128)3 * 1000000000LL,
-            "Total cupcakes overflowed expected range");
+    long long total = 8 * r + 3 * s;
+    ensuref(total >= 28, "total cupcakes must be at least 28, got %lld", total);
 
     inf.readEof();
 }

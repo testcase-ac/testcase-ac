@@ -1,13 +1,17 @@
 #include "testlib.h"
+#include <algorithm>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read the document: only lowercase letters and spaces, length 1 to 2500
-    inf.readLine("[a-z\\ ]{1,2500}", "document");
-    // Read the pattern: only lowercase letters and spaces, length 1 to 50
-    inf.readLine("[a-z\\ ]{1,50}", "pattern");
+    string document = inf.readLine("[a-z\\ ]{1,2500}", "document");
+    ensuref(any_of(document.begin(), document.end(), [](char c) { return c >= 'a' && c <= 'z'; }),
+            "document must contain at least one lowercase letter");
+
+    string pattern = inf.readLine("[a-z\\ ]{1,50}", "pattern");
+    ensuref(any_of(pattern.begin(), pattern.end(), [](char c) { return c >= 'a' && c <= 'z'; }),
+            "pattern must contain at least one lowercase letter");
 
     inf.readEof();
     return 0;

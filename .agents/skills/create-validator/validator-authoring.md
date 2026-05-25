@@ -5,9 +5,9 @@ Use these rules when writing `validator.cpp` for testcase.ac problem data.
 ## Scope
 
 - Validate from the input-validator perspective, not the solution perspective.
+- Validate every stated input constraint and every stated input guarantee that a correct solution may rely on.
 - Reject vacuous, undefined, or impractically huge inputs even when the
   statement forgot a boundary.
-- Validate every stated input constraint and every stated input guarantee that a correct solution may rely on.
 - Do validate statement assumptions such as connected graphs, valid simulation states, answer existence guarantees, bounded answers, and non-degenerate geometry.
 - Do not validate the answer predicate itself when contestants are supposed to determine it.
 
@@ -17,6 +17,10 @@ Use these rules when writing `validator.cpp` for testcase.ac problem data.
 - Every read should have a descriptive name where testlib supports it.
 - Prefer `readInts` and `readLongs` for a whole line of same-bounded values, then call `readEoln()`.
 - For arbitrary string tokens, use `inf.readToken("[^]+", "name")`; a single argument to `readToken` is a regex, not a field name.
+- For natural-language string lines made of words, default to ordinary spacing
+  unless the statement or samples imply otherwise: no leading or trailing
+  spaces, no repeated spaces between words, and only ASCII spaces separate words
+  within a line.
 - Reject empty or whitespace-only input by default. For ordinary tokens or
   lines, require at least one non-whitespace character unless the statement
   explicitly allows an empty string, empty line, or whitespace-only line. A
@@ -83,6 +87,26 @@ Use clear `ensuref` messages that include the failing index or value.
 - If the statement does not specify a maximum number of test cases, assume up to
   `100000`.
 
+## Conflicting Input Contracts
+
+When the primary statement, official samples, or language variants conflict,
+identify the stricter validator rule and the less restrictive rule it would
+replace, then choose the most reasonable interpretation for the current problem.
+When choosing the interpretation, consider:
+
+- Some problems mix small/large version constraints. Samples may follow the large
+  version while the statement text describes the small version. In this case
+  follow the statement text, since that is what actually defines this problem.
+- Some statements have mistranslated constraints. In those cases, a language
+  variant statement or official sample may contradict the primary statement.
+
+Add a nearby comment containing `// CHECK` for the chosen interpretation,
+whether the validator enforces the stricter rule or omits it. Mention the
+conflict in the final response.
+
+Do not add `// CHECK` when there is no actual conflict between the input
+contracts.
+
 ## Ambiguous Input Contracts
 
 When the statement leaves one constraint unclear, identify the stricter
@@ -104,6 +128,9 @@ Whenever either choice depends on this ambiguity judgment, add a nearby comment
 containing `// CHECK`. This includes common structural checks such as distinct
 values, unique edges, no self-loops, positive weights, connectivity, or
 feasibility, whether the validator enforces or omits the stricter rule.
+
+Do not add `// CHECK` for rules that are directly stated by the input contract
+or by the required behavior for a stated command/case.
 
 ## Pattern
 

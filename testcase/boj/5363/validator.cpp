@@ -1,40 +1,40 @@
 #include "testlib.h"
-#include <string>
+#include <bits/stdc++.h>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Number of sentences
-    int N = inf.readInt(1, 100000, "N");
+    // CHECK: The statement only says positive N; 100000 keeps total input around
+    // the practical 10 MB scale from the validator-authoring policy.
+    int n = inf.readInt(1, 100000, "N");
     inf.readEoln();
 
-    for (int i = 0; i < N; i++) {
-        // Read the whole line as the sentence
-        string s = inf.readLine("[^]+", "sentence");
-        // Check maximum length 100
-        ensuref((int)s.size() <= 100,
-                "Sentence %d is too long: length = %d, max = 100",
-                i+1, (int)s.size());
-        // No leading or trailing spaces
-        ensuref(!s.empty() && s.front() != ' ',
-                "Sentence %d has leading space", i+1);
-        ensuref(!s.empty() && s.back() != ' ',
-                "Sentence %d has trailing space", i+1);
-        // No multiple consecutive spaces
-        ensuref(s.find("  ") == string::npos,
-                "Sentence %d has multiple consecutive spaces", i+1);
-        // Count words (spaces + 1)
+    for (int i = 1; i <= n; ++i) {
+        string sentence = inf.readLine();
+        ensuref(!sentence.empty(), "sentence %d is empty", i);
+        ensuref((int)sentence.size() <= 100,
+                "sentence %d has length %d, maximum is 100",
+                i, (int)sentence.size());
+        ensuref(sentence.front() != ' ', "sentence %d has leading space", i);
+        ensuref(sentence.back() != ' ', "sentence %d has trailing space", i);
+
         int words = 1;
-        for (char c : s) {
-            if (c == ' ')
-                words++;
+        for (int j = 0; j < (int)sentence.size(); ++j) {
+            unsigned char ch = static_cast<unsigned char>(sentence[j]);
+            if (ch == ' ') {
+                ensuref(j > 0 && sentence[j - 1] != ' ',
+                        "sentence %d has repeated spaces", i);
+                ++words;
+            } else {
+                ensuref(33 <= ch && ch <= 126,
+                        "sentence %d contains non-printable or non-ASCII character at position %d",
+                        i, j + 1);
+            }
         }
-        ensuref(words >= 3,
-                "Sentence %d has too few words: %d (min = 3)",
-                i+1, words);
+
+        ensuref(words >= 3, "sentence %d has %d words, minimum is 3", i, words);
     }
 
     inf.readEof();
-    return 0;
 }

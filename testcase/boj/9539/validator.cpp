@@ -12,6 +12,7 @@ int main(int argc, char* argv[]) {
     const int T_MIN = 1, T_MAX = 100000;
     const int N_MIN = 2, N_MAX = 200000;
     const int HP_MIN = -1000000, HP_MAX = 1000000;
+    const long long TOTAL_N_MAX = 1600000; // CHECK: practical input-size cap.
 
     int T = inf.readInt(T_MIN, T_MAX, "T");
     inf.readEoln();
@@ -27,7 +28,7 @@ int main(int argc, char* argv[]) {
         inf.readEoln();
 
         total_n += n;
-        ensuref(total_n <= 200000, "Sum of n over all test cases exceeds 200000, at test case %d", test+1);
+        ensuref(total_n <= TOTAL_N_MAX, "total n exceeds practical limit at test case %d", test+1);
 
         // Read HP values
         vector<int> hp(n+1); // 1-based

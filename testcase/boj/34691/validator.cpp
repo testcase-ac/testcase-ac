@@ -7,7 +7,8 @@ int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
     const int MIN_Q = 1;
-    const int MAX_Q = 1000;
+    // The statement says questions are not given 1000 or more times.
+    const int MAX_Q = 999;
 
     int cntQuestions = 0;
     bool ended = false;
