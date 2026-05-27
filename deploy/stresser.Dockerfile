@@ -87,10 +87,8 @@ RUN case "${TARGETARCH:-amd64}" in \
 
 RUN ln -sf /usr/share/dotnet/dotnet /usr/local/bin/dotnet
 
-ARG TESTLIB_COMMIT=1e4e8a24c79c6bad3becbdb5a332ffc352b7d5dd
-RUN mkdir -p /opt/testlib && \
-    curl -fsSL -o /opt/testlib/testlib.h \
-        "https://raw.githubusercontent.com/MikeMirzayanov/testlib/${TESTLIB_COMMIT}/testlib.h"
+RUN mkdir -p /opt/testlib
+COPY third_party/testlib/testlib.h /opt/testlib/testlib.h
 
 ARG RIE_VERSION=v1.35
 RUN ARCH=$(uname -m) && \
