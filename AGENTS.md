@@ -21,6 +21,7 @@ The frontend sends user code to the API to find counterexamples, the API loads t
   - `internal/verify/` for repository problem verification used by CI and testcase contribution checks; it builds on `loader` and `executor`.
   - `contracts/` for shared types
 - `deploy/` contains production deploy scripts and Terraform for the stresser stack. Ideally, if deployment infrastructure is changed, only this folder should be edited.
+- `third_party/testlib/` contains the vendored `testlib.h` header used by validators, generators, and checkers.
 
 
 ## Local Development
