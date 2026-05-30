@@ -248,6 +248,46 @@ int main() {
 	}
 }
 
+func TestCompileCodeCachedCanUseBoostPlanarityHeaders(t *testing.T) {
+	requireCommands(t, "g++")
+	requirePaths(t, "/opt/boost/boost/graph/boyer_myrvold_planar_test.hpp")
+
+	code := `#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/boyer_myrvold_planar_test.hpp>
+#include <iostream>
+
+int main() {
+    using Graph = boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS>;
+    Graph graph(6);
+    int edges[][2] = {
+        {0, 3}, {0, 4}, {0, 5},
+        {1, 3}, {1, 4}, {1, 5},
+        {2, 3}, {2, 4}, {2, 5},
+    };
+    for (auto edge : edges) {
+        boost::add_edge(edge[0], edge[1], graph);
+    }
+    std::cout << boost::boyer_myrvold_planarity_test(graph) << "\n";
+}
+`
+
+	cacheDir := GetCacheDirectory(code, contracts.LanguageCpp23)
+	_ = os.RemoveAll(cacheDir)
+
+	compileResult := compileCodeCached(code, contracts.LanguageCpp23)
+	if !compileResult.Success {
+		t.Fatalf("compileCodeCached() failed: %+v", compileResult)
+	}
+
+	runResult := runCode(compileResult.Program.Dir, "", contracts.LanguageCpp23, 2, 256, nil)
+	if !runResult.Success {
+		t.Fatalf("runCode() failed: %+v", runResult)
+	}
+	if got := util.CleanStdout(runResult.Stdout, "no"); got != "0" {
+		t.Fatalf("runCode() stdout = %q, want %q", got, "0")
+	}
+}
+
 func TestRunCodeRuntimeErrorVerdict(t *testing.T) {
 	requireCommands(t, Python313Command)
 

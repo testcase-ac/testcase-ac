@@ -87,8 +87,22 @@ RUN case "${TARGETARCH:-amd64}" in \
 
 RUN ln -sf /usr/share/dotnet/dotnet /usr/local/bin/dotnet
 
+ARG BOOST_VERSION=1.91.0
+ARG BOOST_DIR=boost_1_91_0
+ARG BOOST_TARBALL_SHA256=de5e6b0e4913395c6bdfa90537febd9028ea4c0735d2cdb0cd9b45d5f51264f5
+
 RUN mkdir -p /opt/testlib
 COPY third_party/testlib/testlib.h /opt/testlib/testlib.h
+
+RUN curl -fsSL --retry 8 --retry-delay 2 --retry-all-errors \
+      "https://archives.boost.io/release/${BOOST_VERSION}/source/${BOOST_DIR}.tar.bz2" \
+      -o /tmp/boost.tar.bz2 \
+    && echo "${BOOST_TARBALL_SHA256}  /tmp/boost.tar.bz2" | sha256sum -c - \
+    && tar xjf /tmp/boost.tar.bz2 -C /tmp \
+    && mkdir -p /opt/boost \
+    && cp -a "/tmp/${BOOST_DIR}/boost" /opt/boost/boost \
+    && cp "/tmp/${BOOST_DIR}/LICENSE_1_0.txt" /opt/boost/LICENSE_1_0.txt \
+    && rm -rf /tmp/boost.tar.bz2 "/tmp/${BOOST_DIR}"
 
 ARG RIE_VERSION=v1.35
 RUN ARCH=$(uname -m) && \

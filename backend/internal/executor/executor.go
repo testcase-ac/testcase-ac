@@ -34,7 +34,7 @@ const (
 )
 
 var (
-	cppCommonFlags = []string{"-O2", "-Wall", "-lm", "-I/opt/testlib", "-DONLINE_JUDGE", "-DBOJ"}
+	cppCommonFlags = []string{"-O2", "-Wall", "-lm", "-I/opt/testlib", "-I/opt/boost", "-DONLINE_JUDGE", "-DBOJ"}
 	cCommonFlags   = []string{"-O2", "-Wall", "-lm", "-DONLINE_JUDGE", "-DBOJ"}
 )
 

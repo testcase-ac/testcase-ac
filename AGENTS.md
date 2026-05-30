@@ -22,6 +22,7 @@ The frontend sends user code to the API to find counterexamples, the API loads t
   - `contracts/` for shared types
 - `deploy/` contains production deploy scripts and Terraform for the stresser stack. Ideally, if deployment infrastructure is changed, only this folder should be edited.
 - `third_party/testlib/` contains the vendored `testlib.h` header used by validators, generators, and checkers.
+- C++ source files under `testcase/` can include `testlib.h` and Boost headers in the Docker runtime. Prefer `testlib.h` for validators and checkers, and use Boost algorithms or data structures when they make validation or checking simpler and more reliable.
 
 
 ## Local Development
