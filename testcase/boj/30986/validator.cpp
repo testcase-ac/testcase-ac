@@ -5,21 +5,16 @@ using namespace std;
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // The problem describes 16 tetrahedra around a 4D 16-cell.
-    // There are 32 faces between adjacent tetrahedra.
-    // We only need to validate that each given pair (a,b) is:
-    //  - 1 <= a < b <= 16
-    //  - not duplicated
-    // The statement does NOT explicitly guarantee that (a,b) must correspond
-    // to an actual neighboring pair in the 16-cell; it only says
-    // "faces where he could not drill holes are given as (a,b)" and
-    // "all given faces are not duplicated".
-    // So from validator's perspective, we must not add an extra constraint
-    // that (a,b) must be a real adjacency in the 16-cell, since that is not
-    // clearly stated in the input format/constraints.
-    //
-    // Additionally, we must enforce canonical integer format and strict
-    // whitespace using testlib's readInt/readSpace/readEoln.
+    const set<pair<int, int>> faces = {
+        {1, 2},   {1, 3},   {1, 4},   {1, 5},
+        {2, 6},   {2, 7},   {2, 8},   {3, 6},
+        {3, 9},   {3, 10},  {4, 7},   {4, 9},
+        {4, 11},  {5, 8},   {5, 10},  {5, 11},
+        {6, 12},  {6, 13},  {7, 12},  {7, 14},
+        {8, 13},  {8, 14},  {9, 12},  {9, 15},
+        {10, 13}, {10, 15}, {11, 14}, {11, 15},
+        {12, 16}, {13, 16}, {14, 16}, {15, 16},
+    };
 
     int N = inf.readInt(0, 32, "N");
     inf.readEoln();
@@ -37,6 +32,7 @@ int main(int argc, char* argv[]) {
                 i + 2, a, b);
 
         pair<int,int> e = {a, b};
+        ensuref(faces.count(e), "tetrahedra %d and %d do not share a face", a, b);
         ensuref(!seen.count(e),
                 "Duplicate face (%d, %d) on line %d",
                 a, b, i + 2);

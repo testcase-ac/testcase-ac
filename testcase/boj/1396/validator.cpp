@@ -23,10 +23,6 @@ int main(int argc, char* argv[]) {
         int w = inf.readInt(1, 1000000, "c_i");
         inf.readEoln();
 
-        // No loops allowed (a != b)
-        ensuref(u != v,
-                "Loop detected on edge %d: both endpoints are %d", i+1, u);
-
         // Edge weights must be unique
         ensuref(!weightUsed[w],
                 "Duplicate edge weight detected: weight %d appears more than once (at edge %d)", w, i+1);

@@ -19,6 +19,10 @@ int main(int argc, char* argv[]) {
             ensuref(s[i] == '#' || s[i] == '.',
                     "Row %d, col %d: Invalid character '%c', only '#' and '.' allowed",
                     row + 1, i + 1, s[i]);
+            if (i % 4 == 3) {
+                ensuref(s[i] == '.',
+                        "Row %d, separator col %d must be off", row + 1, i + 1);
+            }
         }
     }
 

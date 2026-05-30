@@ -1,7 +1,7 @@
-#include "testlib.h"
+#include <set>
 #include <string>
 #include <vector>
-#include <set>
+#include "testlib.h"
 using namespace std;
 
 static vector<string> split_str(const string &s, char delim) {
@@ -30,29 +30,23 @@ static bool is_lower_alpha(const string &s) {
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Number of test cases T: 1 .. 100000
+    // CHECK: The statement gives no upper bound for T; this follows the repo policy cap.
     int T = inf.readInt(1, 100000, "T");
     inf.readEoln();
 
     for (int tc = 1; tc <= T; tc++) {
         setTestCase(tc);
 
-        // 1) Recorded sound line
-        //    Read entire line, then validate no leading/trailing spaces and no double spaces
         string rec = inf.readLine("[^]+", "recorded_sound");
-        // cannot be empty
         ensuref(!rec.empty(),
                 "Testcase %d: recorded sound line is empty", tc);
-        // no leading or trailing space
         ensuref(rec.front() != ' ' && rec.back() != ' ',
                 "Testcase %d: recorded sound line has leading or trailing space: '%s'",
                 tc, rec.c_str());
-        // no double spaces
         ensuref(rec.find("  ") == string::npos,
                 "Testcase %d: recorded sound line has consecutive spaces: '%s'",
                 tc, rec.c_str());
 
-        // split into words
         vector<string> recWords = split_str(rec, ' ');
         int R = recWords.size();
         ensuref(R >= 1 && R <= 100,
@@ -68,7 +62,6 @@ int main(int argc, char* argv[]) {
                     tc, i, w.c_str());
         }
 
-        // 2) Animal sound lines, ending with "what does the fox say?"
         vector<string> animalLines;
         while (true) {
             string line = inf.readLine("[^]+", "line");
@@ -85,8 +78,6 @@ int main(int argc, char* argv[]) {
         set<string> known_sounds;
         for (int i = 0; i < A; i++) {
             const string &ln = animalLines[i];
-            // split by single space
-            // line must not be empty and must not have leading/trailing spaces or double spaces
             ensuref(!ln.empty(),
                     "Testcase %d: animal line %d is empty", tc, i);
             ensuref(ln.front() != ' ' && ln.back() != ' ',
@@ -99,11 +90,9 @@ int main(int argc, char* argv[]) {
             ensuref((int)tok.size() == 3,
                     "Testcase %d: animal line %d does not have exactly 3 tokens: '%s'",
                     tc, i, ln.c_str());
-            // tok[1] must be "goes"
             ensuref(tok[1] == "goes",
                     "Testcase %d: animal line %d token 2 is not 'goes': '%s'",
                     tc, i, tok[1].c_str());
-            // tok[0] and tok[2] must be lowercase words length 1..100
             for (int j = 0; j <= 2; j += 2) {
                 const string &s = tok[j];
                 ensuref((int)s.size() >= 1 && (int)s.size() <= 100,
@@ -113,10 +102,11 @@ int main(int argc, char* argv[]) {
                         "Testcase %d: animal line %d token %d contains non-lowercase letters: '%s'",
                         tc, i, j, s.c_str());
             }
+            ensuref(tok[0] != "fox",
+                    "Testcase %d: animal line %d is for fox", tc, i);
             known_sounds.insert(tok[2]);
         }
 
-        // 3) Ensure at least one recorded word is not a known sound (fox sound exists)
         bool has_unknown = false;
         for (const string &w : recWords) {
             if (!known_sounds.count(w)) {

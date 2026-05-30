@@ -25,8 +25,10 @@ int main(int argc, char* argv[]) {
         W[i] = inf.readLong(1LL, 100000000LL, "W_i");
         inf.readEoln();
         if (i > 1) {
-            ensuref(D[i] > D[i-1],
-                    "Positions must be strictly increasing: D[%d]=%d, D[%d]=%d",
+            // CHECK: The statement says positions are in ascending order, but
+            // does not explicitly require distinct positions.
+            ensuref(D[i] >= D[i-1],
+                    "Positions must be nondecreasing: D[%d]=%d, D[%d]=%d",
                     i-1, D[i-1], i, D[i]);
         }
     }

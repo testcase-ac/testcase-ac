@@ -1,86 +1,42 @@
 #include "testlib.h"
-#include <string>
-#include <cctype>
+#include <bits/stdc++.h>
 using namespace std;
+
+int parseOperand(const string& s, int lineIndex, const char* side) {
+    ensuref(!s.empty(), "empty %s operand on problem line %d", side, lineIndex);
+    ensuref(s == "0" || s[0] != '0',
+            "leading zero in %s operand on problem line %d", side, lineIndex);
+
+    int value = 0;
+    for (char c : s) {
+        ensuref('0' <= c && c <= '9',
+                "non-digit character in %s operand on problem line %d", side, lineIndex);
+        value = value * 10 + (c - '0');
+        ensuref(value <= 1000,
+                "%s operand exceeds 1000 on problem line %d", side, lineIndex);
+    }
+    return value;
+}
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read first line: N
-    string n_line = inf.readLine("[^]*", "N_line");
-    // No spaces or tabs allowed
-    for (int i = 0; i < (int)n_line.size(); i++) {
-        char c = n_line[i];
-        ensuref(!isspace(c), "Whitespace not allowed in N line at position %d", i);
-        ensuref(isdigit(c), "Non-digit character '%c' in N line at position %d", c, i);
-    }
-    // Parse N
-    long long N = 0;
-    for (char c : n_line) {
-        N = N * 10 + (c - '0');
-        ensuref(N <= 1000, "N = %lld exceeds maximum 1000", N);
-    }
-    ensuref(N >= 1, "N = %lld is less than minimum 1", N);
+    int n = inf.readInt(1, 1000, "N");
+    inf.readEoln();
 
-    // Read the N problem lines
-    for (int idx = 0; idx < N; idx++) {
-        string s = inf.readLine("[^]*", "problem_line");
-        // Must not be empty
-        ensuref(!s.empty(), "Empty problem line at index %d", idx);
-
-        // No whitespace allowed
-        for (int i = 0; i < (int)s.size(); i++) {
-            char c = s[i];
-            ensuref(!isspace(c), "Whitespace not allowed in problem line %d at position %d", idx, i);
+    for (int i = 1; i <= n; ++i) {
+        string problem = inf.readLine("[^\\n\\r]*", "problem");
+        if (problem == "P=NP") {
+            continue;
         }
 
-        if (s == "P=NP") {
-            // OK
-        } else {
-            // Must be of form a+b
-            int plus_cnt = 0;
-            int pos = -1;
-            for (int i = 0; i < (int)s.size(); i++) {
-                if (s[i] == '+') {
-                    plus_cnt++;
-                    if (pos == -1) pos = i;
-                }
-            }
-            ensuref(plus_cnt == 1,
-                    "Problem line %d must contain exactly one '+', found %d", idx, plus_cnt);
-            // split
-            string a_str = s.substr(0, pos);
-            string b_str = s.substr(pos+1);
-            ensuref(!a_str.empty(), "Empty left operand in line %d", idx);
-            ensuref(!b_str.empty(), "Empty right operand in line %d", idx);
-            // digits only
-            for (int i = 0; i < (int)a_str.size(); i++) {
-                char c = a_str[i];
-                ensuref(isdigit(c),
-                        "Non-digit character '%c' in left operand at line %d, pos %d", c, idx, i);
-            }
-            for (int i = 0; i < (int)b_str.size(); i++) {
-                char c = b_str[i];
-                ensuref(isdigit(c),
-                        "Non-digit character '%c' in right operand at line %d, pos %d", c, idx, i);
-            }
-            // parse values
-            long long a_val = 0;
-            for (char c : a_str) {
-                a_val = a_val * 10 + (c - '0');
-                ensuref(a_val <= 1000,
-                        "Left operand value %lld exceeds 1000 at line %d", a_val, idx);
-            }
-            long long b_val = 0;
-            for (char c : b_str) {
-                b_val = b_val * 10 + (c - '0');
-                ensuref(b_val <= 1000,
-                        "Right operand value %lld exceeds 1000 at line %d", b_val, idx);
-            }
-            // Lower bound check
-            ensuref(a_val >= 0, "Left operand %lld is negative at line %d", a_val, idx);
-            ensuref(b_val >= 0, "Right operand %lld is negative at line %d", b_val, idx);
-        }
+        size_t plus = problem.find('+');
+        ensuref(plus != string::npos, "missing plus sign on problem line %d", i);
+        ensuref(problem.find('+', plus + 1) == string::npos,
+                "multiple plus signs on problem line %d", i);
+
+        parseOperand(problem.substr(0, plus), i, "left");
+        parseOperand(problem.substr(plus + 1), i, "right");
     }
 
     inf.readEof();

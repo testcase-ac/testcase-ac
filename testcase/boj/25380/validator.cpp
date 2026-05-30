@@ -41,15 +41,16 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // Build lookup sets for fast checking
-    unordered_set<int> setA, setB;
-    setA.reserve(N * 2);
-    setB.reserve(M * 2);
-    for (int x : a) setA.insert(x);
-    for (int y : b) setB.insert(y);
+    // Build lookup maps for fast road membership and assignment checks.
+    unordered_map<int, int> indexA, indexB;
+    indexA.reserve(N * 2);
+    indexB.reserve(M * 2);
+    for (int i = 0; i < N; ++i) indexA[a[i]] = i;
+    for (int i = 0; i < M; ++i) indexB[b[i]] = N + i;
 
     // Track police positions to ensure no duplicates
     set<pair<int,int>> police_pos;
+    vector<vector<int>> candidate_roads(K);
 
     // Read K police positions
     for (int i = 0; i < K; i++) {
@@ -64,12 +65,67 @@ int main(int argc, char* argv[]) {
         police_pos.insert({p, q});
 
         // Must lie on at least one road
-        bool onA = setA.count(p);
-        bool onB = setB.count(q);
-        ensuref(onA || onB,
+        auto itA = indexA.find(p);
+        auto itB = indexB.find(q);
+        if (itA != indexA.end()) candidate_roads[i].push_back(itA->second);
+        if (itB != indexB.end()) candidate_roads[i].push_back(itB->second);
+        ensuref(!candidate_roads[i].empty(),
                 "Police at (%d, %d) is not on any road", p, q);
         // Note: if on both, it's at an intersection and may be assigned to exactly one of them.
     }
+
+    vector<int> match_road(N + M, -1), match_police(K, -1), dist(K);
+
+    auto bfs = [&]() {
+        queue<int> q;
+        for (int i = 0; i < K; ++i) {
+            if (match_police[i] == -1) {
+                dist[i] = 0;
+                q.push(i);
+            } else {
+                dist[i] = -1;
+            }
+        }
+
+        bool found = false;
+        while (!q.empty()) {
+            int police = q.front();
+            q.pop();
+            for (int road : candidate_roads[police]) {
+                int next = match_road[road];
+                if (next == -1) {
+                    found = true;
+                } else if (dist[next] == -1) {
+                    dist[next] = dist[police] + 1;
+                    q.push(next);
+                }
+            }
+        }
+        return found;
+    };
+
+    auto dfs = [&](auto&& self, int police) -> bool {
+        for (int road : candidate_roads[police]) {
+            int next = match_road[road];
+            if (next == -1 || (dist[next] == dist[police] + 1 && self(self, next))) {
+                match_police[police] = road;
+                match_road[road] = police;
+                return true;
+            }
+        }
+        dist[police] = -1;
+        return false;
+    };
+
+    int matched = 0;
+    while (bfs()) {
+        for (int i = 0; i < K; ++i) {
+            if (match_police[i] == -1 && dfs(dfs, i)) {
+                ++matched;
+            }
+        }
+    }
+    ensuref(matched == K, "Police positions cannot be assigned to distinct roads");
 
     // No extra content
     inf.readEof();

@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // Check orientation (shoelace): should be CCW => area > 0
+    // Check orientation and require at least one remaining paper piece.
     {
         long long s = 0;
         for (int i = 0; i < N; i++) {
@@ -90,6 +90,7 @@ int main(int argc, char* argv[]) {
             s += (long long)x1 * y2 - (long long)x2 * y1;
         }
         ensuref(s > 0, "Polygon vertices are not in CCW order or area is non-positive");
+        ensuref(s < 2LL * W * H, "Polygon covers the entire paper");
     }
 
     // Build horizontal and vertical segments

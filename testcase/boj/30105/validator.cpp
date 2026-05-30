@@ -6,7 +6,7 @@ using ll = long long;
 int main(int argc, char *argv[]) {
   registerValidation(argc, argv);
 
-  int N = inf.readInt(1, 4000, "N"); inf.readEoln();
+  int N = inf.readInt(2, 4000, "N"); inf.readEoln();
 
   vector<int> A;
   for (int i = 1; i <= N; i++) {

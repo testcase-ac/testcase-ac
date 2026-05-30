@@ -1,90 +1,85 @@
 #include "testlib.h"
-#include <vector>
-#include <cmath>
-#include <algorithm>
+#include <bits/stdc++.h>
 using namespace std;
 
-// Helper function to compute cross product of two points (vectors)
-long long cross(long long x1, long long y1, long long x2, long long y2) {
-    return x1 * y2 - y1 * x2;
+struct Point {
+    long long x;
+    long long y;
+};
+
+long long dot(Point a, Point b) {
+    return a.x * b.x + a.y * b.y;
 }
 
-// Helper function to compute dot product of two points (vectors)
-long long dot(long long x1, long long y1, long long x2, long long y2) {
-    return x1 * x2 + y1 * y2;
+long long cross(Point a, Point b) {
+    return a.x * b.y - a.y * b.x;
 }
 
-// Helper function to compute squared distance between two points
-long long dist2(long long x1, long long y1, long long x2, long long y2) {
-    long long dx = x1 - x2;
-    long long dy = y1 - y2;
-    return dx * dx + dy * dy;
+Point operator-(Point a, Point b) {
+    return {a.x - b.x, a.y - b.y};
 }
 
-// Check if four points form a non-degenerate rectangle in order
-bool is_rectangle(const vector<pair<long long, long long>>& pts) {
-    // There must be 4 points
-    if (pts.size() != 4) return false;
+long long squaredLength(Point a) {
+    return dot(a, a);
+}
 
-    // Check that all sides are non-zero length
+long long signedDoubleArea(const vector<Point>& p) {
+    long long area = 0;
     for (int i = 0; i < 4; ++i) {
-        long long dx = pts[(i+1)%4].first - pts[i].first;
-        long long dy = pts[(i+1)%4].second - pts[i].second;
-        if (dx == 0 && dy == 0) return false;
+        area += cross(p[i], p[(i + 1) % 4]);
+    }
+    return area;
+}
+
+bool isClockwiseRectangle(const vector<Point>& p) {
+    for (int i = 0; i < 4; ++i) {
+        Point side = p[(i + 1) % 4] - p[i];
+        if (squaredLength(side) == 0) {
+            return false;
+        }
     }
 
-    // Check that opposite sides are equal and all angles are right
-    long long d01 = dist2(pts[0].first, pts[0].second, pts[1].first, pts[1].second);
-    long long d12 = dist2(pts[1].first, pts[1].second, pts[2].first, pts[2].second);
-    long long d23 = dist2(pts[2].first, pts[2].second, pts[3].first, pts[3].second);
-    long long d30 = dist2(pts[3].first, pts[3].second, pts[0].first, pts[0].second);
-
-    // Opposite sides must be equal
-    if (d01 != d23) return false;
-    if (d12 != d30) return false;
-
-    // Check right angles using dot product
     for (int i = 0; i < 4; ++i) {
-        long long x1 = pts[(i+1)%4].first - pts[i].first;
-        long long y1 = pts[(i+1)%4].second - pts[i].second;
-        long long x2 = pts[(i+2)%4].first - pts[(i+1)%4].first;
-        long long y2 = pts[(i+2)%4].second - pts[(i+1)%4].second;
-        if (dot(x1, y1, x2, y2) != 0) return false;
+        Point a = p[(i + 1) % 4] - p[i];
+        Point b = p[(i + 2) % 4] - p[(i + 1) % 4];
+        if (dot(a, b) != 0) {
+            return false;
+        }
     }
 
-    // Check non-degenerate (area > 0)
-    long long area = abs(
-        cross(pts[0].first, pts[0].second, pts[1].first, pts[1].second) +
-        cross(pts[1].first, pts[1].second, pts[2].first, pts[2].second) +
-        cross(pts[2].first, pts[2].second, pts[3].first, pts[3].second) +
-        cross(pts[3].first, pts[3].second, pts[0].first, pts[0].second)
-    );
-    if (area == 0) return false;
+    if (squaredLength(p[1] - p[0]) != squaredLength(p[3] - p[2])) {
+        return false;
+    }
+    if (squaredLength(p[2] - p[1]) != squaredLength(p[0] - p[3])) {
+        return false;
+    }
 
-    return true;
+    return signedDoubleArea(p) < 0;
 }
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    int N = inf.readInt(1, 100000, "N");
+    int n = inf.readInt(1, 100000, "N");
     inf.readSpace();
-    int R = inf.readInt(1, 1000, "R");
+    inf.readInt(1, 1000, "R");
     inf.readEoln();
 
-    for (int i = 0; i < N; ++i) {
-        vector<pair<long long, long long>> pts(4);
+    for (int i = 0; i < n; ++i) {
+        vector<Point> p(4);
         for (int j = 0; j < 4; ++j) {
-            pts[j].first = inf.readInt(-1000, 1000, format("x_%d%d", i+1, j+1));
+            p[j].x = inf.readInt(-1000, 1000, format("x_%d_%d", i + 1, j + 1));
             inf.readSpace();
-            pts[j].second = inf.readInt(-1000, 1000, format("y_%d%d", i+1, j+1));
-            if (j != 3) inf.readSpace();
+            p[j].y = inf.readInt(-1000, 1000, format("y_%d_%d", i + 1, j + 1));
+            if (j < 3) {
+                inf.readSpace();
+            }
         }
         inf.readEoln();
 
-        // Check that the four points form a non-degenerate rectangle in order
-        ensuref(is_rectangle(pts),
-            "The 4 points at device %d do not form a non-degenerate rectangle in order.", i+1);
+        ensuref(isClockwiseRectangle(p),
+                "device %d must be a non-degenerate rectangle with vertices in clockwise order",
+                i + 1);
     }
 
     inf.readEof();

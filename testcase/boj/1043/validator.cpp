@@ -1,4 +1,5 @@
 #include "testlib.h"
+#include <set>
 #include <vector>
 using namespace std;
 
@@ -13,10 +14,14 @@ int main(int argc, char* argv[]) {
 
     // Second line: number of truth-knowers and their ids
     int tcnt = inf.readInt(0, 50, "truth_count");
+    ensuref(tcnt <= N, "truth_count (%d) exceeds number of people N (%d)", tcnt, N);
+    set<int> truthIds;
     vector<int> truth(tcnt);
     for (int i = 0; i < tcnt; i++) {
         inf.readSpace();
         truth[i] = inf.readInt(1, N, "truth_id");
+        ensuref(truthIds.insert(truth[i]).second,
+                "duplicate truth-knower %d", truth[i]);
     }
     inf.readEoln();
 

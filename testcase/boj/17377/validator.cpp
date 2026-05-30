@@ -18,6 +18,19 @@ static vector<string> split_by_space(const string &s) {
     return res;
 }
 
+static int parse_canonical_int_token(const string &s, int lo, int hi, const char *what) {
+    ensuref(!s.empty(), "Empty integer token for %s", what);
+    ensuref(s == "0" || s[0] != '0', "Non-canonical integer token for %s: '%s'", what, s.c_str());
+    long long value = 0;
+    for (char c : s) {
+        ensuref(isdigit(c), "Non-digit in integer token for %s: '%s'", what, s.c_str());
+        value = value * 10 + (c - '0');
+        ensuref(value <= hi, "Integer token for %s out of range: '%s'", what, s.c_str());
+    }
+    ensuref(lo <= value && value <= hi, "Integer token for %s out of range: '%s'", what, s.c_str());
+    return (int)value;
+}
+
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
@@ -55,13 +68,8 @@ int main(int argc, char* argv[]) {
         ensuref(parts.size() >= 3, "Place line %d must have at least name and two numbers: '%s'", i, line.c_str());
         string sx = parts[parts.size()-2];
         string sy = parts[parts.size()-1];
-        // parse integers
-        for (char c : sx) ensuref(isdigit(c), "Non-digit in x-coordinate at place %d: '%s'", i, sx.c_str());
-        for (char c : sy) ensuref(isdigit(c), "Non-digit in y-coordinate at place %d: '%s'", i, sy.c_str());
-        int x = stoi(sx);
-        int y = stoi(sy);
-        ensuref(0 <= x && x <= 100, "x-coordinate out of range at place %d: %d", i, x);
-        ensuref(0 <= y && y <= 100, "y-coordinate out of range at place %d: %d", i, y);
+        int x = parse_canonical_int_token(sx, 0, 100, "x-coordinate");
+        int y = parse_canonical_int_token(sy, 0, 100, "y-coordinate");
         // Reconstruct name
         string name = parts[0];
         for (int j = 1; j + 2 < (int)parts.size(); j++) {
@@ -101,11 +109,7 @@ int main(int argc, char* argv[]) {
         vector<string> parts = split_by_space(line);
         ensuref(parts.size() >= 2, "Gas station line %d must have name and price: '%s'", i, line.c_str());
         string sp = parts.back();
-        for (char c : sp) ensuref(isdigit(c),
-                "Non-digit in gas station price at line %d: '%s'", i, sp.c_str());
-        int P = stoi(sp);
-        ensuref(1 <= P && P <= 100,
-                "Gas station price out of range at line %d: %d", i, P);
+        int P = parse_canonical_int_token(sp, 1, 100, "gas station price");
         // reconstruct name
         string gname = parts[0];
         for (int j = 1; j + 1 < (int)parts.size(); j++) {

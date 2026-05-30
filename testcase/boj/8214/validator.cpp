@@ -1,44 +1,98 @@
 #include "testlib.h"
+
 #include <vector>
 using namespace std;
+
+static bool hasVertexCover(vector<vector<int>>& adj, vector<char>& removed, int budget) {
+    int bestU = -1;
+    int bestV = -1;
+    int bestDegree = -1;
+
+    for (int u = 1; u < (int)adj.size(); ++u) {
+        if (removed[u]) {
+            continue;
+        }
+
+        int degree = 0;
+        int firstNeighbor = -1;
+        for (int v : adj[u]) {
+            if (!removed[v]) {
+                ++degree;
+                if (firstNeighbor == -1) {
+                    firstNeighbor = v;
+                }
+            }
+        }
+
+        if (degree > bestDegree) {
+            bestDegree = degree;
+            bestU = u;
+            bestV = firstNeighbor;
+        }
+    }
+
+    if (bestDegree <= 0) {
+        return true;
+    }
+    if (budget == 0) {
+        return false;
+    }
+
+    removed[bestU] = true;
+    if (hasVertexCover(adj, removed, budget - 1)) {
+        removed[bestU] = false;
+        return true;
+    }
+    removed[bestU] = false;
+
+    removed[bestV] = true;
+    if (hasVertexCover(adj, removed, budget - 1)) {
+        removed[bestV] = false;
+        return true;
+    }
+    removed[bestV] = false;
+
+    return false;
+}
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read n and validate
     int n = inf.readInt(3, 3000, "n");
-    ensuref(n % 3 == 0, "n must be divisible by 3, found n = %d", n);
+    ensuref(n % 3 == 0, "n must be divisible by 3, found %d", n);
     inf.readSpace();
 
-    // Compute bounds for m
-    int t = 2 * n / 3;  // size for the 2n/3 clique bound
-    int minEdges = int((1LL * t * (t - 1)) / 2);
-    int maxEdges = int((1LL * n * (n - 1)) / 2);
-
-    // Read m and validate
-    int m = inf.readInt(minEdges, maxEdges, "m");
+    int cliqueSize = 2 * n / 3;
+    int minM = cliqueSize * (cliqueSize - 1) / 2;
+    int maxM = n * (n - 1) / 2;
+    int m = inf.readInt(minM, maxM, "m");
     inf.readEoln();
 
-    // Prepare for edge checks: no duplicates, a_i < b_i, 1 <= a,b <= n
-    vector<char> seen((size_t)n * n, 0);
-
-    for (int i = 0; i < m; i++) {
+    vector<vector<bool>> seen(n + 1, vector<bool>(n + 1, false));
+    for (int i = 1; i <= m; ++i) {
         int a = inf.readInt(1, n, "a_i");
         inf.readSpace();
         int b = inf.readInt(1, n, "b_i");
         inf.readEoln();
 
-        ensuref(a < b,
-                "Edge %d: expected a_i < b_i, but got a_i = %d, b_i = %d",
-                i, a, b);
-
-        int idx = (a - 1) * n + (b - 1);
-        ensuref(!seen[idx],
-                "Multiple edges detected between %d and %d at edge index %d",
-                a, b, i);
-        seen[idx] = 1;
+        ensuref(a < b, "edge %d must satisfy a_i < b_i, found %d %d", i, a, b);
+        ensuref(!seen[a][b], "duplicate edge %d %d at line %d", a, b, i + 1);
+        seen[a][b] = true;
     }
 
     inf.readEof();
-    return 0;
+
+    vector<vector<int>> complement(n + 1);
+    for (int a = 1; a <= n; ++a) {
+        for (int b = a + 1; b <= n; ++b) {
+            if (!seen[a][b]) {
+                complement[a].push_back(b);
+                complement[b].push_back(a);
+            }
+        }
+    }
+
+    vector<char> removed(n + 1, false);
+    ensuref(hasVertexCover(complement, removed, n / 3),
+            "graph must contain a clique of size 2n/3");
 }

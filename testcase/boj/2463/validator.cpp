@@ -6,7 +6,7 @@ int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
     // Read N and M
-    int N = inf.readInt(1, 100000, "N");
+    int N = inf.readInt(2, 100000, "N");
     inf.readSpace();
     int M = inf.readInt(1, 100000, "M");
     inf.readEoln();
@@ -24,9 +24,6 @@ int main(int argc, char* argv[]) {
         int w = inf.readInt(1, WMAX, "w_i");
         inf.readEoln();
 
-        // No loops allowed
-        ensuref(x != y,
-                "Loop detected on edge %d: both endpoints are %d", i + 1, x);
         // Weights must be unique
         ensuref(!seenW[w],
                 "Duplicate edge weight %d found at edge %d", w, i + 1);

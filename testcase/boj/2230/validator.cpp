@@ -12,10 +12,6 @@ int main(int argc, char* argv[]) {
     long long M = inf.readLong(0LL, 2000000000LL, "M");
     inf.readEoln();
 
-    // Since the statement guarantees that there is always a valid pair,
-    // we must have at least two elements.
-    ensuref(N >= 2, "Need at least two numbers to form a pair, got N = %d", N);
-
     // Read the sequence A
     vector<long long> A(N);
     for (int i = 0; i < N; i++) {

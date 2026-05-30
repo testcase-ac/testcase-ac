@@ -45,6 +45,8 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
+        ensuref(depth >= 1, "Line %d: command after top-level STOP", lineNo);
+
         // Try matching STOP
         if (content == "STOP") {
             ensuref(depth >= 1, "Line %d: STOP without matching BEGIN/REPEAT", lineNo);
@@ -127,12 +129,20 @@ int main(int argc, char* argv[]) {
             content[1] == ' ' && content[2] == '=' && content[3] == ' ') {
             string expr = content.substr(4);
             ensuref(!expr.empty(), "Line %d: empty expression", lineNo);
-            // tokenize by single spaces
+            // Tokenize by single spaces without collapsing repeated spaces.
+            ensuref(expr.front() != ' ' && expr.back() != ' ',
+                    "Line %d: expression has leading or trailing space", lineNo);
+            ensuref(expr.find("  ") == string::npos,
+                    "Line %d: expression has repeated spaces", lineNo);
             vector<string> toks;
             {
-                stringstream ss(expr);
-                string tk;
-                while (ss >> tk) toks.push_back(tk);
+                size_t start = 0;
+                while (true) {
+                    size_t pos = expr.find(' ', start);
+                    toks.push_back(expr.substr(start, pos - start));
+                    if (pos == string::npos) break;
+                    start = pos + 1;
+                }
             }
             ensuref((int)toks.size() % 2 == 1,
                     "Line %d: malformed expression token count %d", 

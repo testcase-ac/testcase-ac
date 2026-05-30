@@ -1,7 +1,6 @@
 #include "testlib.h"
-#include <vector>
 #include <queue>
-#include <set>
+#include <vector>
 using namespace std;
 
 struct Edge {
@@ -22,7 +21,6 @@ int main(int argc, char* argv[]) {
 
     // Read edges
     vector<vector<Edge>> g(N + 1);
-    set<pair<int,int>> edgeSet; // to disallow multi-edges (problem doesn't say they exist)
     for (int i = 0; i < M; ++i) {
         int A = inf.readInt(1, N, "A");
         inf.readSpace();
@@ -32,12 +30,6 @@ int main(int argc, char* argv[]) {
         inf.readEoln();
 
         ensuref(A != B, "Self-loop detected at edge %d: (%d, %d)", i + 1, A, B);
-
-        int u = A, v = B;
-        if (u > v) swap(u, v);
-        ensuref(!edgeSet.count({u, v}),
-                "Multiple edges detected between %d and %d", u, v);
-        edgeSet.insert({u, v});
 
         g[A].push_back({B, C});
         g[B].push_back({A, C});

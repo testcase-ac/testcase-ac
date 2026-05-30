@@ -1,153 +1,206 @@
 #include "testlib.h"
 #include <bits/stdc++.h>
 using namespace std;
-using ll = long long;
-const ll INF64 = (ll)4e18;
 
 struct DSU {
-    int n;
-    vector<int> p, r;
-    DSU(int _n): n(_n), p(n+1), r(n+1,0) {
-        iota(p.begin(), p.end(), 0);
+    vector<int> parent;
+    vector<int> rank;
+
+    explicit DSU(int n) : parent(n + 1), rank(n + 1, 0) {
+        iota(parent.begin(), parent.end(), 0);
     }
+
     int find(int x) {
-        return p[x]==x ? x : p[x] = find(p[x]);
+        if (parent[x] == x) {
+            return x;
+        }
+        return parent[x] = find(parent[x]);
     }
+
     bool unite(int a, int b) {
-        a = find(a); b = find(b);
-        if (a == b) return false;
-        if (r[a] < r[b]) swap(a,b);
-        p[b] = a;
-        if (r[a] == r[b]) r[a]++;
+        a = find(a);
+        b = find(b);
+        if (a == b) {
+            return false;
+        }
+        if (rank[a] < rank[b]) {
+            swap(a, b);
+        }
+        parent[b] = a;
+        if (rank[a] == rank[b]) {
+            ++rank[a];
+        }
         return true;
     }
 };
 
+struct Edge {
+    int a;
+    int b;
+    int w;
+    bool in_mst = false;
+};
+
+array<int, 2> mergeTop(array<int, 2> left, array<int, 2> right) {
+    array<int, 2> result = {-1, -1};
+    for (int value : {left[0], left[1], right[0], right[1]}) {
+        if (value < 0 || value == result[0] || value == result[1]) {
+            continue;
+        }
+        if (value > result[0]) {
+            result[1] = result[0];
+            result[0] = value;
+        } else if (value > result[1]) {
+            result[1] = value;
+        }
+    }
+    return result;
+}
+
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
-    // Single test case
-    int V = inf.readInt(1, 50000, "V");
+
+    int v = inf.readInt(1, 50000, "V");
     inf.readSpace();
-    int E = inf.readInt(1, 200000, "E");
+    int e = inf.readInt(1, 200000, "E");
     inf.readEoln();
-    struct Edge { int u,v; int w; bool used; };
+
     vector<Edge> edges;
-    edges.reserve(E);
-    for (int i = 0; i < E; i++) {
-        int u = inf.readInt(1, V, "u_i");
+    edges.reserve(e);
+    for (int i = 1; i <= e; ++i) {
+        int a = inf.readInt(1, v, "A_i");
         inf.readSpace();
-        int v = inf.readInt(1, V, "v_i");
+        int b = inf.readInt(1, v, "B_i");
         inf.readSpace();
-        int w = inf.readInt(0, 100000, "w_i");
+        int w = inf.readInt(0, 100000, "W_i");
         inf.readEoln();
-        ensuref(u != v, "Loop detected on edge %d: %d-%d", i, u, v);
-        edges.push_back({u,v,w,false});
+
+        // CHECK: The statement does not explicitly forbid self-loops or
+        // duplicate undirected edges, so the validator accepts them.
+        edges.push_back({a, b, w});
     }
-    // Compute MST by Kruskal
-    vector<int> idx(E);
-    iota(idx.begin(), idx.end(), 0);
-    sort(idx.begin(), idx.end(), [&](int a, int b){
-        return edges[a].w < edges[b].w;
+
+    vector<int> order(e);
+    iota(order.begin(), order.end(), 0);
+    sort(order.begin(), order.end(), [&](int lhs, int rhs) {
+        return edges[lhs].w < edges[rhs].w;
     });
-    DSU dsu(V);
-    ll mstSum = 0;
-    int usedEdges = 0;
-    for (int id : idx) {
-        auto &e = edges[id];
-        if (dsu.unite(e.u, e.v)) {
-            e.used = true;
-            mstSum += e.w;
-            usedEdges++;
-            if (usedEdges == V-1) break;
+
+    DSU dsu(v);
+    long long mst_weight = 0;
+    int used_edges = 0;
+    vector<vector<pair<int, int>>> tree(v + 1);
+    for (int id : order) {
+        Edge& edge = edges[id];
+        if (!dsu.unite(edge.a, edge.b)) {
+            continue;
         }
+
+        edge.in_mst = true;
+        mst_weight += edge.w;
+        ++used_edges;
+        tree[edge.a].push_back({edge.b, edge.w});
+        tree[edge.b].push_back({edge.a, edge.w});
     }
-    // If MST exists (graph connected), build for second MST
-    ll secondBest = INF64;
-    if (usedEdges == V-1 && V > 1) {
-        // build tree adjacency
-        vector<vector<pair<int,int>>> adj(V+1);
-        for (auto &e : edges) if (e.used) {
-            adj[e.u].push_back({e.v, e.w});
-            adj[e.v].push_back({e.u, e.w});
+
+    long long second_mst_weight = LLONG_MAX;
+    if (used_edges == v - 1 && v > 1) {
+        int log = 1;
+        while ((1 << log) <= v) {
+            ++log;
         }
-        // prepare LCA
-        int LOG = 1;
-        while ((1<<LOG) <= V) LOG++;
-        vector<int> depth(V+1, -1);
-        vector<vector<int>> parent(LOG, vector<int>(V+1, -1));
-        vector<vector<int>> maxW(LOG, vector<int>(V+1, 0));
-        // BFS from 1
+
+        vector<int> depth(v + 1, -1);
+        vector<vector<int>> parent(log, vector<int>(v + 1, 0));
+        vector<vector<array<int, 2>>> best(
+            log, vector<array<int, 2>>(v + 1, {-1, -1}));
+
         queue<int> q;
         depth[1] = 0;
         q.push(1);
         while (!q.empty()) {
-            int u = q.front(); q.pop();
-            for (auto &pr : adj[u]) {
-                int v = pr.first, w = pr.second;
-                if (depth[v] == -1) {
-                    depth[v] = depth[u] + 1;
-                    parent[0][v] = u;
-                    maxW[0][v] = w;
-                    q.push(v);
+            int cur = q.front();
+            q.pop();
+            for (auto [next, weight] : tree[cur]) {
+                if (depth[next] != -1) {
+                    continue;
                 }
+                depth[next] = depth[cur] + 1;
+                parent[0][next] = cur;
+                best[0][next] = {weight, -1};
+                q.push(next);
             }
         }
-        // lift
-        for (int k = 1; k < LOG; k++) {
-            for (int v = 1; v <= V; v++) {
-                int p = parent[k-1][v];
-                if (p < 0) {
-                    parent[k][v] = -1;
-                    maxW[k][v] = maxW[k-1][v];
-                } else {
-                    parent[k][v] = parent[k-1][p];
-                    maxW[k][v] = max(maxW[k-1][v], maxW[k-1][p]);
-                }
+
+        for (int level = 1; level < log; ++level) {
+            for (int node = 1; node <= v; ++node) {
+                int mid = parent[level - 1][node];
+                parent[level][node] = parent[level - 1][mid];
+                best[level][node] = mergeTop(
+                    best[level - 1][node],
+                    best[level - 1][mid]);
             }
         }
-        // function to get max on path
-        auto getMaxOnPath = [&](int u, int v) {
-            int mx = 0;
-            if (depth[u] < depth[v]) swap(u,v);
-            int diff = depth[u] - depth[v];
-            for (int k = 0; k < LOG; k++) if (diff & (1<<k)) {
-                mx = max(mx, maxW[k][u]);
-                u = parent[k][u];
+
+        auto pathTopWeights = [&](int a, int b) {
+            array<int, 2> result = {-1, -1};
+            if (depth[a] < depth[b]) {
+                swap(a, b);
             }
-            if (u == v) return mx;
-            for (int k = LOG-1; k >= 0; k--) {
-                if (parent[k][u] != parent[k][v]) {
-                    mx = max(mx, maxW[k][u]);
-                    mx = max(mx, maxW[k][v]);
-                    u = parent[k][u];
-                    v = parent[k][v];
+
+            int diff = depth[a] - depth[b];
+            for (int level = 0; level < log; ++level) {
+                if ((diff & (1 << level)) != 0) {
+                    result = mergeTop(result, best[level][a]);
+                    a = parent[level][a];
                 }
             }
-            // one more step
-            mx = max(mx, maxW[0][u]);
-            mx = max(mx, maxW[0][v]);
-            return mx;
+
+            if (a == b) {
+                return result;
+            }
+
+            for (int level = log - 1; level >= 0; --level) {
+                if (parent[level][a] != parent[level][b]) {
+                    result = mergeTop(result, best[level][a]);
+                    result = mergeTop(result, best[level][b]);
+                    a = parent[level][a];
+                    b = parent[level][b];
+                }
+            }
+
+            result = mergeTop(result, best[0][a]);
+            result = mergeTop(result, best[0][b]);
+            return result;
         };
-        // consider every non-MST edge
-        for (auto &e : edges) if (!e.used) {
-            int u = e.u, v = e.v, w = e.w;
-            ll mx = getMaxOnPath(u, v);
-            // if replace yields spanning tree
-            if (mx < w) {
-                ll cand = mstSum + w - mx;
-                if (cand > mstSum && cand < secondBest) {
-                    secondBest = cand;
+
+        for (const Edge& edge : edges) {
+            if (edge.in_mst || edge.a == edge.b) {
+                continue;
+            }
+
+            array<int, 2> top = pathTopWeights(edge.a, edge.b);
+            int removed = -1;
+            if (top[0] >= 0 && top[0] < edge.w) {
+                removed = top[0];
+            } else if (top[0] == edge.w && top[1] >= 0) {
+                removed = top[1];
+            }
+
+            if (removed >= 0) {
+                long long candidate = mst_weight + edge.w - removed;
+                if (candidate > mst_weight) {
+                    second_mst_weight = min(second_mst_weight, candidate);
                 }
             }
         }
+
+        if (second_mst_weight != LLONG_MAX) {
+            ensuref(second_mst_weight <= 2147483647LL,
+                    "second MST weight %lld exceeds 2^31-1",
+                    second_mst_weight);
+        }
     }
-    // enforce answer bound if second MST found
-    if (secondBest < INF64) {
-        const ll LIM = 2147483647LL;
-        ensuref(secondBest <= LIM,
-                "Second MST weight %lld exceeds promised limit %lld",
-                secondBest, LIM);
-    }
+
     inf.readEof();
-    return 0;
 }

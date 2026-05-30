@@ -1,80 +1,72 @@
 #include "testlib.h"
-#include <vector>
-#include <set>
-#include <queue>
-#include <algorithm>
+
+#include <bits/stdc++.h>
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // 1. Read N, M, K, Q
-    int N = inf.readInt(2, 100000, "N");
+    int n = inf.readInt(2, 100000, "N");
     inf.readSpace();
-    int M = inf.readInt(1, 200000, "M");
+    int m = inf.readInt(1, 200000, "M");
     inf.readSpace();
-    int K = inf.readInt(1, N, "K");
+    int k = inf.readInt(1, n, "K");
     inf.readSpace();
-    int Q = inf.readInt(1, 100000, "Q");
+    int q = inf.readInt(1, 100000, "Q");
     inf.readEoln();
 
-    // 2. Read M edges, check 1 <= u,v <= N, 1 <= w <= 1000, no self-loops, no multi-edges
-    vector<vector<pair<int,int>>> adj(N+1); // 1-based
-    set<pair<int,int>> edge_set;
-    for (int i = 0; i < M; ++i) {
-        int u = inf.readInt(1, N, "u");
+    vector<vector<int>> graph(n + 1);
+    set<pair<int, int>> edges;
+    for (int i = 1; i <= m; ++i) {
+        int a = inf.readInt(1, n, "A_i");
         inf.readSpace();
-        int v = inf.readInt(1, N, "v");
+        int b = inf.readInt(1, n, "B_i");
         inf.readSpace();
-        int w = inf.readInt(1, 1000, "w");
+        inf.readInt(1, 1000, "L_i");
         inf.readEoln();
 
-        ensuref(u != v, "Self-loop detected at edge %d: (%d, %d)", i+1, u, v);
+        ensuref(a != b, "edge %d has the same endpoint %d", i, a);
+        ensuref(edges.insert({min(a, b), max(a, b)}).second,
+                "duplicate edge %d between %d and %d", i, a, b);
 
-        int a = min(u, v), b = max(u, v);
-        ensuref(!edge_set.count({a, b}), "Multiple edge detected between %d and %d", a, b);
-        edge_set.insert({a, b});
-
-        adj[u].emplace_back(v, w);
-        adj[v].emplace_back(u, w);
+        graph[a].push_back(b);
+        graph[b].push_back(a);
     }
 
-    // 3. Check that the graph is connected (BFS/DFS)
-    vector<bool> vis(N+1, false);
-    queue<int> q;
-    q.push(1);
-    vis[1] = true;
-    int vis_cnt = 1;
-    while (!q.empty()) {
-        int u = q.front(); q.pop();
-        for (auto& p : adj[u]) {
-            int v = p.first;
-            if (!vis[v]) {
-                vis[v] = true;
-                ++vis_cnt;
-                q.push(v);
+    vector<int> seen(n + 1, 0);
+    queue<int> bfs;
+    seen[1] = 1;
+    bfs.push(1);
+    int reachable = 0;
+    while (!bfs.empty()) {
+        int city = bfs.front();
+        bfs.pop();
+        ++reachable;
+        for (int next : graph[city]) {
+            if (seen[next]) {
+                continue;
             }
+            seen[next] = 1;
+            bfs.push(next);
         }
     }
-    ensuref(vis_cnt == N, "Graph is not connected: only %d/%d nodes reachable from node 1", vis_cnt, N);
+    ensuref(reachable == n, "graph is not connected: reached %d of %d cities", reachable, n);
 
-    // 4. Read K festival cities, check 1 <= city <= N, no duplicates
-    set<int> festival;
-    for (int i = 0; i < K; ++i) {
-        int f = inf.readInt(1, N, "festival_city");
+    vector<int> hasFestival(n + 1, 0);
+    for (int i = 1; i <= k; ++i) {
+        int city = inf.readInt(1, n, "F_i");
         inf.readEoln();
-        ensuref(!festival.count(f), "Duplicate festival city: %d", f);
-        festival.insert(f);
+        ensuref(!hasFestival[city], "duplicate festival city %d", city);
+        hasFestival[city] = 1;
     }
 
-    // 5. Read Q queries, check 1 <= s,t <= N, s != t
-    for (int i = 0; i < Q; ++i) {
-        int s = inf.readInt(1, N, "start_city");
+    for (int i = 1; i <= q; ++i) {
+        int s = inf.readInt(1, n, "S_i");
         inf.readSpace();
-        int t = inf.readInt(1, N, "end_city");
+        int t = inf.readInt(1, n, "T_i");
         inf.readEoln();
-        ensuref(s != t, "Query %d: start and end city must be different, got %d %d", i+1, s, t);
+        ensuref(s != t, "query %d has equal start and target city %d", i, s);
     }
 
     inf.readEof();

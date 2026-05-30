@@ -1,151 +1,200 @@
 #include "testlib.h"
+#include <algorithm>
+#include <cstdlib>
+#include <string>
 #include <vector>
-#include <queue>
-#include <set>
-#include <tuple>
 using namespace std;
+
+static int lit(int var, bool value) {
+    return value ? var + 1 : -(var + 1);
+}
+
+static bool litSatisfied(int literal, const vector<int>& assignment) {
+    int var = abs(literal) - 1;
+    int value = literal > 0 ? 1 : 0;
+    return assignment[var] == value;
+}
+
+static bool litRejected(int literal, const vector<int>& assignment) {
+    int var = abs(literal) - 1;
+    int value = literal > 0 ? 1 : 0;
+    return assignment[var] != -1 && assignment[var] != value;
+}
+
+static bool satisfiable(const vector<vector<int>>& clauses, vector<int>& assignment) {
+    while (true) {
+        bool changed = false;
+        for (const vector<int>& clause : clauses) {
+            bool satisfied = false;
+            int unassigned = 0;
+            int lastLiteral = 0;
+            for (int literal : clause) {
+                if (litSatisfied(literal, assignment)) {
+                    satisfied = true;
+                    break;
+                }
+                if (!litRejected(literal, assignment)) {
+                    ++unassigned;
+                    lastLiteral = literal;
+                }
+            }
+            if (satisfied) {
+                continue;
+            }
+            if (unassigned == 0) {
+                return false;
+            }
+            if (unassigned == 1) {
+                int var = abs(lastLiteral) - 1;
+                int value = lastLiteral > 0 ? 1 : 0;
+                if (assignment[var] != -1 && assignment[var] != value) {
+                    return false;
+                }
+                if (assignment[var] == -1) {
+                    assignment[var] = value;
+                    changed = true;
+                }
+            }
+        }
+        if (!changed) {
+            break;
+        }
+    }
+
+    int bestClause = -1;
+    int bestSize = 1000000;
+    for (int i = 0; i < (int)clauses.size(); ++i) {
+        bool satisfied = false;
+        int unresolved = 0;
+        for (int literal : clauses[i]) {
+            if (litSatisfied(literal, assignment)) {
+                satisfied = true;
+                break;
+            }
+            if (!litRejected(literal, assignment)) {
+                ++unresolved;
+            }
+        }
+        if (!satisfied && unresolved < bestSize) {
+            bestSize = unresolved;
+            bestClause = i;
+        }
+    }
+    if (bestClause == -1) {
+        return true;
+    }
+
+    for (int literal : clauses[bestClause]) {
+        if (litRejected(literal, assignment)) {
+            continue;
+        }
+        vector<int> next = assignment;
+        int var = abs(literal) - 1;
+        next[var] = literal > 0 ? 1 : 0;
+        if (satisfiable(clauses, next)) {
+            assignment = next;
+            return true;
+        }
+    }
+    return false;
+}
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read R, S
-    int R = inf.readInt(1, 100, "R");
+    int r = inf.readInt(1, 100, "R");
     inf.readSpace();
-    int S = inf.readInt(1, 100, "S");
+    int s = inf.readInt(1, 100, "S");
     inf.readEoln();
 
-    vector<string> grid(R);
-    int tower_cnt = 0, clone_cnt = 0;
-    for (int i = 0; i < R; ++i) {
-        grid[i] = inf.readLine("[A-Za-z#\\.]{"+to_string(S)+"}", "map row");
-        ensuref((int)grid[i].size() == S, "Row %d: Expected %d columns, got %d", i+1, S, (int)grid[i].size());
-        for (int j = 0; j < S; ++j) {
-            char c = grid[i][j];
-            ensuref(
-                c == 'T' || c == 'n' || c == '#' || c == '.',
-                "Invalid character '%c' at row %d, col %d", c, i+1, j+1
-            );
-            if (c == 'T') ++tower_cnt;
-            if (c == 'n') ++clone_cnt;
+    vector<string> grid;
+    string pattern = "[Tn#.]{" + to_string(s) + "}";
+    for (int i = 0; i < r; ++i) {
+        string row = inf.readToken(pattern, "row");
+        grid.push_back(row);
+        inf.readEoln();
+    }
+
+    vector<vector<int>> towerId(r, vector<int>(s, -1));
+    int towerCount = 0;
+    for (int i = 0; i < r; ++i) {
+        for (int j = 0; j < s; ++j) {
+            if (grid[i][j] == 'T') {
+                towerId[i][j] = towerCount++;
+            }
         }
     }
 
-    // There must be at least one tower and at least one clone for the problem to be meaningful.
-    ensuref(tower_cnt >= 1, "There must be at least one tower (T), found %d", tower_cnt);
-    ensuref(clone_cnt >= 1, "There must be at least one clone (n), found %d", clone_cnt);
-
-    // Check that the answer always exists (as per statement).
-    // We must check that there exists a way to assign directions to all towers so that:
-    //  - All clones are hit by at least one cannonball
-    //  - No tower is destroyed (i.e., no cannonball hits any tower)
-    //  - All cannonballs are fired simultaneously, each tower picks one of 4 possible direction pairs
-
-    // For each tower, precompute the 4 possible firing options.
-    // For each option, compute the set of clones hit, and check if any tower is hit (invalid option).
-    // Then, do a search over all combinations (if number of towers is small), or use a greedy covering if possible.
-
-    // Since R,S <= 100, but number of towers can be up to 10,000, we cannot brute-force all combinations.
-    // But the statement guarantees that the answer always exists, so we can check that for each clone,
-    // there is at least one tower and at least one direction pair such that the clone is hit and no tower is destroyed.
-
-    // For each tower, store its position
-    vector<pair<int,int>> towers;
-    for (int i = 0; i < R; ++i)
-        for (int j = 0; j < S; ++j)
-            if (grid[i][j] == 'T')
-                towers.emplace_back(i, j);
-
-    // For each tower, for each direction pair, store:
-    //   - set of clones hit
-    //   - whether any tower is destroyed (invalid option)
-    // Direction pairs:
-    // 0: left+down
-    // 1: down+right
-    // 2: right+up
-    // 3: up+left
-    const int DIRS[4][2][2] = {
-        { {0,-1}, {1,0} }, // left, down
-        { {1,0}, {0,1} },  // down, right
-        { {0,1}, {-1,0} }, // right, up
-        { {-1,0}, {0,-1} } // up, left
+    const int dr[4] = {0, 1, 0, -1};
+    const int dc[4] = {-1, 0, 1, 0};
+    vector<vector<int>> clauses;
+    auto directionLiteral = [](int tower, int dir) {
+        int horizontal = 2 * tower;
+        int vertical = 2 * tower + 1;
+        if (dir == 0) {
+            return lit(horizontal, false);
+        }
+        if (dir == 2) {
+            return lit(horizontal, true);
+        }
+        if (dir == 3) {
+            return lit(vertical, false);
+        }
+        return lit(vertical, true);
     };
 
-    // Map from clone position to index
-    vector<pair<int,int>> clones;
-    vector<vector<int>> clone_idx(R, vector<int>(S, -1));
-    int idx = 0;
-    for (int i = 0; i < R; ++i)
-        for (int j = 0; j < S; ++j)
-            if (grid[i][j] == 'n') {
-                clones.emplace_back(i, j);
-                clone_idx[i][j] = idx++;
+    for (int i = 0; i < r; ++i) {
+        for (int j = 0; j < s; ++j) {
+            if (grid[i][j] != 'T') {
+                continue;
             }
-
-    int T = (int)towers.size();
-    int N = (int)clones.size();
-
-    // For each tower, for each direction pair, store:
-    //   - set of clones hit (as bitset)
-    //   - valid (no tower is destroyed)
-    vector<vector<vector<int>>> tower_hits(T, vector<vector<int>>(4)); // [tower][dir] = vector of clone indices
-    vector<vector<bool>> tower_valid(T, vector<bool>(4, true)); // [tower][dir] = true if no tower is destroyed
-
-    for (int t = 0; t < T; ++t) {
-        int x = towers[t].first, y = towers[t].second;
-        for (int d = 0; d < 4; ++d) {
-            set<pair<int,int>> visited;
-            bool valid = true;
-            vector<int> hits;
-            for (int k = 0; k < 2; ++k) {
-                int dx = DIRS[d][k][0], dy = DIRS[d][k][1];
-                int nx = x + dx, ny = y + dy;
-                while (0 <= nx && nx < R && 0 <= ny && ny < S) {
-                    char c = grid[nx][ny];
-                    if (c == '#') break; // wall, cannonball destroyed
-                    if (c == 'T') { valid = false; break; } // tower destroyed, invalid
-                    if (c == 'n') {
-                        if (!visited.count({nx, ny})) {
-                            hits.push_back(clone_idx[nx][ny]);
-                            visited.insert({nx, ny});
-                        }
+            int tower = towerId[i][j];
+            for (int dir = 0; dir < 4; ++dir) {
+                int ni = i + dr[dir];
+                int nj = j + dc[dir];
+                bool hitsTower = false;
+                while (0 <= ni && ni < r && 0 <= nj && nj < s && grid[ni][nj] != '#') {
+                    if (grid[ni][nj] == 'T') {
+                        hitsTower = true;
+                        break;
                     }
-                    nx += dx; ny += dy;
+                    ni += dr[dir];
+                    nj += dc[dir];
                 }
-                if (!valid) break;
-            }
-            tower_valid[t][d] = valid;
-            if (valid) tower_hits[t][d] = hits;
-        }
-    }
-
-    // For each clone, check that there is at least one tower and one direction such that:
-    //  - the clone is hit
-    //  - the direction is valid (no tower destroyed)
-    for (int c = 0; c < N; ++c) {
-        bool can_be_hit = false;
-        for (int t = 0; t < T; ++t) {
-            for (int d = 0; d < 4; ++d) {
-                if (!tower_valid[t][d]) continue;
-                for (int idx : tower_hits[t][d]) {
-                    if (idx == c) {
-                        can_be_hit = true;
-                        goto next_clone;
-                    }
+                if (hitsTower) {
+                    clauses.push_back({-directionLiteral(tower, dir)});
                 }
             }
         }
-        next_clone:
-        ensuref(can_be_hit, "Clone at (%d,%d) cannot be hit by any valid cannonball", clones[c].first+1, clones[c].second+1);
     }
 
-    // Additionally, check that there is at least one valid direction for each tower
-    for (int t = 0; t < T; ++t) {
-        bool has_valid = false;
-        for (int d = 0; d < 4; ++d) {
-            if (tower_valid[t][d]) has_valid = true;
+    for (int i = 0; i < r; ++i) {
+        for (int j = 0; j < s; ++j) {
+            if (grid[i][j] != 'n') {
+                continue;
+            }
+            vector<int> clause;
+            for (int dir = 0; dir < 4; ++dir) {
+                int ni = i + dr[dir];
+                int nj = j + dc[dir];
+                while (0 <= ni && ni < r && 0 <= nj && nj < s && grid[ni][nj] != '#') {
+                    if (grid[ni][nj] == 'T') {
+                        int tower = towerId[ni][nj];
+                        clause.push_back(directionLiteral(tower, (dir + 2) % 4));
+                        break;
+                    }
+                    ni += dr[dir];
+                    nj += dc[dir];
+                }
+            }
+            sort(clause.begin(), clause.end());
+            clause.erase(unique(clause.begin(), clause.end()), clause.end());
+            clauses.push_back(clause);
         }
-        ensuref(has_valid, "Tower at (%d,%d) has no valid firing direction", towers[t].first+1, towers[t].second+1);
     }
+
+    vector<int> assignment(2 * towerCount, -1);
+    ensuref(satisfiable(clauses, assignment), "map must have a valid tower orientation assignment");
 
     inf.readEof();
 }

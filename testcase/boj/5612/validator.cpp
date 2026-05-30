@@ -8,9 +8,9 @@ int main(int argc, char* argv[]) {
     int n = inf.readInt(1, 10000, "n");
     inf.readEoln();
 
-    // Read initial number of cars in the tunnel
-    // It must be non-negative. No explicit upper bound given, so we allow up to 1e9.
-    long long m = inf.readLong(0LL, 1000000000LL, "m");
+    // Read initial number of cars in the tunnel.
+    // CHECK: The statement gives no upper bound for m, so this uses a practical cap.
+    long long m = inf.readLong(1LL, 1000000000LL, "m");
     inf.readEoln();
 
     // For each minute, read number of cars entering and leaving

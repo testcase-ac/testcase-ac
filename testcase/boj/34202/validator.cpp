@@ -5,18 +5,25 @@ using namespace std;
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read N
     int N = inf.readInt(2, 200000, "N");
     inf.readEoln();
 
-    // Read c_1 ... c_{N-1}
-    vector<long long> c = inf.readLongs(N-1, 1LL, 1000000000000000000LL, "c_i");
+    vector<long long> c = inf.readLongs(N - 1, 1LL, 1000000000000000000LL, "c_i");
     inf.readEoln();
 
-    // No further global validation is needed:
-    // - The problem guarantees that the input is always such that a valid visit order exists.
-    // - No monotonicity, sum, or other global property is required to be checked by the validator.
-    // - All constraints are local and already checked above.
+    vector<long long> blocks(N);
+    for (int i = 1; i < N; i++) {
+        ensuref(c[i - 1] % 2 == 1, "c_%d must be odd", i);
+
+        blocks[i] = (c[i - 1] + 1) / 2;
+        long long maxBlocks = min(i, N - i);
+        ensuref(blocks[i] <= maxBlocks, "c_%d creates too many prefix blocks", i);
+
+        if (i > 1) {
+            ensuref(abs(blocks[i] - blocks[i - 1]) <= 1,
+                    "adjacent prefix block counts differ by more than 1");
+        }
+    }
 
     inf.readEof();
 }

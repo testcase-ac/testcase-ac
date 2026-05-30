@@ -96,6 +96,14 @@ int main(int argc, char* argv[]) {
                 "polygon does not close; end vertex (%lld,%lld) != (0,0)",
                 ipt[C].first, ipt[C].second);
 
+        ll doubled_area = 0;
+        for (int i = 0; i < C; i++) {
+            doubled_area += ipt[i].first * ipt[i+1].second
+                          - ipt[i].second * ipt[i+1].first;
+        }
+        ensuref(doubled_area > 0,
+                "boundary must be in counterclockwise orientation");
+
         // no vertex repetition except start=end
         {
             set<pair<ll,ll>> seen;

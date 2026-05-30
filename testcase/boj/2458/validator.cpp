@@ -15,6 +15,7 @@ int main(int argc, char* argv[]) {
 
     // Build graph of comparisons a -> b meaning a is shorter than b
     vector<vector<int>> adj(N + 1);
+    vector<vector<bool>> seen(N + 1, vector<bool>(N + 1, false));
     vector<int> indeg(N + 1, 0);
 
     for (int i = 0; i < M; i++) {
@@ -25,6 +26,10 @@ int main(int argc, char* argv[]) {
         ensuref(a != b,
                 "Self-comparison detected at comparison index %d: (%d, %d)",
                 i, a, b);
+        ensuref(!seen[a][b],
+                "Duplicate comparison detected at comparison index %d: (%d, %d)",
+                i, a, b);
+        seen[a][b] = true;
         adj[a].push_back(b);
         indeg[b]++;
     }

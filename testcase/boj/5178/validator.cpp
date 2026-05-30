@@ -2,22 +2,26 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-// We don't actually need to fully re-solve the problem for validation,
-// but we must enforce all structural constraints (syntax, nesting depth,
-// separators between test cases, etc.). We do NOT need to compute the
-// time complexity itself, since that's what the contestants solve.
-
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    int K = inf.readInt(1, 100000, "K");
+    // CHECK: The statement does not bound K or program length. These caps keep
+    // accepted inputs within a practical text size without adding semantic
+    // restrictions to the simplified language.
+    const int MAX_K = 100000;
+    const int MAX_PROGRAM_LINES = 1000000;
+    const int MAX_LINE_LENGTH = 100000;
+    const long long MAX_TOTAL_CHARS = 9000000;
+
+    int K = inf.readInt(1, MAX_K, "K");
     inf.readEoln();
+
+    int totalProgramLines = 0;
+    long long totalChars = 0;
 
     for (int tc = 1; tc <= K; ++tc) {
         setTestCase(tc);
 
-        // Between test cases, there is a blank line (the statement says
-        // "각 테스트 케이스는 빈 줄로 구분한다").
         if (tc > 1) {
             string blank = inf.readLine("[^]*", "blank");
             ensuref(blank.empty(),
@@ -27,12 +31,17 @@ int main(int argc, char* argv[]) {
 
         vector<string> lines;
 
-        // Read lines of this program until "endprogram".
         while (true) {
             string line = inf.readLine("[^]*", "line");
+            ++totalProgramLines;
+            totalChars += (long long)line.size() + 1;
+            ensuref(totalProgramLines <= MAX_PROGRAM_LINES,
+                    "Too many program lines across all test cases");
+            ensuref((int)line.size() <= MAX_LINE_LENGTH,
+                    "Program line is too long at test case %d", tc);
+            ensuref(totalChars <= MAX_TOTAL_CHARS,
+                    "Program text is too large across all test cases");
 
-            // No blank lines are allowed inside a program: the only blank
-            // line is used as a separator between test cases.
             ensuref(!line.empty(),
                     "Unexpected empty line inside a program (only allowed between test cases)");
 
@@ -45,11 +54,6 @@ int main(int argc, char* argv[]) {
         ensuref(lines.back() == "endprogram",
                 "Program must end with 'endprogram'");
 
-        // For each line, classify it and (for loop) store its argument.
-        vector<string> type(n); // "basic", "loop", "endloop", "endprogram"
-        vector<string> arg(n);  // loop argument, if any
-
-        // Stack for matching loops and tracking nesting depth.
         vector<int> loopStack;
         int maxDepth = 0;
 
@@ -57,18 +61,14 @@ int main(int argc, char* argv[]) {
             const string &s = lines[i];
 
             if (s == "basic") {
-                type[i] = "basic";
-                // "basic" is allowed anywhere inside the program, including
-                // top level (no enclosing loops). No extra constraint here.
+                continue;
             }
             else if (s == "endloop") {
-                type[i] = "endloop";
                 ensuref(!loopStack.empty(),
                         "endloop without matching loop at line %d", i + 1);
                 loopStack.pop_back();
             }
             else if (s == "endprogram") {
-                type[i] = "endprogram";
                 ensuref(i == n - 1,
                         "endprogram must be the last line of the program");
                 ensuref(loopStack.empty(),
@@ -95,14 +95,8 @@ int main(int argc, char* argv[]) {
                         "loop line must contain exactly one space at line %d",
                         i + 1);
 
-                type[i] = "loop";
-                arg[i]  = a;
-
-                // Argument must be x, y, or a positive integer (no leading 0).
                 if (a == "x" || a == "y") {
-                    // ok
                 } else {
-                    // must be positive integer, canonical form.
                     for (char c : a)
                         ensuref(isdigit((unsigned char)c),
                                 "Non-digit in loop integer argument at line %d",
@@ -110,8 +104,6 @@ int main(int argc, char* argv[]) {
                     ensuref(a[0] != '0',
                             "Loop integer argument must be positive without leading zeros at line %d",
                             i + 1);
-                    // No upper bound on integer size is specified, and the
-                    // validator does not need to evaluate it numerically.
                 }
 
                 loopStack.push_back(i);

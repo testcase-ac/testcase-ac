@@ -1,22 +1,22 @@
 #include "testlib.h"
-#include <set>
-#include <vector>
+#include <algorithm>
+#include <functional>
 #include <queue>
-#include <limits>
+#include <set>
+#include <utility>
+#include <vector>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read N and M
     int N = inf.readInt(2, 1000, "N");
     inf.readSpace();
     int M = inf.readInt(1, 100000, "M");
     inf.readEoln();
 
-    // Prepare to check for multiple edges and build adjacency list
     set<pair<int, int>> edge_set;
-    vector<vector<pair<int, int>>> adj(N + 1); // 1-based indexing
+    vector<vector<pair<int, int>>> graph(N + 1);
 
     for (int i = 0; i < M; ++i) {
         int A = inf.readInt(1, N, "A");
@@ -32,28 +32,51 @@ int main(int argc, char* argv[]) {
         ensuref(!edge_set.count({u, v}), "Multiple edge detected between %d and %d", u, v);
         edge_set.insert({u, v});
 
-        adj[A].emplace_back(B, C);
-        adj[B].emplace_back(A, C);
+        graph[A].push_back({B, C});
+        graph[B].push_back({A, C});
     }
 
-    // Check that the graph is connected (since S=1, T=2, both must be reachable)
-    vector<bool> vis(N + 1, false);
-    queue<int> q;
-    q.push(1);
-    vis[1] = true;
-    int cnt = 1;
-    while (!q.empty()) {
-        int u = q.front(); q.pop();
-        for (auto &p : adj[u]) {
-            int v = p.first;
-            if (!vis[v]) {
-                vis[v] = true;
-                q.push(v);
-                ++cnt;
+    const long long INF = (1LL << 60);
+    vector<long long> dist(N + 1, INF);
+    priority_queue<pair<long long, int>, vector<pair<long long, int>>, greater<pair<long long, int>>> pq;
+    dist[2] = 0;
+    pq.push({0, 2});
+    while (!pq.empty()) {
+        auto [du, u] = pq.top();
+        pq.pop();
+        if (du != dist[u]) {
+            continue;
+        }
+        for (auto [v, w] : graph[u]) {
+            if (dist[v] > du + w) {
+                dist[v] = du + w;
+                pq.push({dist[v], v});
             }
         }
     }
-    ensuref(cnt == N, "Graph is not connected: only %d out of %d nodes reachable from node 1", cnt, N);
+
+    vector<int> order(N);
+    for (int i = 0; i < N; ++i) {
+        order[i] = i + 1;
+    }
+    sort(order.begin(), order.end(), [&](int a, int b) {
+        return dist[a] < dist[b];
+    });
+
+    const long long ANSWER_LIMIT = 2147483647LL;
+    vector<long long> ways(N + 1);
+    ways[2] = 1;
+    for (int u : order) {
+        if (u == 2 || dist[u] == INF) {
+            continue;
+        }
+        for (auto [v, w] : graph[u]) {
+            if (dist[v] < dist[u]) {
+                ways[u] = min(ANSWER_LIMIT + 1, ways[u] + ways[v]);
+            }
+        }
+    }
+    ensuref(ways[1] <= ANSWER_LIMIT, "answer exceeds 2147483647: capped count is %lld", ways[1]);
 
     inf.readEof();
 }

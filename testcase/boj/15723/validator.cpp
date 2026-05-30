@@ -32,13 +32,15 @@ int main(int argc, char* argv[]) {
     inf.readEoln();
 
     // 2. Read n premises
-    set<pair<char, char>> premise_set;
+    vector<int> premise_target(26, -1);
     for (int i = 0; i < n; ++i) {
         string line = inf.readLine("[^]+", "premise"); // Read whole line, check format manually
         char a, b;
         parse_is_line(line, a, b, i+2, "premise");
-        ensuref(premise_set.count({a, b}) == 0, "Premise repeated at line %d: '%c is %c'", i+2, a, b);
-        premise_set.insert({a, b});
+        int lhs = a - 'a';
+        int rhs = b - 'a';
+        ensuref(premise_target[lhs] == -1 || premise_target[lhs] == rhs, "Premise at line %d gives '%c' more than one target", i+2, a);
+        premise_target[lhs] = rhs;
     }
 
     // 3. Read m

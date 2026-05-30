@@ -35,9 +35,11 @@ int main(int argc, char* argv[]) {
     ensuref(y <= MAXV + EPS, "y must be <= 3e9, found %Lf", y);
     ensuref(c <= MAXV + EPS, "c must be <= 3e9, found %Lf", c);
 
-    // Geometry requirement: crossing height must be strictly less than both ladder lengths
-    ensuref(c < x, "c must be strictly less than x: c=%Lf, x=%Lf", c, x);
-    ensuref(c < y, "c must be strictly less than y: c=%Lf, y=%Lf", c, y);
+    // Geometry requirement: the crossing height must be attainable by a positive street width.
+    long double maxCrossingHeight = (x * y) / (x + y);
+    ensuref(c < maxCrossingHeight,
+            "c must be less than maximum attainable crossing height: c=%Lf, max=%Lf",
+            c, maxCrossingHeight);
 
     inf.readEof();
     return 0;

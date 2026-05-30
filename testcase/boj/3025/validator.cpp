@@ -59,13 +59,17 @@ int main(int argc, char* argv[]) {
             // must always exist because we inserted R
             int d = *it;
             int v = d - 1;  // candidate resting row if falling straight down
-            if (v == row) {
-                // no vertical move possible
+            if (v != row) {
+                // we fall to row = v
+                row = v;
+            }
+
+            if (d == R || grid[d][col] == 'X') {
+                // Below is the bottom boundary or a wall, so the stone stops.
                 break;
             }
-            // we fall to row = v
-            row = v;
-            // now because below is blocked, try sliding
+
+            // Below is another stone, so try sliding.
             bool moved = false;
             // slide left
             if (col - 1 >= 0) {

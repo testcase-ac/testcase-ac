@@ -1,0 +1,11 @@
+BEGIN
+   n = 10
+   k = 1
+   REPEAT 3
+      REPEAT 2
+         n = n + k
+         PRINT n
+      STOP
+      k = 3 - k
+   STOP
+STOP

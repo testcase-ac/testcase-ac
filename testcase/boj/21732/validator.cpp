@@ -14,9 +14,7 @@ int main(int argc, char* argv[]) {
     int m = inf.readInt(1, MAXM, "m");
     inf.readEoln();
 
-    // count appearances of each literal (variable or its negation)
-    // index 1..n for positive, n+1..2n for negative
-    vector<int> cnt(2 * n + 1, 0); // 1-based; index 0 unused
+    vector<int> cnt(n + 1, 0);
 
     for (int i = 0; i < m; ++i) {
         long long ki = inf.readLong(1LL, (long long)MAXK, "k_i");
@@ -30,11 +28,10 @@ int main(int argc, char* argv[]) {
             ensuref(lij != 0, "Literal value 0 is not allowed at clause %d position %lld", i + 1, j + 1);
 
             int var = abs(lij);
-            int idx = (lij > 0 ? var : n + var);
-            cnt[idx]++;
-            ensuref(cnt[idx] <= 2,
-                    "Variable %d with sign %c appears more than 2 times (currently %d)",
-                    var, (lij > 0 ? '+' : '-'), cnt[idx]);
+            cnt[var]++;
+            ensuref(cnt[var] <= 2,
+                    "Variable %d appears more than 2 times including negations (currently %d)",
+                    var, cnt[var]);
         }
         inf.readEoln();
     }

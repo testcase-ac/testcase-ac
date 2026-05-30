@@ -35,45 +35,43 @@ int main(int argc, char* argv[]) {
     }
 
     // Non-zero cells count limit
+    ensuref(cntNonZero > 0, "Iceberg must contain at least one positive cell");
     ensuref(cntNonZero <= 10000,
             "Number of iceberg cells %d exceeds limit 10000", cntNonZero);
 
-    // If there are any iceberg cells, they must form a single connected component
-    if (cntNonZero > 0) {
-        vector<vector<bool>> vis(N, vector<bool>(M, false));
-        queue<pair<int,int>> q;
-        // find start cell
-        bool started = false;
-        for (int i = 0; i < N && !started; i++) {
-            for (int j = 0; j < M; j++) {
-                if (a[i][j] > 0) {
-                    q.emplace(i, j);
-                    vis[i][j] = true;
-                    started = true;
-                    break;
-                }
+    // Iceberg cells must form a single connected component.
+    vector<vector<bool>> vis(N, vector<bool>(M, false));
+    queue<pair<int,int>> q;
+    bool started = false;
+    for (int i = 0; i < N && !started; i++) {
+        for (int j = 0; j < M; j++) {
+            if (a[i][j] > 0) {
+                q.emplace(i, j);
+                vis[i][j] = true;
+                started = true;
+                break;
             }
         }
-        int reached = 0;
-        const int dx[4] = {1, -1, 0, 0};
-        const int dy[4] = {0, 0, 1, -1};
-        while (!q.empty()) {
-            auto [x, y] = q.front(); q.pop();
-            reached++;
-            for (int d = 0; d < 4; d++) {
-                int nx = x + dx[d], ny = y + dy[d];
-                if (nx >= 0 && nx < N && ny >= 0 && ny < M) {
-                    if (!vis[nx][ny] && a[nx][ny] > 0) {
-                        vis[nx][ny] = true;
-                        q.emplace(nx, ny);
-                    }
-                }
-            }
-        }
-        ensuref(reached == cntNonZero,
-                "Iceberg not connected: reached %d of %d non-zero cells",
-                reached, cntNonZero);
     }
+    int reached = 0;
+    const int dx[4] = {1, -1, 0, 0};
+    const int dy[4] = {0, 0, 1, -1};
+    while (!q.empty()) {
+        auto [x, y] = q.front(); q.pop();
+        reached++;
+        for (int d = 0; d < 4; d++) {
+            int nx = x + dx[d], ny = y + dy[d];
+            if (nx >= 0 && nx < N && ny >= 0 && ny < M) {
+                if (!vis[nx][ny] && a[nx][ny] > 0) {
+                    vis[nx][ny] = true;
+                    q.emplace(nx, ny);
+                }
+            }
+        }
+    }
+    ensuref(reached == cntNonZero,
+            "Iceberg not connected: reached %d of %d non-zero cells",
+            reached, cntNonZero);
 
     inf.readEof();
     return 0;

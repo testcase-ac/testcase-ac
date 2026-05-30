@@ -1,103 +1,83 @@
 #include "testlib.h"
-#include <string>
-#include <vector>
-#include <cctype>
+#include <bits/stdc++.h>
 using namespace std;
+
+int readArrayValue(int tc, int index, char& delimiter) {
+    string token;
+    while (true) {
+        char ch = inf.readChar();
+        if (ch == ',' || ch == ']') {
+            delimiter = ch;
+            break;
+        }
+        ensuref('0' <= ch && ch <= '9',
+                "test case %d value %d contains invalid character '%c'", tc, index, ch);
+        token.push_back(ch);
+        ensuref(token.size() <= 3,
+                "test case %d value %d has too many digits", tc, index);
+    }
+
+    ensuref(!token.empty(), "test case %d value %d is empty", tc, index);
+    ensuref(token.size() == 1 || token[0] != '0',
+            "test case %d value %d has a leading zero", tc, index);
+
+    int value = 0;
+    for (char ch : token) {
+        value = value * 10 + (ch - '0');
+    }
+    ensuref(1 <= value && value <= 100,
+            "test case %d value %d is %d, outside [1, 100]", tc, index, value);
+    return value;
+}
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Number of test cases
     int T = inf.readInt(1, 100, "T");
     inf.readEoln();
 
-    // Keep track of global sums
-    long long total_p_len = 0;
-    long long total_n_sum = 0;
+    long long totalProgramLength = 0;
+    long long totalArrayLength = 0;
 
-    for (int tc = 1; tc <= T; tc++) {
+    for (int tc = 1; tc <= T; ++tc) {
         setTestCase(tc);
 
-        // Read the function string p
-        string p = inf.readToken("[RD]+", "p");
+        string p = inf.readToken("[RD]{1,100000}", "p");
         inf.readEoln();
-        int m = (int)p.size();
-        ensuref(m >= 1 && m <= 100000,
-                "Length of p must be in [1,100000], but got %d in test case %d", m, tc);
-        total_p_len += m;
+        totalProgramLength += (long long)p.size();
 
-        // Read n
         int n = inf.readInt(0, 100000, "n");
         inf.readEoln();
-        total_n_sum += n;
+        totalArrayLength += n;
 
-        // Read the array line as a single token
-        string s = inf.readToken("[^]+", "array");
-        inf.readEoln();
+        char open = inf.readChar();
+        ensuref(open == '[', "test case %d array must start with '['", tc);
 
-        // Check brackets
-        ensuref(s.size() >= 2 && s.front() == '[' && s.back() == ']',
-                "Array must start with '[' and end with ']' in test case %d; got: %s", tc, s.c_str());
-        string content = s.substr(1, s.size() - 2);
-
-        // If n == 0, content must be empty
         if (n == 0) {
-            ensuref(content.empty(),
-                    "Expected empty array content for n=0 in test case %d; got: %s", tc, content.c_str());
-        } else {
-            // n > 0: content must be non-empty
-            ensuref(!content.empty(),
-                    "Expected non-empty array content for n=%d in test case %d", n, tc);
+            char close = inf.readChar();
+            ensuref(close == ']', "test case %d empty array must be []", tc);
+            inf.readEoln();
+            continue;
         }
 
-        // Split by commas
-        vector<string> elems;
-        if (!content.empty()) {
-            size_t start = 0;
-            while (start < content.size()) {
-                size_t pos = content.find(',', start);
-                if (pos == string::npos) pos = content.size();
-                string tok = content.substr(start, pos - start);
-                elems.push_back(tok);
-                start = pos + 1;
+        for (int i = 1; i <= n; ++i) {
+            char delimiter = '\0';
+            readArrayValue(tc, i, delimiter);
+            if (i < n) {
+                ensuref(delimiter == ',',
+                        "test case %d value %d must be followed by comma", tc, i);
+            } else {
+                ensuref(delimiter == ']',
+                        "test case %d final value must be followed by ']'", tc);
             }
         }
-
-        // Check count matches n
-        ensuref((int)elems.size() == n,
-                "Number of elements %d does not match n=%d in test case %d", (int)elems.size(), n, tc);
-
-        // Validate each element
-        for (int i = 0; i < (int)elems.size(); i++) {
-            const string &tok = elems[i];
-            ensuref(!tok.empty(),
-                    "Empty element at index %d in test case %d", i, tc);
-            // All digits
-            for (char c : tok) {
-                ensuref(isdigit(c),
-                        "Non-digit character '%c' in element %d in test case %d", c, i, tc);
-            }
-            // Parse integer value
-            int val = 0;
-            for (char c : tok) {
-                val = val * 10 + (c - '0');
-                // early bound check to avoid overflow
-                ensuref(val <= 1000,
-                        "Value overflow (>%d) when parsing element %d in test case %d", 1000, i, tc);
-            }
-            ensuref(val >= 1 && val <= 100,
-                    "Element value out of bounds [1,100]: got %d at index %d in test case %d",
-                    val, i, tc);
-        }
+        inf.readEoln();
     }
 
-    // Check global sum constraints
-    ensuref(total_p_len <= 700000,
-            "Sum of lengths of all p over all test cases must be <=700000; got %lld",
-            total_p_len);
-    ensuref(total_n_sum <= 700000,
-            "Sum of all n over all test cases must be <=700000; got %lld",
-            total_n_sum);
+    ensuref(totalProgramLength <= 700000,
+            "sum of program lengths is %lld, greater than 700000", totalProgramLength);
+    ensuref(totalArrayLength <= 700000,
+            "sum of n is %lld, greater than 700000", totalArrayLength);
 
     inf.readEof();
     return 0;

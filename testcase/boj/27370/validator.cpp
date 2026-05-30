@@ -11,8 +11,6 @@ int main(int argc, char* argv[]) {
     const int MAX_N = 100000;
     const int MAX_P = 1000000;
 
-    long long totalN = 0;
-
     for (int tc = 0; tc < T; ++tc) {
         setTestCase(tc + 1);
 
@@ -39,10 +37,6 @@ int main(int argc, char* argv[]) {
                     i + 1, xi, lo, hi, tc + 1);
         }
 
-        totalN += N;
-        ensuref(totalN <= 100000LL,
-                "Sum of N over all test cases exceeds 100000 (current sum = %lld)",
-                totalN);
     }
 
     inf.readEof();

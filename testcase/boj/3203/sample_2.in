@@ -1,0 +1,12 @@
+BEGIN
+   a = 1
+   b = a
+   PRINT a
+   PRINT b
+   REPEAT 10
+      c = a + b
+      a = b
+      b = c
+      PRINT c
+   STOP
+STOP

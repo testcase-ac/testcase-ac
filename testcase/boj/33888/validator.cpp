@@ -1,29 +1,11 @@
 #include "testlib.h"
-#include <vector>
-#include <set>
-#include <queue>
-#include <algorithm>
-using namespace std;
 
-// Check that the graph is connected
-void check_connected(int n, const vector<vector<int>>& adj) {
-    vector<bool> vis(n, false);
-    queue<int> q;
-    q.push(0);
-    vis[0] = true;
-    int cnt = 1;
-    while (!q.empty()) {
-        int u = q.front(); q.pop();
-        for (int v : adj[u]) {
-            if (!vis[v]) {
-                vis[v] = true;
-                q.push(v);
-                cnt++;
-            }
-        }
-    }
-    ensuref(cnt == n, "Graph is not connected: only %d/%d nodes reachable from node 1", cnt, n);
-}
+#include <algorithm>
+#include <queue>
+#include <set>
+#include <vector>
+
+using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
@@ -32,7 +14,7 @@ int main(int argc, char* argv[]) {
     inf.readEoln();
 
     int m = n + 3;
-    set<pair<int,int>> edge_set;
+    set<pair<int, int>> edgeSet;
     vector<vector<int>> adj(n);
 
     for (int i = 0; i < m; ++i) {
@@ -41,42 +23,91 @@ int main(int argc, char* argv[]) {
         int v = inf.readInt(1, n, "v");
         inf.readEoln();
 
-        ensuref(u != v, "Self-loop detected at edge %d: (%d, %d)", i+1, u, v);
-        int a = min(u, v), b = max(u, v);
-        ensuref(!edge_set.count({a, b}), "Multiple edge detected at edge %d: (%d, %d)", i+1, u, v);
-        edge_set.insert({a, b});
-        --u; --v;
+        ensuref(u != v, "edge %d is a self-loop", i + 1);
+        int a = min(u, v);
+        int b = max(u, v);
+        ensuref(!edgeSet.count({a, b}), "edge %d duplicates %d %d", i + 1, a, b);
+        edgeSet.insert({a, b});
+
+        --u;
+        --v;
         adj[u].push_back(v);
         adj[v].push_back(u);
     }
 
-    // Check connectivity
-    check_connected(n, adj);
-
-    // Degree constraints: 6 core nodes (deg != 2), rest deg==2
-    int cnt_core = 0, cnt_deg2 = 0;
-    vector<int> core_nodes;
-    for (int i = 0; i < n; ++i) {
-        int d = adj[i].size();
-        ensuref(d >= 1 && d <= n-1, "Node %d has invalid degree %d", i+1, d);
-        if (d == 2) cnt_deg2++;
-        else {
-            cnt_core++;
-            core_nodes.push_back(i);
+    vector<int> seen(n, 0);
+    queue<int> q;
+    seen[0] = 1;
+    q.push(0);
+    int reached = 0;
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        ++reached;
+        for (int v : adj[u]) {
+            if (!seen[v]) {
+                seen[v] = 1;
+                q.push(v);
+            }
         }
     }
-    ensuref(cnt_core == 6, "There must be exactly 6 core nodes (deg != 2), found %d", cnt_core);
-    ensuref(cnt_deg2 == n-6, "There must be exactly N-6 nodes with degree 2, found %d", cnt_deg2);
+    ensuref(reached == n, "graph is not connected");
 
-    // All non-core nodes must have degree 2
-    set<int> core_set(core_nodes.begin(), core_nodes.end());
+    vector<int> cores;
+    vector<int> isCore(n, 0);
     for (int i = 0; i < n; ++i) {
-        if (!core_set.count(i)) {
-            ensuref(adj[i].size() == 2, "Non-core node %d does not have degree 2", i+1);
+        if ((int)adj[i].size() != 2) {
+            cores.push_back(i);
+            isCore[i] = 1;
         }
     }
+    ensuref((int)cores.size() == 6, "expected 6 core vertices, found %d", (int)cores.size());
 
-    // All edges are unique and no self-loops (already checked above)
+    set<pair<int, int>> compressedEdges;
+    for (int u : cores) {
+        for (int v : adj[u]) {
+            int prev = u;
+            int cur = v;
+            vector<int> walked(n, 0);
+            while (!isCore[cur]) {
+                ensuref((int)adj[cur].size() == 2, "normal vertex %d does not have degree 2", cur + 1);
+                ensuref(!walked[cur], "path from core vertex %d does not reach another core", u + 1);
+                walked[cur] = 1;
+
+                int nxt = adj[cur][0] ^ adj[cur][1] ^ prev;
+                prev = cur;
+                cur = nxt;
+            }
+
+            int a = min(u, cur);
+            int b = max(u, cur);
+            compressedEdges.insert({a, b});
+        }
+    }
+    ensuref((int)compressedEdges.size() == 9, "expected 9 paths between core vertices, found %d",
+            (int)compressedEdges.size());
+
+    const vector<pair<int, int>> rayEdges = {
+        {0, 1}, {0, 2}, {0, 3}, {1, 2}, {1, 4},
+        {2, 3}, {2, 4}, {3, 4}, {4, 5},
+    };
+
+    sort(cores.begin(), cores.end());
+    bool matchesRay = false;
+    do {
+        set<pair<int, int>> expected;
+        for (auto [x, y] : rayEdges) {
+            int a = min(cores[x], cores[y]);
+            int b = max(cores[x], cores[y]);
+            expected.insert({a, b});
+        }
+        if (expected == compressedEdges && cores[1] < cores[3]) {
+            matchesRay = true;
+            break;
+        }
+    } while (next_permutation(cores.begin(), cores.end()));
+
+    ensuref(matchesRay, "compressed core graph is not a valid ray graph with B < D");
 
     inf.readEof();
 }

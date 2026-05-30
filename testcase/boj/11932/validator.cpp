@@ -2,10 +2,12 @@
 #include <vector>
 #include <set>
 #include <algorithm>
+#include <limits>
 using namespace std;
 
 const int MAXN = 100000;
 const int MAXM = 100000;
+const int LOG = 17;
 
 struct DSU {
     vector<int> p;
@@ -32,15 +34,12 @@ int main(int argc, char* argv[]) {
     int m = inf.readInt(1, MAXM, "m");
     inf.readEoln();
 
-    // Read weights
-    vector<int> weights = inf.readInts(n, -2147483648, 2147483647, "weight");
+    vector<int> weights = inf.readInts(n, numeric_limits<int>::min(), numeric_limits<int>::max(), "weight");
     inf.readEoln();
 
-    // Check all weights are distinct
     set<int> weight_set(weights.begin(), weights.end());
     ensuref((int)weight_set.size() == n, "All weights must be distinct");
 
-    // Read edges
     vector<vector<int>> adj(n+1);
     set<pair<int,int>> edge_set;
     DSU dsu(n);
@@ -58,25 +57,41 @@ int main(int argc, char* argv[]) {
         adj[u].push_back(v);
         adj[v].push_back(u);
 
-        // For connectivity check
         dsu.unite(u, v);
     }
 
-    // Check that the graph is connected (tree)
     int root = dsu.find(1);
     for (int i = 2; i <= n; ++i) {
         ensuref(dsu.find(i) == root, "Graph is not connected: node %d is not connected to node 1", i);
     }
 
-    // Check for cycles (tree property)
     ensuref((int)edge_set.size() == n-1, "Number of edges is not N-1");
 
-    // Check for acyclicity using DFS (optional, as DSU already checks for cycles)
-    // But let's check for single component and no cycles
-    // (DSU already ensures no cycles if unite returns false, but let's be thorough)
-    // Already done above.
+    vector<int> depth(n + 1, -1);
+    vector<vector<int>> up(LOG + 1, vector<int>(n + 1, 0));
+    vector<int> stack;
+    stack.push_back(1);
+    depth[1] = 0;
 
-    // Read queries
+    while (!stack.empty()) {
+        int u = stack.back();
+        stack.pop_back();
+        for (int v : adj[u]) {
+            if (v == up[0][u]) {
+                continue;
+            }
+            up[0][v] = u;
+            depth[v] = depth[u] + 1;
+            stack.push_back(v);
+        }
+    }
+
+    for (int j = 1; j <= LOG; ++j) {
+        for (int v = 1; v <= n; ++v) {
+            up[j][v] = up[j - 1][up[j - 1][v]];
+        }
+    }
+
     for (int i = 0; i < m; ++i) {
         int x = inf.readInt(1, n, "X");
         inf.readSpace();
@@ -85,46 +100,28 @@ int main(int argc, char* argv[]) {
         int k = inf.readInt(1, n, "K");
         inf.readEoln();
 
-        // The path from x to y always exists in a tree, so no need to check that.
+        int u = x, v = y;
+        if (depth[u] < depth[v]) {
+            swap(u, v);
+        }
 
-        // The number of nodes on the path from x to y is at least 1 and at most n.
-        // But K must be between 1 and the number of nodes on the path from x to y.
-        // So we need to compute the number of nodes on the path from x to y.
-
-        // But since the problem says "K is at least 1 and at most the number of nodes on the path from x to y",
-        // we must check that K <= path length.
-
-        // Let's compute the path length using BFS or DFS parent array.
-        // Precompute parent and depth for all nodes.
-
-        static vector<int> parent, depth;
-        if (i == 0) {
-            parent.assign(n+1, -1);
-            depth.assign(n+1, -1);
-            vector<int> stack;
-            stack.push_back(1);
-            depth[1] = 0;
-            parent[1] = 0;
-            while (!stack.empty()) {
-                int u = stack.back(); stack.pop_back();
-                for (int v : adj[u]) {
-                    if (depth[v] == -1) {
-                        depth[v] = depth[u] + 1;
-                        parent[v] = u;
-                        stack.push_back(v);
-                    }
-                }
+        int diff = depth[u] - depth[v];
+        for (int j = LOG; j >= 0; --j) {
+            if (diff & (1 << j)) {
+                u = up[j][u];
             }
         }
 
-        // Compute LCA to get path length
-        int u = x, v = y;
-        int du = depth[u], dv = depth[v];
-        int cnt = 0;
-        // Move up to same depth
-        while (du > dv) { u = parent[u]; du--; }
-        while (dv > du) { v = parent[v]; dv--; }
-        while (u != v) { u = parent[u]; v = parent[v]; }
+        if (u != v) {
+            for (int j = LOG; j >= 0; --j) {
+                if (up[j][u] != up[j][v]) {
+                    u = up[j][u];
+                    v = up[j][v];
+                }
+            }
+            u = up[0][u];
+        }
+
         int lca = u;
         int path_len = depth[x] + depth[y] - 2 * depth[lca] + 1;
 

@@ -1,6 +1,5 @@
 #include "testlib.h"
-#include <string>
-#include <cctype>
+#include <bits/stdc++.h>
 
 using namespace std;
 
@@ -31,7 +30,7 @@ int main(int argc, char* argv[]) {
         ensuref(testCount <= MAX_TESTS,
                 "Number of test cases exceeds %d.", MAX_TESTS);
 
-        // Line must contain only digits
+        // Line must contain only digits.
         for (char c : line) {
             ensuref(isdigit(static_cast<unsigned char>(c)),
                     "Line %d contains non-digit character '%c'.", testCount, c);
@@ -43,10 +42,8 @@ int main(int argc, char* argv[]) {
                 "Line %d has invalid digit length %d (must be 1..%d).",
                 testCount, len, MAX_DIGITS);
 
-        // Value is non-negative: already ensured by digit-only.
-        // Canonical numeric form is NOT required, since statement describes x0
-        // as "value... with digits" (string of digits) and not as an integer
-        // requiring canonical form. Leading zeros are thus allowed.
+        ensuref(len == 1 || line[0] != '0',
+                "Line %d is not a canonical non-negative integer.", testCount);
     }
 
     // If we exit loop without seeing END, it's invalid

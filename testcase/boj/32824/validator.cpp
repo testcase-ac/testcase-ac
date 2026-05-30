@@ -6,13 +6,12 @@ using namespace std;
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read n and m
     int n = inf.readInt(2, 100000, "n");
     inf.readSpace();
-    int m = inf.readInt(n - 1, min(100000, n * (n - 1) / 2), "m");
+    int maxM = min(100000LL, 1LL * n * (n - 1) / 2);
+    int m = inf.readInt(n - 1, maxM, "m");
     inf.readEoln();
 
-    // Store edges to check for duplicates and build graph for connectivity check
     set<pair<int, int>> edges;
     vector<vector<int>> adj(n + 1);
 
@@ -30,12 +29,10 @@ int main(int argc, char* argv[]) {
         ensuref(!edges.count({a, b}), "Multiple edges between cities %d and %d (edge index %d)", a, b, i + 1);
         edges.insert({a, b});
 
-        // Build adjacency list for connectivity check
         adj[x].push_back(y);
         adj[y].push_back(x);
     }
 
-    // Check that the graph is connected (since MST must exist)
     vector<bool> vis(n + 1, false);
     vector<int> stack;
     stack.push_back(1);

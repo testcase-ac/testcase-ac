@@ -1,80 +1,51 @@
 #include "testlib.h"
-#include <string>
-#include <vector>
-#include <cctype>
+#include <bits/stdc++.h>
 using namespace std;
+
+int readGames(const string& score, int match, int set, const char* side) {
+    ensuref(!score.empty(), "match %d set %d has an empty %s score", match, set, side);
+    ensuref(score.size() <= 2, "match %d set %d %s score is longer than 2 digits", match, set, side);
+    ensuref(score.size() == 1 || score[0] != '0',
+            "match %d set %d %s score has a leading zero", match, set, side);
+    int value = 0;
+    for (char ch : score) {
+        ensuref('0' <= ch && ch <= '9', "match %d set %d %s score contains a non-digit", match, set, side);
+        value = value * 10 + (ch - '0');
+    }
+    ensuref(value <= 99, "match %d set %d %s score is greater than 99", match, set, side);
+    return value;
+}
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // First line: two distinct player names, lowercase a-z, length 1 to 20, separated by one space.
-    string p1 = inf.readToken("[a-z]{1,20}", "player1");
+    string first = inf.readToken("[a-z]{1,20}", "first_player");
     inf.readSpace();
-    string p2 = inf.readToken("[a-z]{1,20}", "player2");
-    ensuref(p1 != p2, "Player names must be distinct, both are \"%s\"", p1.c_str());
+    string second = inf.readToken("[a-z]{1,20}", "second_player");
+    ensuref(first != second, "player names must be different");
     inf.readEoln();
 
-    // Second line: N, number of past matches: 1 <= N <= 50
-    int N = inf.readInt(1, 50, "N");
+    int n = inf.readInt(1, 50, "n");
     inf.readEoln();
 
-    // Next N lines: each line has 1 to 5 set scores, format A:B where 0 <= A,B <= 99
-    for (int i = 1; i <= N; i++) {
-        // Read entire line (must be non-empty)
-        string line = inf.readLine("[^]+", "score_line");
-        int L = (int)line.size();
-        // No leading or trailing spaces
-        ensuref(L > 0, "Line %d is empty", i);
-        ensuref(line[0] != ' ', "Line %d has leading space", i);
-        ensuref(line[L-1] != ' ', "Line %d has trailing space", i);
-        // Split by single space
-        vector<string> tokens;
-        int start = 0;
-        for (int pos = 0; pos <= L; pos++) {
-            if (pos == L || line[pos] == ' ') {
-                tokens.push_back(line.substr(start, pos - start));
-                start = pos + 1;
+    for (int match = 1; match <= n; ++match) {
+        int sets = 0;
+        while (true) {
+            ++sets;
+            string score = inf.readToken("[0-9]{1,2}:[0-9]{1,2}", format("match_%d_set_%d_score", match, sets));
+            size_t colon = score.find(':');
+            readGames(score.substr(0, colon), match, sets, "first");
+            readGames(score.substr(colon + 1), match, sets, "second");
+
+            char next = inf.readChar();
+            if (next == '\n') {
+                break;
             }
+            ensuref(next == ' ', "match %d set %d must be followed by space or end of line", match, sets);
+            ensuref(sets < 5, "match %d contains more than 5 sets", match);
         }
-        int cnt = (int)tokens.size();
-        ensuref(cnt >= 1 && cnt <= 5,
-                "Line %d: number of sets %d is out of allowed range [1,5]", i, cnt);
-        // Validate each token
-        for (int j = 0; j < cnt; j++) {
-            const string &tok = tokens[j];
-            int m = (int)tok.size();
-            // Must contain exactly one colon
-            int colon = -1;
-            for (int k = 0; k < m; k++) {
-                if (tok[k] == ':') {
-                    if (colon != -1) colon = -2;
-                    else colon = k;
-                }
-            }
-            ensuref(colon >= 1 && colon + 1 < m,
-                    "Line %d, set %d: invalid format \"%s\", should be A:B", i, j+1, tok.c_str());
-            // Split A and B
-            string sa = tok.substr(0, colon);
-            string sb = tok.substr(colon+1);
-            // Each part length 1 or 2, all digits
-            ensuref((int)sa.size() >= 1 && (int)sa.size() <= 2,
-                    "Line %d, set %d: games of first player \"%s\" has invalid length", i, j+1, sa.c_str());
-            ensuref((int)sb.size() >= 1 && (int)sb.size() <= 2,
-                    "Line %d, set %d: games of second player \"%s\" has invalid length", i, j+1, sb.c_str());
-            for (char c : sa) {
-                ensuref(isdigit(c), "Line %d, set %d: non-digit '%c' in \"%s\"", i, j+1, c, sa.c_str());
-            }
-            for (char c : sb) {
-                ensuref(isdigit(c), "Line %d, set %d: non-digit '%c' in \"%s\"", i, j+1, c, sb.c_str());
-            }
-            // Convert to integer (0 to 99)
-            int a = sa.size() == 2 ? (sa[0]-'0')*10 + (sa[1]-'0') : (sa[0]-'0');
-            int b = sb.size() == 2 ? (sb[0]-'0')*10 + (sb[1]-'0') : (sb[0]-'0');
-            ensuref(0 <= a && a <= 99,
-                    "Line %d, set %d: games of first player %d out of range [0,99]", i, j+1, a);
-            ensuref(0 <= b && b <= 99,
-                    "Line %d, set %d: games of second player %d out of range [0,99]", i, j+1, b);
-        }
+
+        ensuref(1 <= sets && sets <= 5, "match %d contains %d sets", match, sets);
     }
 
     inf.readEof();

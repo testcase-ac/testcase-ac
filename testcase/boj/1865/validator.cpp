@@ -26,9 +26,8 @@ int main(int argc, char* argv[]) {
             inf.readSpace();
             int E = inf.readInt(1, N, "road_E");
             inf.readSpace();
-            // Although the statement does not explicitly bound road time T,
-            // problems of this type usually have T up to 10000 and positive.
-            int T = inf.readInt(1, 10000, "road_T");
+            // The Korean statement allows T to be either a natural number or 0.
+            int T = inf.readInt(0, 10000, "road_T");
             inf.readEoln();
             // No further global checks: loops or parallel edges are allowed
         }

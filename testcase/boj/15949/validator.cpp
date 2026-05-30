@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     ensuref(grid[0][0] != 'X',
             "Top-left codel must not be black (X), but is X");
 
-    // Build connected components of non-'X' cells
+    // Build connected same-color components of non-'X' cells
     vector<vector<int>> comp_id(N, vector<int>(M, -1));
     vector<vector<pair<int,int>>> comps;
     int dr4[4] = { -1, 1, 0, 0 };
@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
                     for (int d = 0; d < 4; d++) {
                         int nr = r + dr4[d], nc = c + dc4[d];
                         if (nr >= 0 && nr < N && nc >= 0 && nc < M
-                            && grid[nr][nc] != 'X' 
+                            && grid[nr][nc] == grid[r][c]
                             && comp_id[nr][nc] < 0) {
                             comp_id[nr][nc] = cid;
                             q.push({nr,nc});

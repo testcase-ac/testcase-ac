@@ -38,6 +38,9 @@ int main(int argc, char* argv[]) {
         inf.readEoln();
 
         ensuref(i != j, "Rivalry %d is a loop: (%d, %d)", k + 1, i, j);
+        ensuref(cur[i - 1] != cur[j - 1],
+                "Rivalry %d has students on the same current team: (%d, %d)",
+                k + 1, i, j);
 
         int a = i, b = j;
         if (a > b) swap(a, b);

@@ -1,8 +1,31 @@
 #include "testlib.h"
 #include <vector>
-#include <set>
-#include <algorithm>
 using namespace std;
+
+struct Dsu {
+    vector<int> parent;
+
+    explicit Dsu(int n) : parent(n + 1) {
+        for (int i = 1; i <= n; ++i) {
+            parent[i] = i;
+        }
+    }
+
+    int find(int x) {
+        if (parent[x] == x) {
+            return x;
+        }
+        return parent[x] = find(parent[x]);
+    }
+
+    void unite(int a, int b) {
+        a = find(a);
+        b = find(b);
+        if (a != b) {
+            parent[b] = a;
+        }
+    }
+};
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
@@ -28,7 +51,7 @@ int main(int argc, char* argv[]) {
     }
 
     // 3. Read M wormholes, check constraints
-    set<pair<int,int>> edges;
+    Dsu dsu(N);
     for (int i = 0; i < M; ++i) {
         int a = inf.readInt(1, N, "a_i");
         inf.readSpace();
@@ -38,10 +61,13 @@ int main(int argc, char* argv[]) {
         inf.readEoln();
 
         ensuref(a != b, "Wormhole %d: a_i == b_i == %d (no self-loops allowed)", i+1, a);
+        dsu.unite(a, b);
+    }
 
-        int u = min(a, b), v = max(a, b);
-        ensuref(!edges.count({u, v}), "Wormhole %d: multiple edges between %d and %d", i+1, u, v);
-        edges.insert({u, v});
+    for (int i = 1; i <= N; ++i) {
+        ensuref(dsu.find(i) == dsu.find(p[i - 1]),
+                "cow %d starts at location %d, which is not connected to location %d",
+                i, p[i - 1], i);
     }
 
     inf.readEof();

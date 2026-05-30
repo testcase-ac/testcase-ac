@@ -1,49 +1,42 @@
 #include "testlib.h"
-#include <vector>
+#include <bits/stdc++.h>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
+    int instances = 0;
     while (true) {
-        // Read number of power plants (P) and number of connections (C)
-        int P = inf.readInt(0, 10000, "P");
+        int p = inf.readInt(0, 10000, "P");
         inf.readSpace();
-        // Maximum possible edges in an undirected simple graph is P*(P-1)/2
-        long long maxEdges = (long long)P * (P - 1) / 2;
-        int C = inf.readInt(0, maxEdges, "C");
+
+        long long maxConnections = 1LL * p * (p - 1) / 2;
+        long long c = inf.readLong(0, maxConnections, "C");
         inf.readEoln();
 
-        // Check for the terminating "0 0" line
-        if (P == 0 && C == 0) {
+        if (p == 0) {
+            ensuref(c == 0, "only 0 0 may terminate the input");
             break;
         }
 
-        // Build an adjacency bit‐matrix to detect loops and multiple edges
-        // Use vector<bool> for packing bits: total ≈ P*P bits, which is ≤10000*10000 ≈ 100M bits (~12.5MB)
-        vector< vector<bool> > seen(P, vector<bool>(P, false));
+        ++instances;
+        ensuref(instances <= 100000, "too many instances");
 
-        for (int i = 0; i < C; i++) {
-            int p1 = inf.readInt(0, P - 1, "p1");
+        set<pair<int, int>> seen;
+        for (long long i = 0; i < c; ++i) {
+            int p1 = inf.readInt(0, p - 1, "p1");
             inf.readSpace();
-            int p2 = inf.readInt(0, P - 1, "p2");
+            int p2 = inf.readInt(0, p - 1, "p2");
             inf.readEoln();
 
-            // No loops allowed (p1 != p2)
-            ensuref(p1 != p2,
-                    "Loop detected at connection %d: (%d, %d)",
-                    i, p1, p2);
-
-            // No multiple edges: check both directions in the matrix
-            ensuref(!seen[p1][p2],
-                    "Multiple connections detected at connection %d: (%d, %d)",
-                    i, p1, p2);
-
-            // Mark the edge both ways
-            seen[p1][p2] = seen[p2][p1] = true;
+            ensuref(p1 != p2, "loop at connection %lld: %d %d", i + 1, p1, p2);
+            if (p1 > p2) {
+                swap(p1, p2);
+            }
+            ensuref(seen.insert({p1, p2}).second,
+                    "duplicate connection at connection %lld: %d %d", i + 1, p1, p2);
         }
     }
 
     inf.readEof();
-    return 0;
 }

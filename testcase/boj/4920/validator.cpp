@@ -1,79 +1,99 @@
 #include "testlib.h"
 
+#include <bits/stdc++.h>
+
 using namespace std;
+
+namespace {
+
+constexpr int kMinN = 4;
+constexpr int kMaxN = 100;
+constexpr int kMinValue = -1000000;
+constexpr int kMaxValue = 1000000;
+constexpr int kMaxCases = 100000;
+
+string trimSpaces(const string& line) {
+    size_t first = line.find_first_not_of(' ');
+    ensuref(first != string::npos, "empty line");
+    size_t last = line.find_last_not_of(' ');
+    return line.substr(first, last - first + 1);
+}
+
+int parseIntToken(const string& token, int low, int high, const char* name) {
+    ensuref(!token.empty(), "%s is empty", name);
+
+    size_t pos = 0;
+    if (token[pos] == '-') {
+        ++pos;
+        ensuref(pos < token.size(), "%s has only a sign", name);
+    }
+
+    ensuref(pos < token.size() && isdigit(static_cast<unsigned char>(token[pos])),
+            "%s is not an integer: %s", name, token.c_str());
+
+    long long value = 0;
+    for (; pos < token.size(); ++pos) {
+        ensuref(isdigit(static_cast<unsigned char>(token[pos])),
+                "%s is not an integer: %s", name, token.c_str());
+        value = value * 10 + (token[pos] - '0');
+        ensuref(value <= 1000000000LL, "%s is too large: %s", name, token.c_str());
+    }
+
+    if (token[0] == '-') {
+        value = -value;
+    }
+    ensuref(low <= value && value <= high, "%s out of range: %lld", name, value);
+    return static_cast<int>(value);
+}
+
+int parseSingleIntLine(const string& line, int low, int high, const char* name) {
+    string trimmed = trimSpaces(line);
+    ensuref(trimmed.find(' ') == string::npos, "%s line has extra tokens", name);
+    return parseIntToken(trimmed, low, high, name);
+}
+
+vector<int> parseGridRow(const string& line, int n, int rowIndex) {
+    string trimmed = trimSpaces(line);
+    vector<int> values;
+
+    size_t pos = 0;
+    while (pos < trimmed.size()) {
+        size_t next = trimmed.find(' ', pos);
+        string token = trimmed.substr(pos, next == string::npos ? string::npos : next - pos);
+        ensuref(!token.empty(), "row %d has an empty value", rowIndex);
+        values.push_back(parseIntToken(token, kMinValue, kMaxValue, "grid value"));
+        if (next == string::npos) {
+            break;
+        }
+        pos = trimmed.find_first_not_of(' ', next);
+        ensuref(pos != string::npos, "row %d has trailing spaces after trimming", rowIndex);
+    }
+
+    ensuref(static_cast<int>(values.size()) == n,
+            "row %d has %d values, expected %d", rowIndex, static_cast<int>(values.size()), n);
+    return values;
+}
+
+}  // namespace
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    const int N_MIN = 4;
-    const int N_MAX = 100;
-    const int A_MIN = -1000000;
-    const int A_MAX = 1000000;
-    const int MAX_CASES = 100000;
-
-    int case_cnt = 0;
+    int caseCount = 0;
     while (true) {
-        // Read first token of the line (either N or 0)
-        // Allow leading/trailing spaces on the line, so use readLine and parse
         string line = inf.readLine("[^]+", "N line");
-        // Remove leading/trailing spaces
-        size_t start = line.find_first_not_of(' ');
-        size_t end = line.find_last_not_of(' ');
-        ensuref(start != string::npos, "Empty line where N or 0 expected");
-        string trimmed = line.substr(start, end - start + 1);
-
-        // Parse N
-        ensuref(trimmed.size() > 0, "No N found in line");
-        // Only allow a single integer in the line
-        size_t pos = 0;
-        while (pos < trimmed.size() && (trimmed[pos] == '-' || isdigit(trimmed[pos]))) ++pos;
-        ensuref(pos == trimmed.size(), "Extra characters after N in line: '%s'", trimmed.c_str());
-        int N = atoi(trimmed.c_str());
-        ensuref(N >= 0 && N <= N_MAX, "N out of range: %d", N);
-
-        if (N == 0) {
+        int n = parseSingleIntLine(line, 0, kMaxN, "N");
+        if (n == 0) {
+            ensuref(caseCount > 0, "input must contain at least one test case");
             break;
         }
-        ++case_cnt;
-        ensuref(case_cnt <= MAX_CASES, "Too many test cases: %d (max %d)", case_cnt, MAX_CASES);
-        ensuref(N >= N_MIN, "N too small: %d (min %d)", N, N_MIN);
 
-        // Read N lines of N integers, allow arbitrary spaces between numbers
-        for (int i = 0; i < N; ++i) {
-            string row = inf.readLine("[^]+", "row");
-            // Remove leading/trailing spaces
-            size_t s = row.find_first_not_of(' ');
-            size_t e = row.find_last_not_of(' ');
-            ensuref(s != string::npos, "Empty row at line %d", i+1);
-            string trimmed_row = row.substr(s, e - s + 1);
+        ++caseCount;
+        ensuref(caseCount <= kMaxCases, "too many test cases");
+        ensuref(n >= kMinN, "N out of range: %d", n);
 
-            // Now parse the row into N integers, allowing multiple spaces
-            vector<int> vals;
-            size_t idx = 0;
-            while (idx < trimmed_row.size()) {
-                // Skip spaces
-                while (idx < trimmed_row.size() && trimmed_row[idx] == ' ') ++idx;
-                if (idx == trimmed_row.size()) break;
-                // Parse integer
-                int sign = 1;
-                if (trimmed_row[idx] == '-') {
-                    sign = -1;
-                    ++idx;
-                }
-                ensuref(idx < trimmed_row.size() && isdigit(trimmed_row[idx]), "Invalid integer in row %d", i+1);
-                int val = 0;
-                while (idx < trimmed_row.size() && isdigit(trimmed_row[idx])) {
-                    int digit = trimmed_row[idx] - '0';
-                    // Check for overflow
-                    ensuref(val <= (A_MAX + (sign == -1)), "Integer overflow in row %d", i+1);
-                    val = val * 10 + digit;
-                    ++idx;
-                }
-                val *= sign;
-                ensuref(val >= A_MIN && val <= A_MAX, "Value out of range at row %d: %d", i+1, val);
-                vals.push_back(val);
-            }
-            ensuref((int)vals.size() == N, "Row %d does not have exactly N=%d values (got %d)", i+1, N, (int)vals.size());
+        for (int row = 1; row <= n; ++row) {
+            parseGridRow(inf.readLine("[^]+", "grid row"), n, row);
         }
     }
 

@@ -1,70 +1,65 @@
 #include "testlib.h"
-#include <vector>
-#include <queue>
-#include <algorithm>
-#include <limits>
+#include <bits/stdc++.h>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read N, M, B
-    int N = inf.readInt(2, 50000, "N");
+    int n = inf.readInt(2, 50000, "N");
     inf.readSpace();
-    int M = inf.readInt(N-1, 100000, "M");
+    int m = inf.readInt(n - 1, 100000, "M");
     inf.readSpace();
-    int B = inf.readInt(1, 25000, "B");
+    int b = inf.readInt(1, 25000, "B");
     inf.readEoln();
 
-    ensuref(2*B <= N, "Constraint violated: 2*B (%d) > N (%d)", 2*B, N);
+    ensuref(2 * b <= n, "2 * B must be at most N, got B=%d and N=%d", b, n);
 
-    // Read M edges
-    struct Edge {
-        int to;
-        int len;
-    };
-    vector<vector<Edge>> adj(N+1); // 1-based
+    vector<vector<int>> graph(n + 1);
 
-    for (int i = 0; i < M; ++i) {
-        int R = inf.readInt(1, N, "R_i");
+    for (int i = 0; i < m; ++i) {
+        int r = inf.readInt(1, n, "R_i");
         inf.readSpace();
-        int S = inf.readInt(1, N, "S_i");
+        int s = inf.readInt(1, n, "S_i");
         inf.readSpace();
-        int L = inf.readInt(1, 2000, "L_i");
+        inf.readInt(1, 2000, "L_i");
         inf.readEoln();
 
-        // Allow self-loops and multiple edges as not forbidden in statement
-        adj[R].push_back({S, L});
-        adj[S].push_back({R, L});
+        // CHECK: The statement explicitly allows parallel paths, but does not
+        // say whether a path may connect a pasture to itself.
+        graph[r].push_back(s);
+        graph[s].push_back(r);
     }
 
-    // Read B queries
-    vector<int> P(B), Q(B);
-    for (int i = 0; i < B; ++i) {
-        P[i] = inf.readInt(1, N, "P_i");
+    vector<int> occupied(n + 1, 0);
+    for (int i = 0; i < b; ++i) {
+        int p = inf.readInt(1, n, "P_i");
         inf.readSpace();
-        Q[i] = inf.readInt(1, N, "Q_i");
+        int q = inf.readInt(1, n, "Q_i");
         inf.readEoln();
+
+        ensuref(!occupied[p], "bull pasture at query %d is not unique: %d", i + 1, p);
+        occupied[p] = 1;
+        ensuref(!occupied[q], "cow pasture at query %d is not unique: %d", i + 1, q);
+        occupied[q] = 1;
     }
 
-    // Check that the graph is connected (the barn at pasture 1 connects to every pasture)
-    // Use BFS from node 1
-    vector<bool> vis(N+1, false);
+    vector<int> seen(n + 1, 0);
     queue<int> q;
     q.push(1);
-    vis[1] = true;
-    int cnt = 1;
+    seen[1] = 1;
+    int reached = 1;
     while (!q.empty()) {
-        int u = q.front(); q.pop();
-        for (const Edge& e : adj[u]) {
-            if (!vis[e.to]) {
-                vis[e.to] = true;
-                q.push(e.to);
-                ++cnt;
+        int v = q.front();
+        q.pop();
+        for (int to : graph[v]) {
+            if (!seen[to]) {
+                seen[to] = 1;
+                q.push(to);
+                ++reached;
             }
         }
     }
-    ensuref(cnt == N, "Graph is not connected: only %d of %d pastures reachable from barn (pasture 1)", cnt, N);
+    ensuref(reached == n, "barn reaches only %d of %d pastures", reached, n);
 
     inf.readEof();
 }

@@ -2,63 +2,31 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-/*
-Problem-specific notes for validation:
+struct Edge {
+    char kind;
+    int row;
+    int col;
 
-- T test cases, 1 ≤ T ≤ 100.
-- For each test:
-    - 2 ≤ n, m ≤ 100.
-    - Then exactly H = 4n + 3 lines follow.
-    - Each line has length ≤ Wmax = 6m + 3, and has no trailing spaces.
-    - Allowed characters:
-        - All lines: ' ', '+', '-', '/', '\', '*'
-    - Lines with odd index in statement (1-based) are "vertex + horizontal edges" lines.
-      The input description does NOT forbid '*' here, and samples do have '*'
-      on such lines (cell centers on "middle" vertex lines). So we must NOT
-      restrict characters on those lines beyond the global allowed set.
-    - Lines with even index in statement are "diagonal edges" lines; again
-      only the global allowed characters appear.
+    bool operator<(const Edge& other) const {
+        return tie(kind, row, col) < tie(other.kind, other.row, other.col);
+    }
+};
 
-- It is guaranteed that every non-special cell has no traversable edge.
-  This is a promise for solutions, not something we can feasibly and reliably
-  check from the ASCII art in a validator, since we lack a precise mapping
-  from '*' positions to cells and from edges to "traversable / untraversable"
-  in graph terms. We therefore do not attempt to enforce this.
-
-- Sum of numbers of special cells over all test cases ≤ 3000.
-- There is no explicit requirement that there are at least 2 special cells
-  per test; the sum over "every two special cells" is then 0 if fewer than 2
-  exist. So we do NOT enforce specialCnt ≥ 2 for each test case.
-
-- We must enforce canonical numeric format; readInt already does this.
-
-- Global formatting: we read line-by-line with readLine (which consumes EOLN),
-  then finally readEof().
-
-Implementation choices:
-
-- For each of the H lines we:
-    * read with regex "[^]*" to allow arbitrary characters (no trailing EOLN),
-      and no trailing spaces promised by statement.
-    * check length ≤ Wmax.
-    * check each character is one of the allowed six characters.
-    * count '*' occurrences.
-
-- We do NOT attempt to parse '+' / '---' patterns, since the problem statement
-  allows variable amount of spaces and only gives a descriptive (not rigid)
-  format; the previous validator failed by being too restrictive.
-
-*/
+struct Cell {
+    int row;
+    int col;
+    array<Edge, 6> edges;
+};
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    int T = inf.readInt(1, 100, "T");
+    int t = inf.readInt(1, 100, "T");
     inf.readEoln();
 
     long long totalSpecial = 0;
 
-    for (int tc = 1; tc <= T; ++tc) {
+    for (int tc = 1; tc <= t; ++tc) {
         setTestCase(tc);
 
         int n = inf.readInt(2, 100, "n");
@@ -66,29 +34,144 @@ int main(int argc, char* argv[]) {
         int m = inf.readInt(2, 100, "m");
         inf.readEoln();
 
-        int H = 4 * n + 3;
-        int Wmax = 6 * m + 3;
+        int h = 4 * n + 3;
+        int w = 6 * m + 3;
 
-        for (int i = 0; i < H; ++i) {
-            // Read full line including spaces, no trailing spaces per statement.
-            string line = inf.readLine("[^]*", "line");
+        vector<string> grid(h);
+        for (int r = 0; r < h; ++r) {
+            grid[r] = inf.readLine("[^]*", "line");
+            ensuref((int)grid[r].size() <= w,
+                    "case %d line %d has length %d, expected at most %d",
+                    tc, r + 1, (int)grid[r].size(), w);
+            ensuref(grid[r].empty() || grid[r].back() != ' ',
+                    "case %d line %d has trailing spaces", tc, r + 1);
+        }
 
-            ensuref((int)line.size() <= Wmax,
-                    "Test case %d, line %d: length %d exceeds max %d for m=%d",
-                    tc, i + 1, (int)line.size(), Wmax, m);
+        auto at = [&](int r, int c) -> char {
+            return c < (int)grid[r].size() ? grid[r][c] : ' ';
+        };
 
-            for (int j = 0; j < (int)line.size(); ++j) {
-                char c = line[j];
-                ensuref(c == ' ' || c == '+' || c == '-' ||
-                        c == '/' || c == '\\' || c == '*',
-                        "Test case %d, invalid character '%c' at line %d, col %d",
-                        tc, c, i + 1, j + 1);
-                if (c == '*') {
-                    totalSpecial++;
-                    ensuref(totalSpecial <= 3000,
-                            "Total number of special cells across all tests exceeded 3000 (now %lld)",
-                            totalSpecial);
+        vector<string> role(h, string(w, '\0'));
+        vector<Cell> cells;
+        cells.reserve(n * m);
+        map<Edge, int> incidentCount;
+
+        auto mark = [&](int r, int c, char kind) {
+            ensuref(0 <= r && r < h && 0 <= c && c < w,
+                    "internal geometry coordinate out of range: (%d, %d)", r, c);
+            ensuref(role[r][c] == '\0' || role[r][c] == kind,
+                    "conflicting honeycomb roles at line %d col %d", r + 1, c + 1);
+            role[r][c] = kind;
+        };
+
+        auto addHorizontal = [&](array<Edge, 6>& edges, int idx, int r, int c) {
+            for (int d = 0; d < 3; ++d) {
+                mark(r, c + d, '-');
+            }
+            edges[idx] = {'-', r, c};
+            incidentCount[edges[idx]]++;
+        };
+
+        auto addDiagonal = [&](array<Edge, 6>& edges, int idx, int r, int c, char kind) {
+            mark(r, c, kind);
+            edges[idx] = {kind, r, c};
+            incidentCount[edges[idx]]++;
+        };
+
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < m; ++j) {
+                int cr = 2 + 4 * i + 2 * (j % 2);
+                int cc = 4 + 6 * j;
+
+                mark(cr - 2, cc - 2, '+');
+                mark(cr - 2, cc + 2, '+');
+                mark(cr, cc - 4, '+');
+                mark(cr, cc, '*');
+                mark(cr, cc + 4, '+');
+                mark(cr + 2, cc - 2, '+');
+                mark(cr + 2, cc + 2, '+');
+
+                Cell cell;
+                cell.row = cr;
+                cell.col = cc;
+                addHorizontal(cell.edges, 0, cr - 2, cc - 1);
+                addHorizontal(cell.edges, 1, cr + 2, cc - 1);
+                addDiagonal(cell.edges, 2, cr - 1, cc - 3, '/');
+                addDiagonal(cell.edges, 3, cr - 1, cc + 3, '\\');
+                addDiagonal(cell.edges, 4, cr + 1, cc - 3, '\\');
+                addDiagonal(cell.edges, 5, cr + 1, cc + 3, '/');
+                cells.push_back(cell);
+            }
+        }
+
+        for (int r = 0; r < h; ++r) {
+            for (int c = 0; c < w; ++c) {
+                char actual = at(r, c);
+                char expected = role[r][c];
+                if (expected == '\0') {
+                    ensuref(actual == ' ',
+                            "case %d line %d col %d must be space, found '%c'",
+                            tc, r + 1, c + 1, actual);
+                } else if (expected == '+') {
+                    ensuref(actual == '+',
+                            "case %d line %d col %d must be '+', found '%c'",
+                            tc, r + 1, c + 1, actual);
+                } else if (expected == '*') {
+                    ensuref(actual == ' ' || actual == '*',
+                            "case %d line %d col %d must be a cell center, found '%c'",
+                            tc, r + 1, c + 1, actual);
+                    if (actual == '*') {
+                        ++totalSpecial;
+                        ensuref(totalSpecial <= 3000,
+                                "total number of special cells exceeded 3000");
+                    }
+                } else if (expected == '-') {
+                    ensuref(actual == ' ' || actual == '-',
+                            "case %d line %d col %d must be horizontal edge space or '-', found '%c'",
+                            tc, r + 1, c + 1, actual);
+                } else if (expected == '/') {
+                    ensuref(actual == ' ' || actual == '/',
+                            "case %d line %d col %d must be diagonal edge space or '/', found '%c'",
+                            tc, r + 1, c + 1, actual);
+                } else {
+                    ensuref(actual == ' ' || actual == '\\',
+                            "case %d line %d col %d must be diagonal edge space or '\\', found '%c'",
+                            tc, r + 1, c + 1, actual);
                 }
+            }
+        }
+
+        auto isBlocked = [&](const Edge& edge) -> bool {
+            if (edge.kind == '-') {
+                char a = at(edge.row, edge.col);
+                char b = at(edge.row, edge.col + 1);
+                char c = at(edge.row, edge.col + 2);
+                ensuref((a == '-' && b == '-' && c == '-') ||
+                                (a == ' ' && b == ' ' && c == ' '),
+                        "case %d horizontal edge at line %d col %d must be all '-' or all spaces",
+                        tc, edge.row + 1, edge.col + 1);
+                return a == '-';
+            }
+            return at(edge.row, edge.col) == edge.kind;
+        };
+
+        for (const auto& [edge, count] : incidentCount) {
+            ensuref(count == 1 || count == 2,
+                    "case %d edge at line %d col %d has invalid incident count %d",
+                    tc, edge.row + 1, edge.col + 1, count);
+            ensuref(count != 1 || isBlocked(edge),
+                    "case %d boundary edge at line %d col %d must be untraversable",
+                    tc, edge.row + 1, edge.col + 1);
+        }
+
+        for (const Cell& cell : cells) {
+            if (at(cell.row, cell.col) == '*') {
+                continue;
+            }
+            for (const Edge& edge : cell.edges) {
+                ensuref(isBlocked(edge),
+                        "case %d non-special cell centered at line %d col %d has a traversable edge at line %d col %d",
+                        tc, cell.row + 1, cell.col + 1, edge.row + 1, edge.col + 1);
             }
         }
     }

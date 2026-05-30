@@ -11,8 +11,8 @@ int main(int argc, char* argv[]) {
     // 1. Read N, M, X
     int N = inf.readInt(2, 100000, "N");
     inf.readSpace();
-    int maxM = N * (N - 1) / 2;
-    int M = inf.readInt(1, min(maxM, 500000), "M");
+    long long maxPairs = 1LL * N * (N - 1) / 2;
+    int M = inf.readInt(1, (int)min(maxPairs, 500000LL), "M");
     inf.readSpace();
     int X = inf.readInt(1, N, "X");
     inf.readEoln();

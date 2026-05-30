@@ -42,23 +42,23 @@ int main(int argc, char* argv[]) {
         fenw_update(i, arr[i]);
     }
 
-    // Process M+K operations
     int totalOps = M + K;
+    int updates = 0;
+    int queries = 0;
     for (int op = 1; op <= totalOps; op++) {
         int type = inf.readInt(1, 2, "a");
         inf.readSpace();
         if (type == 1) {
-            // Update
+            updates++;
             int b = inf.readInt(1, N, "b");
             inf.readSpace();
             long long c = inf.readLong((long long)LLONG_MIN, (long long)LLONG_MAX, "c");
             inf.readEoln();
-            // Apply in validator
             __int128_t delta = ( __int128_t )c - arr[b];
             arr[b] = c;
             fenw_update(b, delta);
         } else {
-            // Query
+            queries++;
             int b = inf.readInt(1, N, "b");
             inf.readSpace();
             int c = inf.readInt(1, N, "c");
@@ -73,6 +73,8 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    ensuref(updates == M, "Expected %d update operations, found %d", M, updates);
+    ensuref(queries == K, "Expected %d query operations, found %d", K, queries);
     inf.readEof();
     return 0;
 }

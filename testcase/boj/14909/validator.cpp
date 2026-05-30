@@ -1,52 +1,55 @@
 #include "testlib.h"
-#include <string>
-#include <vector>
-#include <sstream>
-#include <cstdlib>
+#include <bits/stdc++.h>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read the single line of input containing up to 1,000,000 integers
-    // We read the entire line (at least one character)
-    string line = inf.readLine("[^]+", "line");
-    
-    // Split by whitespace into tokens
-    istringstream iss(line);
-    vector<string> tokens;
-    string tok;
-    while (iss >> tok) {
-        tokens.push_back(tok);
-    }
-    
-    // Must have at least one integer, at most 1e6
-    int n = tokens.size();
-    ensuref(n >= 1, "There must be at least one integer on the line");
-    ensuref(n <= 1000000, "Number of integers (%d) exceeds limit 1e6", n);
-    
-    // Validate each token is a valid integer in [-1e6, 1e6] without '+' sign
-    for (int i = 0; i < n; i++) {
-        const string &s = tokens[i];
-        // Disallow a leading '+' sign
-        ensuref(s.empty() == false, "Empty token at position %d", i);
-        ensuref(s[0] != '+', "Leading '+' not allowed in token %d: '%s'", i, s.c_str());
-        
-        // Parse with strtol to ensure full match and range
-        char *endptr = nullptr;
-        errno = 0;
-        long val = strtol(s.c_str(), &endptr, 10);
-        // Check that entire string was consumed and no overflow/underflow
-        ensuref(endptr != s.c_str() && *endptr == '\0',
-                "Invalid integer format at token %d: '%s'", i, s.c_str());
-        ensuref(errno == 0,
-                "Integer overflow/underflow at token %d: '%s'", i, s.c_str());
-        // Check bounds
-        ensuref(val >= -1000000 && val <= 1000000,
-                "Integer out of range [-1e6,1e6] at token %d: %ld", i, val);
+    string line = inf.readLine("[^]+", "numbers");
+
+    ensuref(!line.empty(), "the line must contain at least one integer");
+    ensuref(line.front() != ' ', "leading space is not allowed");
+    ensuref(line.back() != ' ', "trailing space is not allowed");
+
+    int count = 0;
+    size_t pos = 0;
+    while (pos < line.size()) {
+        size_t next = line.find(' ', pos);
+        string token = line.substr(pos, next == string::npos ? string::npos : next - pos);
+
+        ensuref(!token.empty(), "repeated spaces are not allowed");
+        ensuref(++count <= 1000000, "too many integers: %d", count);
+
+        size_t digitStart = 0;
+        bool negative = false;
+        if (token[0] == '-') {
+            negative = true;
+            digitStart = 1;
+            ensuref(token.size() > 1, "minus sign without digits at integer %d", count);
+        }
+
+        ensuref(token[digitStart] >= '0' && token[digitStart] <= '9',
+                "invalid integer at position %d: %s", count, token.c_str());
+        for (size_t i = digitStart + 1; i < token.size(); ++i) {
+            ensuref(token[i] >= '0' && token[i] <= '9',
+                    "invalid integer at position %d: %s", count, token.c_str());
+        }
+
+        if (token[digitStart] == '0') {
+            ensuref(token.size() == digitStart + 1,
+                    "non-canonical leading zero at integer %d: %s", count, token.c_str());
+            ensuref(!negative, "non-canonical negative zero at integer %d", count);
+        }
+
+        long long value = stoll(token);
+        ensuref(-1000000 <= value && value <= 1000000,
+                "integer %d is out of range: %lld", count, value);
+
+        if (next == string::npos) {
+            break;
+        }
+        pos = next + 1;
     }
 
-    // After the single line, there must be EOF immediately
     inf.readEof();
-    return 0;
 }

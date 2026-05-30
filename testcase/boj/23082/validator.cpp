@@ -12,7 +12,7 @@ int main(int argc, char* argv[]) {
 
     // Check for leading zeros (except for "0" itself)
     if (n_str[0] == '-') {
-        ensuref(n_str.size() == 2 || n_str[1] != '0', "Negative number with leading zeros: %s", n_str.c_str());
+        ensuref(n_str[1] != '0', "Negative number with leading zeros: %s", n_str.c_str());
         ensuref(n_str.size() <= 11, "Too many digits for negative N: %s", n_str.c_str());
     } else {
         ensuref(n_str == "0" || n_str[0] != '0', "Leading zeros in N: %s", n_str.c_str());

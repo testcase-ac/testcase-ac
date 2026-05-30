@@ -46,6 +46,13 @@ int main(int argc, char* argv[]) {
             ensuref((int)tok.size() > 1, "Token '-' alone is not a valid integer at index %d", i);
             start = 1;
         }
+        if (start == 0) {
+            ensuref(tok == "0" || tok[0] != '0',
+                    "Non-canonical integer with leading zero at index %d: '%s'", i, tok.c_str());
+        } else {
+            ensuref(tok[1] != '0',
+                    "Non-canonical negative integer at index %d: '%s'", i, tok.c_str());
+        }
         for (int j = start; j < (int)tok.size(); j++) {
             ensuref(isdigit(tok[j]), "Non-digit character '%c' in number at index %d pos %d", tok[j], i, j);
         }

@@ -21,9 +21,8 @@ int main(int argc, char* argv[]) {
     // Read N, M
     int N = inf.readInt(1, 1000, "N");
     inf.readSpace();
-    // Maximum possible undirected edges without loops is N*(N-1)/2
-    int maxM = N * (N - 1) / 2;
-    int M = inf.readInt(0, maxM, "M");
+    // CHECK: the statement gives no explicit M bound and does not forbid parallel lines.
+    int M = inf.readInt(0, 1000000, "M");
     inf.readEoln();
 
     DSU dsu(N);

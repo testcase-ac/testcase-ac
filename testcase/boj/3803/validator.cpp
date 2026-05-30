@@ -1,119 +1,135 @@
 #include "testlib.h"
-#include <vector>
-#include <string>
-#include <sstream>
-#include <algorithm>
+
+#include <bits/stdc++.h>
 using namespace std;
 
-const int MAX_P = 50;
-const int MAX_LEN = 100;
-const int MAX_TESTCASES = 100000;
+namespace {
 
-void check_connected(int P, const vector<vector<int>>& adj) {
-    // BFS from node 1
-    vector<bool> vis(P + 1, false);
-    vector<int> q;
-    q.push_back(1);
-    vis[1] = true;
-    for (size_t i = 0; i < q.size(); ++i) {
-        int v = q[i];
-        for (int u : adj[v]) {
-            if (!vis[u]) {
-                vis[u] = true;
-                q.push_back(u);
+constexpr int kMaxPoints = 50;
+constexpr int kMaxLength = 100;
+constexpr int kMaxDatasets = 100000;
+// CHECK: The statement says the number of routes is unlimited. This cap keeps
+// validation finite while allowing far more routes than a 50-point graph needs.
+constexpr int kMaxRoutesPerDataset = 100000;
+constexpr int kMaxTotalRoutes = 1000000;
+
+vector<string> splitWords(const string& line, const string& what) {
+    ensuref(!line.empty(), "%s must not be empty", what.c_str());
+    ensuref(line.front() != ' ' && line.back() != ' ',
+            "%s must not have leading or trailing spaces", what.c_str());
+
+    vector<string> words;
+    string current;
+    for (char ch : line) {
+        ensuref(ch == ' ' || isdigit(static_cast<unsigned char>(ch)),
+                "%s contains invalid character", what.c_str());
+        if (ch == ' ') {
+            ensuref(!current.empty(), "%s contains repeated spaces", what.c_str());
+            words.push_back(current);
+            current.clear();
+        } else {
+            current.push_back(ch);
+        }
+    }
+    ensuref(!current.empty(), "%s contains repeated spaces", what.c_str());
+    words.push_back(current);
+    return words;
+}
+
+int parseIntToken(const string& token, int low, int high, const string& name) {
+    ensuref(token.size() == 1 || token.front() != '0',
+            "%s must not contain leading zeroes", name.c_str());
+
+    long long value = 0;
+    for (char ch : token) {
+        value = value * 10 + (ch - '0');
+        ensuref(value <= high, "%s must be at most %d", name.c_str(), high);
+    }
+    ensuref(value >= low, "%s must be at least %d", name.c_str(), low);
+    return static_cast<int>(value);
+}
+
+void requireConnected(int p, const vector<vector<int>>& graph) {
+    vector<int> seen(p + 1);
+    queue<int> q;
+    seen[1] = 1;
+    q.push(1);
+
+    while (!q.empty()) {
+        int v = q.front();
+        q.pop();
+        for (int to : graph[v]) {
+            if (!seen[to]) {
+                seen[to] = 1;
+                q.push(to);
             }
         }
     }
-    for (int i = 1; i <= P; ++i) {
-        ensuref(vis[i], "Graph is not connected: node %d is unreachable", i);
+
+    for (int i = 1; i <= p; ++i) {
+        ensuref(seen[i], "point %d is not connected to point 1", i);
     }
 }
+
+}  // namespace
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    int testcases = 0;
-    bool first_case = true;
+    int datasets = 0;
+    int totalRoutes = 0;
+    string headerLine = inf.readLine("[^\n]*", "dataset header");
 
     while (true) {
-        // Handle empty line between datasets (except before first case)
-        if (!first_case) {
-            // The next character must be '\n' (empty line)
-            char c = inf.readChar();
-            ensuref(c == '\n', "Expected empty line between datasets, but got char code %d", int(c));
-        }
-        first_case = false;
-
-        // Read the header line (could be "0" or "P R")
-        string header = inf.readLine("[^]+", "dataset header");
-        // Remove leading/trailing spaces
-        size_t start = header.find_first_not_of(' ');
-        size_t end = header.find_last_not_of(' ');
-        if (start == string::npos) header = "";
-        else header = header.substr(start, end - start + 1);
-
-        // Split header into tokens
-        vector<string> tokens;
-        stringstream ss(header);
-        string token;
-        while (ss >> token) tokens.push_back(token);
-
-        ensuref(tokens.size() >= 1 && tokens.size() <= 2, "Header line must have 1 or 2 integers, got: '%s'", header.c_str());
-
-        int P = -1, R = -1;
-        // Parse P
-        ensuref(!tokens[0].empty(), "First token (P) is empty in header line: '%s'", header.c_str());
-        ensuref(tokens[0].find_first_not_of("0123456789") == string::npos, "P must be a non-negative integer, got '%s'", tokens[0].c_str());
-        P = stoi(tokens[0]);
-        ensuref(P >= 0 && P <= MAX_P, "P must be in [0, %d], got %d", MAX_P, P);
-
-        if (P == 0) {
-            // End of input
-            ensuref(tokens.size() == 1, "When P=0, header line must have only one token");
+        vector<string> header = splitWords(headerLine, "dataset header");
+        ensuref(header.size() == 1 || header.size() == 2,
+                "dataset header must contain P or P R");
+        int p = parseIntToken(header[0], 0, kMaxPoints, "P");
+        if (p == 0) {
+            ensuref(header.size() == 1, "terminating dataset must contain only P=0");
             inf.readEof();
             return 0;
         }
 
-        // Parse R
-        ensuref(tokens.size() == 2, "Header line must have two integers when P != 0");
-        ensuref(!tokens[1].empty(), "Second token (R) is empty in header line: '%s'", header.c_str());
-        ensuref(tokens[1].find_first_not_of("0123456789") == string::npos, "R must be a non-negative integer, got '%s'", tokens[1].c_str());
-        R = stoi(tokens[1]);
-        ensuref(R >= 0, "R must be non-negative, got %d", R);
+        ensuref(header.size() == 2, "non-terminating dataset header must contain P R");
+        int r = parseIntToken(header[1], 0, kMaxRoutesPerDataset, "R");
 
-        testcases++;
-        ensuref(testcases <= MAX_TESTCASES, "Too many testcases: %d (max %d)", testcases, MAX_TESTCASES);
+        ++datasets;
+        ensuref(datasets <= kMaxDatasets, "too many datasets: %d", datasets);
+        ensuref(totalRoutes + r <= kMaxTotalRoutes,
+                "too many total routes: %d", totalRoutes + r);
 
-        // For P == 1, R must be 0 (no routes possible)
-        if (P == 1) {
-            ensuref(R == 0, "If P == 1, R must be 0, got %d", R);
+        vector<vector<int>> graph(p + 1);
+        for (int i = 1; i <= r; ++i) {
+            string routeLine = inf.readLine("[^\n]*", "route");
+            vector<string> route = splitWords(routeLine, "route");
+            ensuref(route.size() == 3, "route %d must contain three integers", i);
+
+            int a = parseIntToken(route[0], 1, p, "route_start");
+            int b = parseIntToken(route[1], 1, p, "route_end");
+            int length = parseIntToken(route[2], 1, kMaxLength, "route_length");
+
+            ensuref(a != b, "route %d connects point %d to itself", i, a);
+            (void)length;
+            graph[a].push_back(b);
+            graph[b].push_back(a);
         }
 
-        // Read R lines of routes
-        // For each route: a b l
-        // a, b in [1, P], l in [1, 100]
-        // Multiple routes between same pair allowed, direction may be reversed
-        vector<vector<int>> adj(P + 1); // 1-based, for connectivity check
-        for (int i = 0; i < R; ++i) {
-            int a = inf.readInt(1, P, "a");
-            inf.readSpace();
-            int b = inf.readInt(1, P, "b");
-            inf.readSpace();
-            int l = inf.readInt(1, MAX_LEN, "l");
-            inf.readEoln();
-
-            // Self-loops are allowed by statement
-
-            // Store for connectivity check (undirected)
-            adj[a].push_back(b);
-            adj[b].push_back(a);
+        if (p >= 2) {
+            requireConnected(p, graph);
+        } else {
+            ensuref(r == 0, "a one-point dataset cannot have routes");
         }
 
-        // For P >= 2, must check that the graph is connected (undirected)
-        if (P >= 2) {
-            ensuref(R > 0, "For P >= 2, R must be at least 1 to be connected");
-            check_connected(P, adj);
+        totalRoutes += r;
+
+        headerLine = inf.readLine("[^\n]*", "dataset separator or header");
+        // CHECK: The input section says datasets are separated by an empty line,
+        // but the official sample in the statement artifact omits those blank
+        // lines. Accept either spelling and still reject extra blank lines.
+        if (headerLine.empty()) {
+            headerLine = inf.readLine("[^\n]*", "dataset header");
+            ensuref(!headerLine.empty(), "only one empty line may separate datasets");
         }
-        // After each dataset, expect either EOF (if next is 0), or an empty line (checked at top of loop)
     }
 }

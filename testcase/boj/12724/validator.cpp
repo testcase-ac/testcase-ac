@@ -5,13 +5,11 @@ using namespace std;
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Number of test cases T, 1 <= T <= 10
-    int T = inf.readInt(1, 10, "T");
+    int T = inf.readInt(10, 10, "T");
     inf.readEoln();
 
     for (int tc = 1; tc <= T; tc++) {
-        // Read n: vector size 1 <= n <= 800
-        int n = inf.readInt(1, 800, "n");
+        int n = inf.readInt(100, 800, "n");
         inf.readEoln();
 
         // Read first vector v1

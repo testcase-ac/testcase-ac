@@ -13,9 +13,12 @@ int main(int argc, char* argv[]) {
 
     // Maximum possible distinct cut lines is (H-1) horizontal + (W-1) vertical
     int maxCuts = (H >= 1 ? H - 1 : 0) + (W >= 1 ? W - 1 : 0);
-    // The problem statement says "number of cuts" is a natural number; allow zero cuts too.
+    // The statement gives the number of cut lines but does not require it to be positive.
     int m = inf.readInt(0, maxCuts, "m");
     inf.readEoln();
+
+    vector<bool> seenHorizontal(H + 1, false);
+    vector<bool> seenVertical(W + 1, false);
 
     // Read each cut
     for (int i = 0; i < m; i++) {
@@ -26,11 +29,15 @@ int main(int argc, char* argv[]) {
             ensuref(H >= 2,
                     "Cannot have a horizontal cut when H = %d (no available horizontal grid lines)", H);
             int k = inf.readInt(1, H - 1, "k_i");
+            ensuref(!seenHorizontal[k], "duplicate horizontal cut line: %d", k);
+            seenHorizontal[k] = true;
         } else {
             // Vertical cut at a vertical grid line: must be between 1 and W-1
             ensuref(W >= 2,
                     "Cannot have a vertical cut when W = %d (no available vertical grid lines)", W);
             int k = inf.readInt(1, W - 1, "k_i");
+            ensuref(!seenVertical[k], "duplicate vertical cut line: %d", k);
+            seenVertical[k] = true;
         }
         inf.readEoln();
     }

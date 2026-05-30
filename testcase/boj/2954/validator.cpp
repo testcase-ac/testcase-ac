@@ -2,23 +2,23 @@
 #include <string>
 using namespace std;
 
+static bool isVowel(char c) {
+    return c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u';
+}
+
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read the single line: must be 1 to 100 characters of lowercase letters or spaces.
-    // Note: in testlib regex, space inside character class must be escaped as '\ '.
     string s = inf.readLine(R"([a-z\ ]{1,100})", "s");
     int n = (int)s.size();
     ensuref(n >= 1 && n <= 100,
             "Length of the sentence must be between 1 and 100, found %d", n);
 
-    // No leading or trailing spaces
     ensuref(s.front() != ' ',
             "Leading space is not allowed");
     ensuref(s.back() != ' ',
             "Trailing space is not allowed");
 
-    // Check characters and no consecutive spaces
     for (int i = 0; i < n; i++) {
         char c = s[i];
         ensuref((c >= 'a' && c <= 'z') || c == ' ',
@@ -33,7 +33,17 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // No extra input
+    for (int i = 0; i < n; i++) {
+        if (!isVowel(s[i])) {
+            continue;
+        }
+        ensuref(i + 2 < n,
+                "Vowel at position %d is not followed by a full encoded triplet", i);
+        ensuref(s[i + 1] == 'p' && s[i + 2] == s[i],
+                "Vowel at position %d is not followed by p and the same vowel", i);
+        i += 2;
+    }
+
     inf.readEof();
     return 0;
 }

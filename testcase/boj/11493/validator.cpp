@@ -73,6 +73,16 @@ int main(int argc, char* argv[]) {
         // Read coin colors: 0 or 1
         vector<int> coin_color = inf.readInts(n, 0, 1, "coin_color_i");
         inf.readEoln();
+
+        int vertex_black = 0;
+        int coin_black = 0;
+        for (int i = 0; i < n; i++) {
+            vertex_black += vertex_color[i] == 0;
+            coin_black += coin_color[i] == 0;
+        }
+        ensuref(vertex_black == coin_black,
+                "test case %d has %d black vertices but %d black coins",
+                tc, vertex_black, coin_black);
     }
 
     inf.readEof();

@@ -22,8 +22,7 @@ int cmpHex(const string& a, const string& b) {
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // T is not explicitly bounded in statement, assume up to 100000
-    int T = inf.readInt(1, 100000, "T");
+    int T = inf.readInt(1, 100, "T");
     inf.readEoln();
 
     for (int tc = 1; tc <= T; ++tc) {

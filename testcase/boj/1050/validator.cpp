@@ -74,6 +74,7 @@ int main(int argc, char* argv[]) {
             if (pos < rhs.size()) {
                 ensuref(rhs[pos] == '+', "Recipe line %d: expected '+' at pos %zu: %s", i+1, pos, rhs.c_str());
                 ++pos;
+                ensuref(pos < rhs.size(), "Recipe line %d: trailing '+' leaves an empty ingredient term: %s", i+1, rhs.c_str());
             }
         }
         ensuref(!ingredients.empty(), "Recipe line %d: no ingredients found", i+1);

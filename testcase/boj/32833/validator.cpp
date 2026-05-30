@@ -61,6 +61,9 @@ int main(int argc, char* argv[]) {
         if (i % 2 == 1) {
             // y-coordinate: vertical edge
             ll new_y = v[i];
+            ensuref(new_y > 0,
+                "Upper-chain horizontal edge y-coordinate must be above the base: v[%d]=%lld",
+                i + 1, new_y);
             ensuref(abs(new_y - cur_y) >= 1,
                 "Vertical edge at index %d has length < 1: |%lld - %lld|",
                 i + 1, new_y, cur_y);

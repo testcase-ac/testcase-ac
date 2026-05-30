@@ -15,6 +15,8 @@ int main(int argc, char* argv[]) {
 
     vector<string> board(N);
     int ballCount = 0;
+    int ballRow = -1;
+    int ballCol = -1;
 
     for (int i = 0; i < N; ++i) {
         board[i] = inf.readToken("[.XL]{"+toString(N)+","+toString(N)+"}", "board_row");
@@ -23,7 +25,11 @@ int main(int argc, char* argv[]) {
                 i + 1, N, (int)board[i].size());
         for (int j = 0; j < N; ++j) {
             char c = board[i][j];
-            if (c == 'L') ballCount++;
+            if (c == 'L') {
+                ballCount++;
+                ballRow = i;
+                ballCol = j;
+            }
             // '.' or 'X' are already guaranteed by regex
         }
         inf.readEoln();
@@ -32,6 +38,8 @@ int main(int argc, char* argv[]) {
     // Exactly one ball must exist
     ensuref(ballCount == 1,
             "There must be exactly one ball 'L', but found %d", ballCount);
+    ensuref(ballRow == N - 1 || board[ballRow + 1][ballCol] == 'X',
+            "The ball must be supported by a wall or the board floor");
 
     // Read K rotation commands, each line is exactly 'L' or 'D'
     for (int i = 0; i < K; ++i) {

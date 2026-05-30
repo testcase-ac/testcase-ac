@@ -12,17 +12,18 @@ int main(int argc, char* argv[]) {
     ensuref(plaintext.size() <= 30000,
             "Plaintext length exceeds 30000: %d", (int)plaintext.size());
     // Check allowed characters
+    bool hasLetter = false;
     for (int i = 0; i < (int)plaintext.size(); i++) {
         char c = plaintext[i];
         ensuref((c >= 'a' && c <= 'z') || c == ' ',
                 "Invalid character in plaintext at position %d: '%c'", i, c);
+        hasLetter = hasLetter || (c >= 'a' && c <= 'z');
     }
+    ensuref(hasLetter, "Plaintext must contain at least one lowercase letter");
 
-    // Read the key: must be non-empty, only lowercase letters, and length ≤ 30000
+    // Read the key: must be non-empty and only lowercase letters.
     // We use readToken since key has no spaces.
     string key = inf.readToken("[a-z]+", "key");
-    ensuref(key.size() <= 30000,
-            "Key length exceeds 30000: %d", (int)key.size());
 
     // After the key token, there must be exactly one newline
     inf.readEoln();

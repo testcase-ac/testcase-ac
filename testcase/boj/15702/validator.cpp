@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     set<int> examinee_numbers;
     for (int i = 0; i < M; ++i) {
         // Read examinee number
-        int num = inf.readInt(0, 100000, "examinee_number");
+        int num = inf.readInt(1, 100000, "examinee_number");
         ensuref(examinee_numbers.count(num) == 0, "Duplicate examinee number at line %d: %d", i+3, num);
         examinee_numbers.insert(num);
 

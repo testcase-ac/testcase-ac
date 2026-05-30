@@ -1,7 +1,5 @@
 #include "testlib.h"
 #include <vector>
-#include <set>
-#include <algorithm>
 using namespace std;
 
 int main(int argc, char* argv[]) {
@@ -22,15 +20,12 @@ int main(int argc, char* argv[]) {
     }
 
     // 3. Read M relations, check for valid indices, and no self-dependency
-    set<pair<int,int>> rels;
     for (int i = 0; i < M; ++i) {
         int s = inf.readInt(1, N, "s_i");
         inf.readSpace();
         int e = inf.readInt(1, N, "e_i");
         inf.readEoln();
         ensuref(s != e, "Self-dependency detected at relation %d: (%d, %d)", i+1, s, e);
-        ensuref(!rels.count({s, e}), "Duplicate dependency detected at relation %d: (%d, %d)", i+1, s, e);
-        rels.insert({s, e});
     }
 
     // 4. Check for cycles and build SCCs (for global property)

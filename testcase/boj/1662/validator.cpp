@@ -4,6 +4,8 @@
 #include <cassert>
 using namespace std;
 
+constexpr long long kMaxDecompressedLength = 2147473647LL;
+
 // Returns the decompressed length of s[l, r)
 long long decompress_length(const string& s, int l, int r) {
     long long total = 0;
@@ -28,14 +30,17 @@ long long decompress_length(const string& s, int l, int r) {
                 ensuref(len >= 0, "Negative length in decompression");
                 // Check for overflow
                 __int128_t prod = (__int128_t)K * (__int128_t)len;
-                ensuref(prod <= 2147483647LL, "Decompressed length exceeds 2,147,483,647 at position %d", i);
+                ensuref(prod <= kMaxDecompressedLength,
+                        "Decompressed length exceeds 2,147,473,647 at position %d", i);
                 total += (long long)prod;
-                ensuref(total <= 2147483647LL, "Total decompressed length exceeds 2,147,483,647");
+                ensuref(total <= kMaxDecompressedLength,
+                        "Total decompressed length exceeds 2,147,473,647");
                 i = j;
             } else {
                 // Just a digit, counts as 1
                 total++;
-                ensuref(total <= 2147483647LL, "Total decompressed length exceeds 2,147,483,647");
+                ensuref(total <= kMaxDecompressedLength,
+                        "Total decompressed length exceeds 2,147,473,647");
                 i++;
             }
         } else if (s[i] == '(' || s[i] == ')') {
@@ -83,7 +88,7 @@ int main(int argc, char* argv[]) {
     // Check that all K(Q) patterns have K as a single digit, and Q can be empty or any valid substring
     // (Already enforced by the above checks and the decompress_length function)
 
-    // Check decompressed length is <= 2,147,483,647 and does not overflow during computation
+    // Check decompressed length is <= 2,147,473,647 and does not overflow during computation
     decompress_length(S, 0, S.size());
 
     inf.readEof();

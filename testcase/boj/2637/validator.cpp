@@ -96,15 +96,13 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // Validate final product counts
-    __int128_t totalSum = 0;
+    // Validate final product counts.
     for (int i = 1; i <= N; i++) {
         if (!is_basic[i]) continue;
         if (dp[N][i] > 0) {
-            totalSum += dp[N][i];
-            ensuref(totalSum <= LIMIT,
-                    "Total required basic parts for final product %d exceeds limit %lld",
-                    N, LIMIT);
+            ensuref(dp[N][i] <= LIMIT,
+                    "Required count for basic part %d in assembling final product %d exceeds limit %lld",
+                    i, N, LIMIT);
         }
     }
 

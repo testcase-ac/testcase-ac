@@ -1,96 +1,85 @@
 #include "testlib.h"
 #include <bits/stdc++.h>
 using namespace std;
-using ll = long long;
 
-struct Point { 
-    ll x, y; 
+using int64 = long long;
+using i128 = __int128_t;
+
+struct Point {
+    int64 x;
+    int64 y;
 };
 
-ll cross(const Point &a, const Point &b) {
-    return a.x * b.y - a.y * b.x;
-}
-ll cross(const Point &a, const Point &b, const Point &c) {
-    // cross of (b-a) x (c-a)
-    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+static i128 cross(Point a, Point b) {
+    return (i128)a.x * b.y - (i128)a.y * b.x;
 }
 
-// point-in-polygon (ray casting) for origin
-// returns +1 if inside, 0 if on boundary, -1 if outside
-int pointInPoly(const vector<Point>& P) {
-    int n = P.size();
-    bool inside = false;
-    for (int i = 0, j = n-1; i < n; j = i++) {
-        const Point &a = P[j], &b = P[i];
-        // check if origin is on segment ab
-        ll cr = cross(a, b, {0,0});
-        if (cr == 0) {
-            // check bounding box
-            if (min(a.x,b.x) <= 0 && 0 <= max(a.x,b.x)
-             && min(a.y,b.y) <= 0 && 0 <= max(a.y,b.y))
-                return 0;
-        }
-        // ray cast to the right (positive x)
-        // count edges crossing ray from (0,0) horizontally
-        bool cond1 = (a.y > 0) != (b.y > 0);
-        if (cond1) {
-            // intersection x-coordinate
-            double xint = a.x + (double)(b.x - a.x) * (0 - a.y) / (double)(b.y - a.y);
-            if (xint > 0) inside = !inside;
-        }
-    }
-    return inside ? 1 : -1;
+static i128 cross(Point a, Point b, Point c) {
+    return cross({b.x - a.x, b.y - a.y}, {c.x - a.x, c.y - a.y});
+}
+
+static int half(Point p) {
+    return p.y > 0 || (p.y == 0 && p.x >= 0) ? 0 : 1;
+}
+
+static bool polarLess(Point a, Point b) {
+    int ha = half(a), hb = half(b);
+    if (ha != hb) return ha < hb;
+    i128 cr = cross(a, b);
+    if (cr != 0) return cr > 0;
+    return (i128)a.x * a.x + (i128)a.y * a.y < (i128)b.x * b.x + (i128)b.y * b.y;
 }
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read N
-    int N = inf.readInt(3, 300000, "N");
+    int n = inf.readInt(3, 300000, "N");
     inf.readEoln();
 
-    vector<Point> P(N);
-    for (int i = 0; i < N; i++) {
-        P[i].x = inf.readLong(-1000000LL, 1000000LL, "x_i");
+    vector<Point> p(n);
+    set<pair<int64, int64>> seen;
+    for (int i = 0; i < n; ++i) {
+        p[i].x = inf.readLong(-1000000LL, 1000000LL, "x_i");
         inf.readSpace();
-        P[i].y = inf.readLong(-1000000LL, 1000000LL, "y_i");
+        p[i].y = inf.readLong(-1000000LL, 1000000LL, "y_i");
         inf.readEoln();
+        ensuref(seen.insert({p[i].x, p[i].y}).second,
+                "duplicate vertex at index %d: (%lld, %lld)", i + 1, p[i].x, p[i].y);
     }
 
-    // 1) Compute signed area to ensure CCW and non-degenerate
-    //    Also ensures polygon not self-crossing in this basic sense.
-    __int128 area2 = 0;
-    for (int i = 0; i < N; i++) {
-        int j = (i+1)%N;
-        area2 += (__int128)P[i].x * P[j].y - (__int128)P[i].y * P[j].x;
+    i128 area2 = 0;
+    for (int i = 0; i < n; ++i) {
+        Point a = p[i];
+        Point b = p[(i + 1) % n];
+        area2 += cross(a, b);
+        ensuref(cross(a, b) >= 0,
+                "origin is outside the polygon kernel at edge %d", i + 1);
     }
-    ensuref(area2 > 0, "Polygon must be CCW with positive area; computed area2 = %lld", (long long)area2);
-    // note: area2 != 0 ensures non-degenerate overall polygon.
-    
-    // 2) No three consecutive collinear
-    for (int i = 0; i < N; i++) {
-        int i1 = (i+1)%N, i2 = (i+2)%N;
-        ll cr = cross(P[i], P[i1], P[i2]);
-        ensuref(cr != 0, "Three consecutive points are collinear at indices %d, %d, %d", i, i1, i2);
-    }
+    ensuref(area2 > 0, "polygon vertices must be given in counterclockwise order");
 
-    // 3) Origin is inside or on boundary
-    int pip = pointInPoly(P);
-    ensuref(pip >= 0, "Origin must be inside or on boundary of polygon; test gives %d", pip);
-
-    // 4) Star-shaped wrt origin <=> origin in kernel of polygon
-    //    For each directed edge Pi->P{i+1}, interior is to left, so origin must be on left side or on.
-    for (int i = 0; i < N; i++) {
-        int j = (i+1)%N;
-        // edge vector E = P[j] - P[i], vector to origin V = (0,0) - P[i]
-        Point E{P[j].x - P[i].x, P[j].y - P[i].y};
-        Point V{-P[i].x, -P[i].y};
-        ll cr = cross(E, V);
-        ensuref(cr >= 0, "Origin is outside kernel at edge %d: cross = %lld", i, cr);
+    for (int i = 0; i < n; ++i) {
+        Point a = p[i];
+        Point b = p[(i + 1) % n];
+        Point c = p[(i + 2) % n];
+        ensuref(cross(a, b, c) != 0,
+                "three consecutive vertices are collinear at indices %d, %d, %d",
+                i + 1, (i + 1) % n + 1, (i + 2) % n + 1);
     }
 
-    // Note: the problem states the polygon is simple (no self intersections),
-    // but full self-intersection checking is omitted here for brevity.
+    int first = 0;
+    for (int i = 1; i < n; ++i) {
+        if (polarLess(p[i], p[first])) first = i;
+    }
+
+    bool hasPositiveStep = false;
+    for (int k = 0; k + 1 < n; ++k) {
+        int i = (first + k) % n;
+        int j = (first + k + 1) % n;
+        ensuref(!polarLess(p[j], p[i]),
+                "vertices are not in counterclockwise radial order at edge %d", i + 1);
+        hasPositiveStep = hasPositiveStep || cross(p[i], p[j]) > 0;
+    }
+    ensuref(hasPositiveStep, "polygon must make a positive counterclockwise turn");
 
     inf.readEof();
     return 0;

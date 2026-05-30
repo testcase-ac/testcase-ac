@@ -15,6 +15,7 @@ int main(int argc, char* argv[]) {
 
     // Prepare parent array: parent[v] = u if u is parent of v
     vector<int> parent(N+1, 0);
+    vector<vector<int>> children(N+1);
 
     // Read N-1 edges
     for (int i = 0; i < N - 1; i++) {
@@ -34,6 +35,7 @@ int main(int argc, char* argv[]) {
                 "Multiple parents detected for node %d at edge %d: previous parent %d, new parent %d",
                 v, i+1, parent[v], u);
         parent[v] = u;
+        children[u].push_back(v);
     }
 
     // Check root has no parent
@@ -44,6 +46,25 @@ int main(int argc, char* argv[]) {
         ensuref(parent[v] != 0,
                 "Node %d has no parent", v);
     }
+
+    vector<char> seen(N+1, 0);
+    vector<int> stack;
+    stack.push_back(1);
+    seen[1] = 1;
+    int reachable = 0;
+    while (!stack.empty()) {
+        int u = stack.back();
+        stack.pop_back();
+        ++reachable;
+        for (int v : children[u]) {
+            ensuref(!seen[v], "Node %d is reached more than once", v);
+            seen[v] = 1;
+            stack.push_back(v);
+        }
+    }
+    ensuref(reachable == N,
+            "The parent-child edges do not form one rooted tree: %d of %d nodes are reachable from node 1",
+            reachable, N);
 
     // Finally, ensure EOF immediately after the last newline
     inf.readEof();

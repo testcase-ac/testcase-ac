@@ -6,25 +6,54 @@ struct P {
     long long x, y;
 };
 
-long double cross(const P &a, const P &b, const P &c) {
-    return (long double)(b.x - a.x) * (c.y - a.y) -
-           (long double)(b.y - a.y) * (c.x - a.x);
+bool operator<(const P &a, const P &b) {
+    if (a.x != b.x) return a.x < b.x;
+    return a.y < b.y;
 }
 
-long double areaPolygon(const vector<P> &p) {
+bool operator==(const P &a, const P &b) {
+    return a.x == b.x && a.y == b.y;
+}
+
+__int128 cross(const P &a, const P &b, const P &c) {
+    return (__int128)(b.x - a.x) * (c.y - a.y) -
+           (__int128)(b.y - a.y) * (c.x - a.x);
+}
+
+__int128 signedDoubleArea(const vector<P> &p) {
+    __int128 s = 0;
     int n = (int)p.size();
-    long double s = 0;
     for (int i = 0; i < n; ++i) {
         int j = (i + 1) % n;
-        s += (long double)p[i].x * p[j].y - (long double)p[i].y * p[j].x;
+        s += (__int128)p[i].x * p[j].y - (__int128)p[i].y * p[j].x;
     }
-    return fabsl(s) * 0.5L;
+    return s;
 }
 
-long double dist(const P &a, const P &b) {
-    long double dx = (long double)b.x - a.x;
-    long double dy = (long double)b.y - a.y;
-    return sqrtl(dx * dx + dy * dy);
+vector<P> convexHull(vector<P> pts) {
+    sort(pts.begin(), pts.end());
+
+    vector<P> lower, upper;
+    for (const P &p : pts) {
+        while (lower.size() >= 2 &&
+               cross(lower[lower.size() - 2], lower.back(), p) <= 0) {
+            lower.pop_back();
+        }
+        lower.push_back(p);
+    }
+    for (int i = (int)pts.size() - 1; i >= 0; --i) {
+        const P &p = pts[i];
+        while (upper.size() >= 2 &&
+               cross(upper[upper.size() - 2], upper.back(), p) <= 0) {
+            upper.pop_back();
+        }
+        upper.push_back(p);
+    }
+
+    lower.pop_back();
+    upper.pop_back();
+    lower.insert(lower.end(), upper.begin(), upper.end());
+    return lower;
 }
 
 int main(int argc, char* argv[]) {
@@ -42,52 +71,34 @@ int main(int argc, char* argv[]) {
         v[i] = {x, y};
     }
 
-    // Basic polygon validations
-
-    // 1) All vertices distinct
     {
-        vector<pair<long long,long long>> pts;
-        pts.reserve(N);
-        for (auto &p : v) pts.push_back({p.x, p.y});
+        vector<P> pts = v;
         sort(pts.begin(), pts.end());
         for (int i = 1; i < N; ++i) {
-            ensuref(!(pts[i] == pts[i-1]),
+            ensuref(!(pts[i] == pts[i - 1]),
                     "Duplicate vertex coordinates at positions with value (%lld,%lld)",
-                    pts[i].first, pts[i].second);
+                    pts[i].x, pts[i].y);
         }
     }
 
-    // 2) Non-zero area
-    long double A = areaPolygon(v);
-    ensuref(A > 0, "Polygon area must be positive");
+    ensuref(signedDoubleArea(v) > 0, "Polygon orientation must be counter-clockwise");
 
-    // 3) No three consecutive points collinear
-    for (int i = 0; i < N; ++i) {
-        int j = (i + 1) % N;
-        int k = (i + 2) % N;
-        long double cr = cross(v[i], v[j], v[k]);
-        ensuref(cr != 0.0L,
-                "Three consecutive vertices are collinear at indices %d, %d, %d",
-                i + 1, j + 1, k + 1);
-    }
+    vector<P> hull = convexHull(v);
+    ensuref((int)hull.size() == N,
+            "All vertices must be extreme points with no three collinear");
 
-    // 4) Convexity and consistent CCW orientation
-    // For convex polygon given CCW, sign of cross of all consecutive triples is positive
-    int signDir = 0;
+    int start = -1;
     for (int i = 0; i < N; ++i) {
-        int j = (i + 1) % N;
-        int k = (i + 2) % N;
-        long double cr = cross(v[i], v[j], v[k]);
-        if (cr > 0) {
-            if (signDir == 0) signDir = 1;
-            else ensuref(signDir == 1, "Polygon is not convex or orientation inconsistent");
-        } else if (cr < 0) {
-            if (signDir == 0) signDir = -1;
-            else ensuref(signDir == -1, "Polygon is not convex or orientation inconsistent");
+        if (v[i] == hull[0]) {
+            start = i;
+            break;
         }
     }
-    // Statement says vertices are given CCW.
-    ensuref(signDir >= 0, "Polygon orientation must be counter-clockwise");
+    ensuref(start != -1, "Internal error while matching hull vertices");
+    for (int i = 0; i < N; ++i) {
+        ensuref(v[(start + i) % N] == hull[i],
+                "Vertices must be listed in counter-clockwise convex boundary order");
+    }
 
     inf.readEof();
 }

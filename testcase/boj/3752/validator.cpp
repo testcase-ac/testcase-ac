@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
 
     const int T_MIN = 1, T_MAX = 100000;
     const int N_MIN = 1, N_MAX = 999;
-    const int X_MIN = 1, X_MAX = 2000000000;
+    const int X_MIN = 1, X_MAX = 1999999999;
 
     int T = inf.readInt(T_MIN, T_MAX, "T");
     inf.readEoln();

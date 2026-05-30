@@ -1,4 +1,5 @@
 #include "testlib.h"
+#include <vector>
 #include <string>
 using namespace std;
 
@@ -14,6 +15,7 @@ int main(int argc, char* argv[]) {
     // Read the board and locate the player 'I'
     int cntI = 0;
     int start_r = -1, start_c = -1;
+    vector<string> board;
     for (int i = 0; i < R; i++) {
         // read a line with up to 100 chars, will check exact length below
         string row = inf.readLine("[.RI]{1,100}", "row");
@@ -29,6 +31,7 @@ int main(int argc, char* argv[]) {
                 start_c = j;
             }
         }
+        board.push_back(row);
     }
     ensuref(cntI == 1,
             "Board must contain exactly one 'I', found %d", cntI);
@@ -43,7 +46,7 @@ int main(int argc, char* argv[]) {
     static const int dr[10] = {0, 1, 1, 1, 0, 0, 0, -1, -1, -1};
     static const int dc[10] = {0, -1,0, 1, -1,0, 1, -1,  0,  1};
 
-    // Simulate player moves to ensure none go off-board
+    // Simulate attempted moves to ensure none go off-board before the game ends.
     int r = start_r, c = start_c;
     for (int i = 0; i < (int)moves.size(); i++) {
         int d = moves[i] - '0';
@@ -53,7 +56,40 @@ int main(int argc, char* argv[]) {
         int nc = c + dc[d];
         ensuref(0 <= nr && nr < R && 0 <= nc && nc < C,
                 "Player moved out of board at move %d to (%d, %d)", i+1, nr, nc);
-        r = nr; c = nc;
+
+        r = nr;
+        c = nc;
+        if (board[r][c] == 'R') {
+            break;
+        }
+
+        vector<string> nextBoard(R, string(C, '.'));
+        vector<vector<int>> robotCount(R, vector<int>(C, 0));
+        bool dead = false;
+        for (int rr = 0; rr < R; ++rr) {
+            for (int cc = 0; cc < C; ++cc) {
+                if (board[rr][cc] != 'R') {
+                    continue;
+                }
+                int tr = rr + (r > rr) - (r < rr);
+                int tc = cc + (c > cc) - (c < cc);
+                if (tr == r && tc == c) {
+                    dead = true;
+                }
+                robotCount[tr][tc]++;
+            }
+        }
+        if (dead) {
+            break;
+        }
+        for (int rr = 0; rr < R; ++rr) {
+            for (int cc = 0; cc < C; ++cc) {
+                if (robotCount[rr][cc] == 1) {
+                    nextBoard[rr][cc] = 'R';
+                }
+            }
+        }
+        board = nextBoard;
     }
 
     inf.readEof();

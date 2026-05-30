@@ -1,106 +1,92 @@
 #include "testlib.h"
-#include <cmath>
-#include <string>
-#include <cassert>
+
+#include <array>
 
 using namespace std;
 
-// Helper: check if a string is a valid integer with no leading zeros (except "0")
-bool is_valid_number(const string& s) {
-    if (s.empty()) return false;
-    if (s.size() > 1 && s[0] == '0') return false;
-    for (char c : s) if (!isdigit(c)) return false;
-    return true;
+namespace {
+
+const long long LIMIT = 1000000000000000000LL;
+const unsigned long long BASE = 1000000000ULL;
+const int CHUNKS = 8;
+
+using Fixed = array<unsigned int, CHUNKS>;
+
+const Fixed LOG10_2 = {
+    301029995, 663981195, 213738894, 724493026,
+    768189881, 462108541, 310427461, 127108189,
+};
+
+const Fixed LOWER[10] = {
+    {},
+    {434, 294264756, 155640743, 942643677, 707041684, 136166714, 512161201, 9206006},
+    {301030212, 811167860, 47510410, 437283021, 375734604, 859963715, 910224728, 220527256},
+    {477121399, 484465610, 913115265, 237659024, 916149690, 865559510, 480317441, 739088384},
+    {602060099, 901569294, 540137175, 614065501, 350762784, 705066916, 355420299, 977428610},
+    {698970091, 194906499, 548146688, 909428640, 548392734, 40076917, 463888887, 609491035},
+    {778151322, 766051251, 183604068, 786847273, 716873758, 854504265, 502644979, 852246332},
+    {845098102, 56321242, 457982026, 335233326, 39791362, 945130250, 212398396, 654024096},
+    {903090041, 278750430, 622338015, 186505621, 100064706, 279025618, 737379645, 225239774},
+    {954242557, 694264627, 454766698, 37604214, 520059114, 310750277, 741006895, 467727303},
+};
+
+const Fixed UPPER[10] = {
+    {},
+    {301029778, 516685956, 759491552, 483087690, 452034442, 269321190, 597215842, 177044011},
+    {477121109, 954811008, 734506843, 944224666, 176549417, 119334170, 772721174, 882780698},
+    {602059882, 754328342, 909699449, 196447000, 197240384, 469197373, 960818828, 456527589},
+    {698969917, 477113738, 245099391, 221043675, 235860111, 762563819, 251468285, 136436785},
+    {778151178, 1223950, 98321103, 342938316, 743906531, 175078415, 819931592, 705905751},
+    {845097977, 972183555, 813758587, 661075234, 909587589, 694959030, 382134490, 757492483},
+    {903089932, 705129954, 808815614, 797631027, 496760412, 937654466, 935296557, 817025094},
+    {954242461, 184379760, 65074504, 433369599, 266577368, 811228358, 766213950, 994312398},
+    {999999956, 570549638, 202262953, 789811405, 836176479, 348380679, 596311464, 154866190},
+};
+
+struct Product {
+    unsigned long long integerPart;
+    Fixed fraction;
+};
+
+Product multiplyLog10Two(long long n) {
+    Product result{};
+    unsigned __int128 carry = 0;
+    for (int i = CHUNKS - 1; i >= 0; --i) {
+        unsigned __int128 value = static_cast<unsigned __int128>(LOG10_2[i]) *
+                                      static_cast<unsigned long long>(n) +
+                                  carry;
+        result.fraction[i] = static_cast<unsigned int>(value % BASE);
+        carry = value / BASE;
+    }
+    result.integerPart = static_cast<unsigned long long>(carry);
+    return result;
 }
 
-// Compute log10(x) for x in [1, 10]
-long double log10_digit(int x) {
-    static const long double vals[11] = {
-        0.0L, // dummy
-        0.0L, // log10(1)
-        0.301029995663981195213738894724493026768189881462108541310427L, // log10(2)
-        0.477121254719662437295027903255115309200128864190872767357684L, // log10(3)
-        0.602059991327962390427477789448986053536379762924217082620854L, // log10(4)
-        0.698970004336018804786261105275506973268189881462108541310427L, // log10(5)
-        0.778151250383643559726699620316379747899159687292827189973003L, // log10(6)
-        0.845098040014256830560016993653055200710002481846766940165124L, // log10(7)
-        0.903089986991943585210163072773972181274902295346746223931281L, // log10(8)
-        0.954242509439324874590055806510230618400257728381745534715368L, // log10(9)
-        1.0L // log10(10)
-    };
-    assert(1 <= x && x <= 10);
-    return vals[x];
+int compareFixed(const Fixed& a, const Fixed& b) {
+    for (int i = 0; i < CHUNKS; ++i) {
+        if (a[i] < b[i]) return -1;
+        if (a[i] > b[i]) return 1;
+    }
+    return 0;
 }
 
-// Compute log10(2) with high precision
-long double LOG10_2() {
-    // 0.301029995663981195213738894724...
-    return 0.301029995663981195213738894724493026768189881462108541310427L;
-}
+}  // namespace
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read the line as a string, then parse tokens to check for leading zeros
-    string line = inf.readLine("[^]+", "input line");
-    // Split line into tokens
-    vector<string> tokens;
-    size_t pos = 0, npos;
-    while (pos < line.size()) {
-        while (pos < line.size() && isspace(line[pos])) ++pos;
-        if (pos >= line.size()) break;
-        npos = pos;
-        while (npos < line.size() && !isspace(line[npos])) ++npos;
-        tokens.push_back(line.substr(pos, npos - pos));
-        pos = npos;
-    }
-    ensuref(tokens.size() == 3, "Expected 3 space-separated integers, got %zu", tokens.size());
-
-    // Check for valid numbers and no leading zeros
-    for (int i = 0; i < 3; ++i) {
-        ensuref(is_valid_number(tokens[i]), "Token %d ('%s') is not a valid integer or has leading zeros", i+1, tokens[i].c_str());
-    }
-
-    // Parse values
-    long long n = -1, k = -1;
-    int x = -1;
-    try {
-        n = stoll(tokens[0]);
-        k = stoll(tokens[1]);
-        x = stoi(tokens[2]);
-    } catch (...) {
-        ensuref(false, "Failed to parse input as integers");
-    }
-
-    // Range checks
-    ensuref(1LL <= n && n <= 1000000000000000000LL, "n=%lld is out of range [1, 10^18]", n);
-    ensuref(1LL <= k && k <= 1000000000000000000LL, "k=%lld is out of range [1, 10^18]", k);
-    ensuref(1 <= x && x <= 9, "x=%d is out of range [1, 9]", x);
-
-    // Check x * 10^{k-1} <= 2^n < (x+1) * 10^{k-1}
-    // Use logarithms to avoid overflow
-    // log10(2^n) = n * log10(2)
-    // log10(x * 10^{k-1}) = log10(x) + (k-1)
-    // log10((x+1) * 10^{k-1}) = log10(x+1) + (k-1)
-    long double log10_2 = LOG10_2();
-    long double log10_2n = n * log10_2;
-    long double log10_lo = log10_digit(x) + (long double)(k-1);
-    long double log10_hi = log10_digit(x+1) + (long double)(k-1);
-
-    // 2^n >= x * 10^{k-1}  <=>  n*log10(2) >= log10(x) + (k-1)
-    // 2^n < (x+1) * 10^{k-1} <=> n*log10(2) < log10(x+1) + (k-1)
-    // Allow small epsilon for floating point error
-    long double eps = 1e-9L;
-    ensuref(log10_2n + eps >= log10_lo - eps, "2^n < x*10^{k-1}: n=%lld, k=%lld, x=%d", n, k, x);
-    ensuref(log10_2n < log10_hi + eps, "2^n >= (x+1)*10^{k-1}: n=%lld, k=%lld, x=%d", n, k, x);
-
-    // Check the floating point constraint:
-    // |2^n/10^{k-1} - x - 0.5| < 0.5 - 10^{-6}
-    // 2^n/10^{k-1} = 10^{n*log10(2) - (k-1)}
-    long double log10_ratio = n * log10_2 - (k-1);
-    long double ratio = pow(10.0L, log10_ratio);
-    long double diff = fabsl(ratio - x - 0.5L);
-    ensuref(diff < 0.5L - 1e-6L + eps, "|2^n/10^{k-1} - x - 0.5| = %.12Lf >= 0.5 - 1e-6", diff);
-
+    long long n = inf.readLong(1, LIMIT, "n");
+    inf.readSpace();
+    long long k = inf.readLong(1, LIMIT, "k");
+    inf.readSpace();
+    int x = inf.readInt(1, 9, "x");
+    inf.readEoln();
     inf.readEof();
+
+    Product exponent = multiplyLog10Two(n);
+    ensuref(exponent.integerPart + 1 == static_cast<unsigned long long>(k),
+            "2^n digit count does not match k");
+    ensuref(compareFixed(LOWER[x], exponent.fraction) < 0 &&
+                compareFixed(exponent.fraction, UPPER[x]) < 0,
+            "2^n/10^(k-1) does not satisfy the stated x and margin");
 }

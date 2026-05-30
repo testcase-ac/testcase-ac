@@ -21,8 +21,8 @@ int main(int argc, char* argv[]) {
         set<long long> prices;
 
         for (int i = 1; i <= p; i++) {
-            // Read price C: 0 <= C < 2*10^9
-            long long c = inf.readLong(0LL, 2000000000LL - 1, "price");
+            // Read price C: 1 <= C < 2*10^9
+            long long c = inf.readLong(1LL, 2000000000LL - 1, "price");
             // Exactly one space before the name
             inf.readSpace();
             // Read player name: no spaces, length 1..20

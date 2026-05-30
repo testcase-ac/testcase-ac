@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
     }
     inf.readEoln();
 
-    // 3. Read edges, check for no loops and no multiple edges
+    // 3. Read edges, check for no loops and no multiple edges between a pair of spaces
     set<pair<int,int>> edgeSet;
     for (int i = 0; i < M; ++i) {
         int u = inf.readInt(1, N, format("u_%d", i+1).c_str());
@@ -38,8 +38,9 @@ int main(int argc, char* argv[]) {
         inf.readEoln();
 
         ensuref(u != v, "Loop detected at edge %d: (%d, %d)", i+1, u, v);
-        ensuref(!edgeSet.count({u, v}), "Multiple edges detected between %d and %d (edge %d)", u, v, i+1);
-        edgeSet.insert({u, v});
+        pair<int, int> edgeKey = minmax(u, v);
+        ensuref(!edgeSet.count(edgeKey), "Multiple edges detected between %d and %d (edge %d)", u, v, i+1);
+        edgeSet.insert(edgeKey);
     }
 
     inf.readEof();

@@ -1,41 +1,24 @@
 #include "testlib.h"
-#include <set>
-using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read N and M
-    int N = inf.readInt(2, 10000, "N");
+    int n = inf.readInt(2, 10000, "N");
     inf.readSpace();
-    long long M = inf.readInt(1, 20000, "M");
-    // M must also satisfy M ≤ N^2 - N
-    long long maxEdges = (long long)N * N - N;
-    ensuref(M <= maxEdges,
-            "M must be ≤ N^2 - N; got M = %lld, N = %d (N^2 - N = %lld)",
-            M, N, maxEdges);
+    int m = inf.readInt(1, 20000, "M");
+    int maxDeclarations = n * n - n;
+    ensuref(m <= maxDeclarations,
+            "M must be at most N^2 - N; got M = %d, N = %d, limit = %d",
+            m, n, maxDeclarations);
     inf.readEoln();
 
-    // Read M declarations of interest
-    set<pair<int,int>> edges;
-    for (int i = 0; i < M; i++) {
-        int A = inf.readInt(0, N-1, "A_i");
+    for (int i = 0; i < m; ++i) {
+        int a = inf.readInt(0, n - 1, "A");
         inf.readSpace();
-        int B = inf.readInt(0, N-1, "B_i");
+        int b = inf.readInt(0, n - 1, "B");
         inf.readEoln();
-
-        // No self-loops
-        ensuref(A != B,
-                "Self-loop detected at declaration %d: (%d, %d)",
-                i, A, B);
-        // No duplicate edges
-        pair<int,int> e = make_pair(A, B);
-        ensuref(!edges.count(e),
-                "Duplicate declaration detected at index %d: (%d, %d)",
-                i, A, B);
-        edges.insert(e);
+        ensuref(a != b, "member %d likes their own book at declaration %d", a, i + 1);
     }
 
     inf.readEof();
-    return 0;
 }

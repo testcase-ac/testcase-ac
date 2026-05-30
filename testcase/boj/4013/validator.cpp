@@ -1,69 +1,66 @@
 #include "testlib.h"
-#include <vector>
 #include <queue>
+#include <vector>
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read N and M
-    int N = inf.readInt(1, 500000, "N");
+    int n = inf.readInt(1, 500000, "N");
     inf.readSpace();
-    int M = inf.readInt(0, 500000, "M");
+    int m = inf.readInt(0, 500000, "M");
     inf.readEoln();
 
-    // Read directed edges
-    vector<vector<int>> adj(N + 1);
-    for (int i = 0; i < M; i++) {
-        int u = inf.readInt(1, N, "u_i");
+    vector<vector<int>> adj(n + 1);
+    for (int i = 0; i < m; ++i) {
+        int u = inf.readInt(1, n, "u_i");
         inf.readSpace();
-        int v = inf.readInt(1, N, "v_i");
+        int v = inf.readInt(1, n, "v_i");
         inf.readEoln();
         adj[u].push_back(v);
     }
 
-    // Read ATM cash at each node
-    vector<int> cash(N + 1);
-    for (int i = 1; i <= N; i++) {
-        cash[i] = inf.readInt(0, 4000, "cash_i");
+    for (int i = 1; i <= n; ++i) {
+        inf.readInt(0, 4000, "cash_i");
         inf.readEoln();
     }
 
-    // Read start S and number of restaurants P
-    int S = inf.readInt(1, N, "S");
+    int s = inf.readInt(1, n, "S");
     inf.readSpace();
-    int P = inf.readInt(1, N, "P");
-    // P must be at most N (already ensured by readInt upper bound)
+    int p = inf.readInt(1, n, "P");
     inf.readEoln();
 
-    // Read restaurant node list
-    vector<int> rest = inf.readInts(P, 1, N, "restaurant");
+    vector<int> restaurants = inf.readInts(p, 1, n, "restaurant");
     inf.readEoln();
+    vector<char> isRestaurant(n + 1, false);
+    for (int i = 0; i < p; ++i) {
+        int restaurant = restaurants[i];
+        ensuref(!isRestaurant[restaurant],
+                "duplicate restaurant at position %d: %d", i + 1, restaurant);
+        isRestaurant[restaurant] = true;
+    }
 
-    // Check that at least one restaurant is reachable from S
-    vector<char> vis(N + 1, false);
+    vector<char> reachable(n + 1, false);
     queue<int> q;
-    vis[S] = true;
-    q.push(S);
+    reachable[s] = true;
+    q.push(s);
     while (!q.empty()) {
-        int u = q.front(); q.pop();
+        int u = q.front();
+        q.pop();
         for (int v : adj[u]) {
-            if (!vis[v]) {
-                vis[v] = true;
+            if (!reachable[v]) {
+                reachable[v] = true;
                 q.push(v);
             }
         }
     }
-    bool any = false;
-    for (int x : rest) {
-        if (vis[x]) {
-            any = true;
-            break;
-        }
+
+    bool hasReachableRestaurant = false;
+    for (int restaurant : restaurants) {
+        hasReachableRestaurant |= reachable[restaurant];
     }
-    ensuref(any, "No reachable restaurant from S=%d", S);
+    ensuref(hasReachableRestaurant, "no restaurant is reachable from S=%d", s);
 
     inf.readEof();
-    return 0;
 }

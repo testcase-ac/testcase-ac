@@ -1,7 +1,5 @@
 #include "testlib.h"
 #include <vector>
-#include <set>
-#include <algorithm>
 #include <numeric>
 using namespace std;
 
@@ -22,8 +20,6 @@ int main(int argc, char* argv[]) {
     int m = inf.readInt(1, 1000, "m");
     inf.readEoln();
 
-    // Read m edges
-    set<pair<int,int>> edge_set;
     vector<tuple<int,int,int>> edges;
     for (int i = 0; i < m; ++i) {
         int a = inf.readInt(1, n, "a");
@@ -35,9 +31,6 @@ int main(int argc, char* argv[]) {
 
         ensuref(a != b, "Edge %d: a == b (%d == %d), self-loop not allowed", i+1, a, b);
 
-        int u = min(a, b), v = max(a, b);
-        ensuref(!edge_set.count({u, v}), "Edge %d: duplicate edge between %d and %d", i+1, u, v);
-        edge_set.insert({u, v});
         edges.emplace_back(a-1, b-1, c); // 0-based for DSU
     }
 

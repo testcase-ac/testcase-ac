@@ -12,6 +12,8 @@ static long long parseIntPart(const string &s, long long lo, long long hi,
         ensuref(isdigit(s[i]), "Non-digit character '%c' in %s at part %d on line %d",
                 s[i], name.c_str(), idx, line_no);
     }
+    ensuref(s.size() == 1 || s[0] != '0',
+            "Leading zero in %s at part %d on line %d", name.c_str(), idx, line_no);
     // parse with __int128
     __int128_t val = 0;
     for (char ch : s) {

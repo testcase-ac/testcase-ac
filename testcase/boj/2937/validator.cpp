@@ -4,22 +4,25 @@ using namespace std;
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read N and M
-    int N = inf.readInt(1, 100, "N");
+    int n = inf.readInt(1, 100, "N");
     inf.readSpace();
-    long long maxM = 1LL * N * N;
-    int M = inf.readInt(1, maxM, "M");
+    int m = inf.readInt(1, n * n, "M");
     inf.readEoln();
+    bool canFitRectangle = false;
+    for (int rows = 1; rows <= n; ++rows) {
+        if (m % rows == 0 && m / rows <= n) {
+            canFitRectangle = true;
+            break;
+        }
+    }
+    ensuref(canFitRectangle, "M=%d cannot be arranged as a rectangle inside %dx%d board", m, n, n);
 
-    // Read M block positions
-    for (int i = 0; i < M; i++) {
-        int r = inf.readInt(1, N, "R");
+    for (int i = 0; i < m; ++i) {
+        inf.readInt(1, n, "R_i");
         inf.readSpace();
-        int c = inf.readInt(1, N, "C");
+        inf.readInt(1, n, "C_i");
         inf.readEoln();
     }
 
-    // No more input
     inf.readEof();
-    return 0;
 }

@@ -1,60 +1,41 @@
 #include "testlib.h"
-#include <bits/stdc++.h>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/boyer_myrvold_planar_test.hpp>
+#include <set>
+#include <utility>
+
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read N and M
-    int N = inf.readInt(1, 100000, "N");
+    int n = inf.readInt(1, 100000, "N");
     inf.readSpace();
-    int M = inf.readInt(0, 300000, "M");
+    int m = inf.readInt(0, 300000, "M");
     inf.readEoln();
 
-    // Read edges, check basic constraints
-    vector<pair<int,int>> edges;
-    edges.reserve(M);
-    for (int i = 0; i < M; i++) {
-        int u = inf.readInt(1, N, "u_i");
+    long long planarEdgeLimit = n <= 2 ? n - 1LL : 3LL * n - 6;
+    ensuref(m <= planarEdgeLimit,
+            "a simple planar graph with N=%d cannot have M=%d edges",
+            n, m);
+
+    using Graph = boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS>;
+    Graph graph(n);
+    set<pair<int, int>> edges;
+
+    for (int i = 0; i < m; ++i) {
+        int u = inf.readInt(1, n, "u_i");
         inf.readSpace();
-        int v = inf.readInt(1, N, "v_i");
+        int v = inf.readInt(1, n, "v_i");
         inf.readEoln();
-        ensuref(u != v,
-                "Self loop detected at edge %d: (%d, %d)",
-                i+1, u, v);
-        // store in normalized order
-        if (u > v) swap(u, v);
-        edges.emplace_back(u, v);
+
+        ensuref(u != v, "self-loop at edge %d: %d %d", i + 1, u, v);
+        pair<int, int> edge = {min(u, v), max(u, v)};
+        ensuref(edges.insert(edge).second,
+                "duplicate edge at edge %d: %d %d", i + 1, u, v);
+        boost::add_edge(u - 1, v - 1, graph);
     }
 
-    // Check no duplicate edges
-    sort(edges.begin(), edges.end());
-    for (int i = 1; i < M; i++) {
-        if (edges[i] == edges[i-1]) {
-            int u = edges[i].first;
-            int v = edges[i].second;
-            ensuref(false,
-                    "Multiple edges detected between nodes %d and %d",
-                    u, v);
-        }
-    }
-
-    // Check planar graph necessary condition:
-    // For N >= 3: M <= 3N - 6
-    // For N == 2: M <= 1
-    // For N == 1: M == 0
-    long long maxEdges;
-    if (N >= 3) {
-        maxEdges = 3LL * N - 6LL;
-    } else if (N == 2) {
-        maxEdges = 1;
-    } else { // N == 1
-        maxEdges = 0;
-    }
-    ensuref((long long)M <= maxEdges,
-            "Graph is not planar: M = %d exceeds the planar limit %lld for N = %d",
-            M, maxEdges, N);
-
+    ensuref(boost::boyer_myrvold_planarity_test(graph), "graph must be planar");
     inf.readEof();
-    return 0;
 }

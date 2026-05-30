@@ -1,23 +1,21 @@
 #include "testlib.h"
 #include <algorithm>
-#include <vector>
 #include <cstdint>
+#include <string>
+#include <vector>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read N, M
     int N = inf.readInt(1, 10, "N");
     inf.readSpace();
     int M = inf.readInt(1, 10, "M");
     inf.readEoln();
 
-    // We'll store the beauties for 4 colors: 0=red,1=blue,2=green,3=yellow
     vector<vector<vector<long long>>> beauty(4,
         vector<vector<long long>>(N, vector<long long>(M)));
 
-    // Read the 4 blocks
     for (int c = 0; c < 4; c++) {
         const char* name;
         if (c == 0) name = "red";
@@ -37,24 +35,67 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // Check the guaranteed bound: the maximum total beauty does not exceed 2,100,000,000.
-    // We compute an upper bound by summing, for each cell, the maximum beauty over colors.
-    long long sum_max = 0;
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < M; j++) {
-            long long m = beauty[0][i][j];
-            for (int c = 1; c < 4; c++) {
-                m = max(m, beauty[c][i][j]);
+    int height = N;
+    int width = M;
+    bool transposed = false;
+    if (N < M) {
+        height = M;
+        width = N;
+        transposed = true;
+    }
+
+    int mask_count = 1 << (2 * width);
+    const long long NEG = -1;
+    vector<vector<long long>> dp(width, vector<long long>(mask_count, NEG));
+    vector<long long> next_dp(mask_count, NEG);
+
+    auto cell_value = [&](int color, int line, int pos) {
+        int i = transposed ? pos : line;
+        int j = transposed ? line : pos;
+        return beauty[color][i][j];
+    };
+
+    int first_shift = 2 * (width - 1);
+    for (int color = 0; color < 4; color++) {
+        dp[0][color << first_shift] = cell_value(color, 0, 0);
+    }
+
+    for (int line = 0; line < height; line++) {
+        for (int pos = 0; pos < width; pos++) {
+            if (line == 0 && pos == 0) {
+                continue;
             }
-            // Check for overflow in sum_max
-            sum_max += m;
-            ensuref(sum_max >= 0,
-                    "Overflow in computing sum of per-cell maxima at cell (%d,%d)", i, j);
+            int shift = 2 * (width - 1 - pos);
+            int previous_slot = (pos + width - 1) % width;
+            fill(next_dp.begin(), next_dp.end(), NEG);
+            for (int mask = 0; mask < mask_count; mask++) {
+                int color = (mask >> shift) & 3;
+                int left_color = pos > 0 ? ((mask >> (shift + 2)) & 3) : -1;
+                if (color == left_color) {
+                    continue;
+                }
+                for (int above_color = 0; above_color < 4; above_color++) {
+                    if (line > 0 && color == above_color) {
+                        continue;
+                    }
+                    int previous_mask =
+                        (mask ^ (color << shift)) ^ (above_color << shift);
+                    long long previous = dp[previous_slot][previous_mask];
+                    if (previous < 0) {
+                        continue;
+                    }
+                    next_dp[mask] =
+                        max(next_dp[mask], previous + cell_value(color, line, pos));
+                }
+            }
+            dp[pos].swap(next_dp);
         }
     }
-    ensuref(sum_max <= 2100000000LL,
-            "Guaranteed maximum beauty bound violated: sum of per-cell maxima = %lld exceeds 2100000000",
-            sum_max);
+
+    long long best = *max_element(dp[width - 1].begin(), dp[width - 1].end());
+    ensuref(best <= 2100000000LL,
+            "maximum beauty guarantee violated: best=%lld exceeds 2100000000",
+            best);
 
     inf.readEof();
     return 0;

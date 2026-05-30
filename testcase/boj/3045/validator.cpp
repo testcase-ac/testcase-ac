@@ -16,9 +16,10 @@ int main(int argc, char* argv[]) {
         inf.readToken("[AB]", "op");
         inf.readSpace();
         // X and Y in [1, N]
-        inf.readInt(1, N, "X");
+        int X = inf.readInt(1, N, "X");
         inf.readSpace();
-        inf.readInt(1, N, "Y");
+        int Y = inf.readInt(1, N, "Y");
+        ensuref(X != Y, "X and Y must be distinct");
         inf.readEoln();
     }
 

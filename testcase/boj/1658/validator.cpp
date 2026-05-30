@@ -1,39 +1,39 @@
 #include "testlib.h"
-#include <set>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read M and N
     int M = inf.readInt(1, 1000, "M");
     inf.readSpace();
     int N = inf.readInt(1, 100, "N");
     inf.readEoln();
 
-    // Read initial pigs in each of the M pens
-    vector<int> init = inf.readInts(M, 0, 1000, "initial_pigs");
+    inf.readInts(M, 0, 1000, "initial_pigs");
     inf.readEoln();
 
-    // Read each customer's info
+    long long totalKeys = 0;
     for (int i = 1; i <= N; i++) {
-        // Number of keys A_i
-        int A = inf.readInt(0, M, "A_i");
-        // If A>0, read A keys; otherwise skip directly to B
-        set<int> seen;
+        // CHECK: A has no written upper bound. Allow repeated nondecreasing key
+        // tokens, but keep total key-token count within a practical input size.
+        int A = inf.readInt(0, 5000000, "A_i");
+        totalKeys += A;
+        ensuref(totalKeys <= 5000000,
+                "too many key tokens by customer %d: %lld", i, totalKeys);
+        int previousKey = 0;
         for (int j = 1; j <= A; j++) {
             inf.readSpace();
             int k = inf.readInt(1, M, "key_i_j");
-            // Enforce distinct keys per customer
-            ensuref(!seen.count(k),
-                    "Duplicate key %d for customer %d", k, i);
-            seen.insert(k);
+            // CHECK: The English statement says keys are sorted nondecreasingly,
+            // so equal adjacent key tokens are accepted rather than rejected.
+            ensuref(previousKey <= k,
+                    "keys for customer %d are not nondecreasing at position %d", i, j);
+            previousKey = k;
         }
-        // Read B_i
         inf.readSpace();
-        // We allow B up to 1e9 (must fit in 32-bit signed)
-        long long B = inf.readLong(0LL, 1000000000LL, "B_i");
-        (void)B; // value checked by bounds, no further per-input constraint
+        // CHECK: B has no written upper bound; cap it to the natural 32-bit
+        // demand scale used by this legacy problem data and reference code.
+        inf.readLong(0LL, 1000000000LL, "B_i");
         inf.readEoln();
     }
 

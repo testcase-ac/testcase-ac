@@ -41,13 +41,37 @@ def random_prime_between(a, b):
         return None
     return random.choice(primes_in_range)
 
+def is_prime(n):
+    if n < 2:
+        return False
+    for p in primes_list:
+        if p * p > n:
+            break
+        if n % p == 0:
+            return n == p
+    d = primes_list[-1] + 1
+    while d * d <= n:
+        if n % d == 0:
+            return False
+        d += 1
+    return True
+
+def next_prime_at_least(n):
+    candidate = max(2, n)
+    while not is_prime(candidate):
+        candidate += 1
+    return candidate
+
+def prime_between_or_after(a, b):
+    prime = random_prime_between(a, b)
+    if prime is not None:
+        return prime
+    return next_prime_at_least(a)
+
 def generate_good_key():
     K = random.randint(K_MIN, K_MAX)
-    p = random_prime_between(K, PQ_MAX)
-    q = random_prime_between(K, PQ_MAX)
-    if p is None or q is None:
-        # If no primes in range, use K as prime (edge case)
-        p = q = K
+    p = prime_between_or_after(K, PQ_MAX)
+    q = prime_between_or_after(K, PQ_MAX)
     P = p * q
     return P, K
 
@@ -55,12 +79,8 @@ def generate_bad_key():
     K = random.randint(K_MIN, K_MAX)
     p = random_prime_between(PQ_MIN, K - 1)
     if p is None:
-        # If no primes less than K, use smallest prime
         p = 2
-    q = random_prime_between(K, PQ_MAX)
-    if q is None:
-        # If no primes greater than or equal to K, use K
-        q = K
+    q = prime_between_or_after(K, PQ_MAX)
     P = p * q
     return P, K
 
@@ -74,12 +94,7 @@ def generate_testcase_triggering_bug():
         K = random.choice(possible_K)
     
     # Select a prime q greater than K but within PQ_MAX
-    q_candidates = [p for p in primes_list if K < p <= PQ_MAX]
-    if not q_candidates:
-        # If no primes greater than K, use K itself
-        q = K
-    else:
-        q = random.choice(q_candidates)
+    q = prime_between_or_after(K + 1, PQ_MAX)
     
     P = K * q  # Compute P as the product of K and a larger prime q
     return P, K

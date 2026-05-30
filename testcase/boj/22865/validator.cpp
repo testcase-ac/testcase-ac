@@ -1,76 +1,57 @@
 #include "testlib.h"
-#include <vector>
-#include <queue>
-#include <algorithm>
-#include <set>
 
+#include <bits/stdc++.h>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // 1. Read N
-    int N = inf.readInt(1, 100000, "N");
+    int n = inf.readInt(1, 100000, "N");
     inf.readEoln();
 
-    // 2. Read A, B, C
-    vector<int> friends(3);
-    for (int i = 0; i < 3; ++i) {
-        friends[i] = inf.readInt(1, N, string("friend_") + char('A'+i));
-        if (i < 2) inf.readSpace();
-    }
+    inf.readInt(1, n, "A");
+    inf.readSpace();
+    inf.readInt(1, n, "B");
+    inf.readSpace();
+    inf.readInt(1, n, "C");
     inf.readEoln();
 
-    // 3. Read M
-    int M = inf.readInt(N-1, 500000, "M");
+    int m = inf.readInt(n - 1, 500000, "M");
     inf.readEoln();
 
-    // 4. Read M edges
-    // Validate: 1 <= D, E <= N, 1 <= L <= 10000
-    // No self-loops, no multiple edges (undirected)
-    // The graph is connected (guaranteed by statement, must check)
-    // Road is bidirectional
-
-    // Use adjacency list for connectivity check
-    vector<vector<pair<int,int>>> adj(N+1); // 1-based
-    set<pair<int,int>> edge_set;
-
-    for (int i = 0; i < M; ++i) {
-        int D = inf.readInt(1, N, "D");
+    vector<vector<int>> graph(n + 1);
+    for (int i = 1; i <= m; ++i) {
+        int d = inf.readInt(1, n, "D");
         inf.readSpace();
-        int E = inf.readInt(1, N, "E");
+        int e = inf.readInt(1, n, "E");
         inf.readSpace();
-        int L = inf.readInt(1, 10000, "L");
+        inf.readInt(1, 10000, "L");
         inf.readEoln();
 
-        ensuref(D != E, "Self-loop detected at edge %d: (%d, %d)", i+1, D, E);
-
-        int u = min(D, E), v = max(D, E);
-        ensuref(!edge_set.count({u, v}), "Multiple edge detected between %d and %d at edge %d", u, v, i+1);
-        edge_set.insert({u, v});
-
-        adj[D].emplace_back(E, L);
-        adj[E].emplace_back(D, L);
+        graph[d].push_back(e);
+        graph[e].push_back(d);
     }
 
-    // 5. Check connectivity (BFS/DFS)
-    vector<bool> vis(N+1, false);
+    vector<char> seen(n + 1, false);
     queue<int> q;
+    seen[1] = true;
     q.push(1);
-    vis[1] = true;
-    int cnt = 1;
+
+    int reached = 0;
     while (!q.empty()) {
-        int u = q.front(); q.pop();
-        for (auto &p : adj[u]) {
-            int v = p.first;
-            if (!vis[v]) {
-                vis[v] = true;
-                q.push(v);
-                ++cnt;
+        int cur = q.front();
+        q.pop();
+        ++reached;
+
+        for (int next : graph[cur]) {
+            if (!seen[next]) {
+                seen[next] = true;
+                q.push(next);
             }
         }
     }
-    ensuref(cnt == N, "Graph is not connected: only %d out of %d nodes are reachable from node 1", cnt, N);
+
+    ensuref(reached == n, "graph must be connected, reached %d of %d nodes", reached, n);
 
     inf.readEof();
 }

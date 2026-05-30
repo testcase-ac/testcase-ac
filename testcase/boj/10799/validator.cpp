@@ -46,6 +46,7 @@ int main(int argc, char* argv[]) {
     ensuref(bar_stack.empty(),
             "Unmatched opening parenthesis '(' at position %d",
             bar_stack.empty() ? -1 : bar_stack.back());
+    ensuref(!bars.empty(), "Input must contain at least one rod");
 
     // Each rod must have at least one laser strictly inside its interval
     sort(lasers.begin(), lasers.end());

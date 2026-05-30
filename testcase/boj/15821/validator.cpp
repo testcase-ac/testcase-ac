@@ -2,184 +2,183 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-struct P {
-    long long x, y;
+struct Point {
+    long long x;
+    long long y;
 };
 
-long long cross(const P& a, const P& b, const P& c) {
-    // (b - a) x (c - a)
+long long cross(const Point& a, const Point& b, const Point& c) {
     return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
 
-long long cross2(const P& a, const P& b) {
-    // a x b
+long long cross(const Point& a, const Point& b) {
     return a.x * b.y - a.y * b.x;
+}
+
+int sign(long long value) {
+    if (value > 0) return 1;
+    if (value < 0) return -1;
+    return 0;
+}
+
+bool boxesIntersect(const Point& a, const Point& b, const Point& c, const Point& d) {
+    return max(a.x, b.x) >= min(c.x, d.x) &&
+           max(c.x, d.x) >= min(a.x, b.x) &&
+           max(a.y, b.y) >= min(c.y, d.y) &&
+           max(c.y, d.y) >= min(a.y, b.y);
+}
+
+bool segmentsIntersect(const Point& a, const Point& b, const Point& c, const Point& d) {
+    int abC = sign(cross(a, b, c));
+    int abD = sign(cross(a, b, d));
+    int cdA = sign(cross(c, d, a));
+    int cdB = sign(cross(c, d, b));
+
+    if (abC == 0 && abD == 0) {
+        return boxesIntersect(a, b, c, d);
+    }
+
+    return abC * abD <= 0 && cdA * cdB <= 0;
+}
+
+bool pointOnSegment(const Point& p, const Point& a, const Point& b) {
+    return cross(a, b, p) == 0 &&
+           min(a.x, b.x) <= p.x && p.x <= max(a.x, b.x) &&
+           min(a.y, b.y) <= p.y && p.y <= max(a.y, b.y);
+}
+
+bool pointInsidePolygon(const Point& p, const vector<Point>& polygon) {
+    bool inside = false;
+    int n = (int)polygon.size();
+
+    for (int i = 0, j = n - 1; i < n; j = i++) {
+        const Point& a = polygon[i];
+        const Point& b = polygon[j];
+
+        if (pointOnSegment(p, a, b)) {
+            return false;
+        }
+
+        if ((a.y > p.y) != (b.y > p.y)) {
+            long double xAtY = (long double)(b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x;
+            if (xAtY > p.x) {
+                inside = !inside;
+            }
+        }
+    }
+
+    return inside;
+}
+
+struct Box {
+    long long minX;
+    long long maxX;
+    long long minY;
+    long long maxY;
+};
+
+Box boundsOf(const vector<Point>& polygon) {
+    Box box{LLONG_MAX, LLONG_MIN, LLONG_MAX, LLONG_MIN};
+    for (const Point& p : polygon) {
+        box.minX = min(box.minX, p.x);
+        box.maxX = max(box.maxX, p.x);
+        box.minY = min(box.minY, p.y);
+        box.maxY = max(box.maxY, p.y);
+    }
+    return box;
+}
+
+bool boxesIntersect(const Box& a, const Box& b) {
+    return a.maxX >= b.minX && b.maxX >= a.minX &&
+           a.maxY >= b.minY && b.maxY >= a.minY;
+}
+
+bool polygonsIntersectOrOverlap(const vector<Point>& a, const vector<Point>& b) {
+    for (int i = 0; i < (int)a.size(); ++i) {
+        Point a1 = a[i];
+        Point a2 = a[(i + 1) % a.size()];
+        for (int j = 0; j < (int)b.size(); ++j) {
+            Point b1 = b[j];
+            Point b2 = b[(j + 1) % b.size()];
+            if (segmentsIntersect(a1, a2, b1, b2)) {
+                return true;
+            }
+        }
+    }
+
+    return pointInsidePolygon(a[0], b) || pointInsidePolygon(b[0], a);
 }
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    const int N_MAX = 100000;
-    const int P_SMALL_MAX = 10;
-    const int P_LARGE_MAX = 20;
-    const long long COORD_SMALL_MIN = -100;
-    const long long COORD_SMALL_MAX = 100;
-    const long long COORD_LARGE_MIN = -100000;
-    const long long COORD_LARGE_MAX = 100000;
+    const long long coordMin = -100000;
+    const long long coordMax = 100000;
 
-    int N = inf.readInt(1, N_MAX, "N");
+    int n = inf.readInt(1, 100000, "N");
     inf.readSpace();
-    int K = inf.readInt(1, N_MAX, "K");
+    inf.readInt(1, n, "K");
     inf.readEoln();
 
-    ensuref(K <= N, "Constraint violated: K (%d) must be <= N (%d)", K, N);
+    vector<vector<Point>> polygons;
+    vector<Box> boxes;
+    polygons.reserve(n);
+    boxes.reserve(n);
 
-    bool anyLarge = false;
-    vector<int> Pn(N);
-    vector<vector<P>> polys(N);
-
-    long long globalMinX = LLONG_MAX, globalMaxX = LLONG_MIN;
-    long long globalMinY = LLONG_MAX, globalMaxY = LLONG_MIN;
-
-    for (int i = 0; i < N; ++i) {
+    for (int i = 0; i < n; ++i) {
         setTestCase(i + 1);
 
-        int Pi = inf.readInt(3, P_LARGE_MAX, "P_i");
-        inf.readEoln();
-        Pn[i] = Pi;
-
-        vector<long long> raw = inf.readLongs(
-            2 * Pi,
-            COORD_LARGE_MIN,
-            COORD_LARGE_MAX,
-            "coords"
-        );
+        int p = inf.readInt(3, 20, "P_i");
         inf.readEoln();
 
-        vector<P> poly(Pi);
-        for (int j = 0; j < Pi; ++j) {
-            poly[j].x = raw[2 * j];
-            poly[j].y = raw[2 * j + 1];
-            globalMinX = min(globalMinX, poly[j].x);
-            globalMaxX = max(globalMaxX, poly[j].x);
-            globalMinY = min(globalMinY, poly[j].y);
-            globalMaxY = max(globalMaxY, poly[j].y);
+        vector<Point> polygon(p);
+        for (int j = 0; j < p; ++j) {
+            if (j > 0) {
+                inf.readSpace();
+            }
+            polygon[j].x = inf.readLong(coordMin, coordMax, "x");
+            inf.readSpace();
+            polygon[j].y = inf.readLong(coordMin, coordMax, "y");
         }
-        polys[i] = poly;
+        inf.readEoln();
 
-        // determine if any coordinate / Pi requires Large constraints
-        if (Pi > P_SMALL_MAX ||
-            globalMinX < COORD_SMALL_MIN || globalMaxX > COORD_SMALL_MAX ||
-            globalMinY < COORD_SMALL_MIN || globalMaxY > COORD_SMALL_MAX) {
-            anyLarge = true;
-        }
-    }
-
-    long long coordMinAllowed = anyLarge ? COORD_LARGE_MIN : COORD_SMALL_MIN;
-    long long coordMaxAllowed = anyLarge ? COORD_LARGE_MAX : COORD_SMALL_MAX;
-    int PmaxAllowed = anyLarge ? P_LARGE_MAX : P_SMALL_MAX;
-
-    ensuref(globalMinX >= coordMinAllowed && globalMaxX <= coordMaxAllowed &&
-            globalMinY >= coordMinAllowed && globalMaxY <= coordMaxAllowed,
-            "Some coordinate violates allowed range [%lld, %lld]",
-            coordMinAllowed, coordMaxAllowed);
-
-    for (int i = 0; i < N; ++i) {
-        ensuref(Pn[i] >= 3 && Pn[i] <= PmaxAllowed,
-                "Polygon %d has P_i=%d outside allowed [%d,%d]",
-                i + 1, Pn[i], 3, PmaxAllowed);
-    }
-
-    // Per-polygon geometry checks: non-degenerate simple polygon
-    for (int idx = 0; idx < N; ++idx) {
-        const auto& poly = polys[idx];
-        int m = (int)poly.size();
-
-        // 1) No zero-length edges (consecutive identical points)
-        for (int i = 0; i < m; ++i) {
-            const P& a = poly[i];
-            const P& b = poly[(i + 1) % m];
-            ensuref(!(a.x == b.x && a.y == b.y),
-                    "Polygon %d has zero-length edge between vertices %d and %d",
-                    idx + 1, i, (i + 1) % m);
-        }
-
-        // 2) Non-zero area polygon
         long long area2 = 0;
-        for (int i = 0; i < m; ++i) {
-            int j = (i + 1) % m;
-            area2 += cross2(poly[i], poly[j]);
+        for (int j = 0; j < p; ++j) {
+            const Point& a = polygon[j];
+            const Point& b = polygon[(j + 1) % p];
+            ensuref(!(a.x == b.x && a.y == b.y),
+                    "polygon %d has a zero-length edge at vertex %d", i + 1, j + 1);
+            area2 += cross(a, b);
         }
-        ensuref(area2 != 0,
-                "Polygon %d has zero area (degenerate)", idx + 1);
+        ensuref(area2 != 0, "polygon %d has zero area", i + 1);
 
-        // 3) Simple polygon: no self-intersection except at common endpoints
-        auto segIntersects = [&](const P& a, const P& b, const P& c, const P& d) {
-            auto ccw = [&](const P& a, const P& b, const P& c) {
-                long long v = cross(a, b, c);
-                if (v > 0) return 1;
-                if (v < 0) return -1;
-                return 0;
-            };
-            int ab_c = ccw(a, b, c);
-            int ab_d = ccw(a, b, d);
-            int cd_a = ccw(c, d, a);
-            int cd_b = ccw(c, d, b);
+        for (int a = 0; a < p; ++a) {
+            int aNext = (a + 1) % p;
+            for (int b = a + 1; b < p; ++b) {
+                int bNext = (b + 1) % p;
 
-            if (ab_c == 0 && ab_d == 0) { // collinear
-                if (max(a.x, b.x) < min(c.x, d.x) ||
-                    max(c.x, d.x) < min(a.x, b.x) ||
-                    max(a.y, b.y) < min(c.y, d.y) ||
-                    max(c.y, d.y) < min(a.y, b.y))
-                    return false;
-                return true;
-            }
-            return (ab_c * ab_d <= 0) && (cd_a * cd_b <= 0);
-        };
-
-        for (int i = 0; i < m; ++i) {
-            int i2 = (i + 1) % m;
-            P a1 = poly[i];
-            P a2 = poly[i2];
-            for (int j = i + 1; j < m; ++j) {
-                int j1 = j;
-                int j2 = (j + 1) % m;
-
-                // Skip same edge or immediate neighbours that legally share a vertex
-                if (i == j1 && i2 == j2) continue;          // exact same edge
-                if (i2 == j1) continue;                     // consecutive edges meet at j1
-                if (i == j2) continue;                      // consecutive edges meet at i
-                if (i == 0 && j1 == m - 1) continue;        // first and last edges meet at vertex 0
-                if (j == 0 && i2 == m - 1) continue;        // symmetric case
-
-                P b1 = poly[j1];
-                P b2 = poly[j2];
-                if (!segIntersects(a1, a2, b1, b2)) continue;
-
-                // If they intersect, it must not be in interiors (no crossing / overlap).
-                if (cross(a1, a2, b1) == 0 && cross(a1, a2, b2) == 0) {
-                    // collinear: overlapping segments -> invalid
-                    ensuref(false,
-                            "Polygon %d has overlapping collinear edges (%d,%d) and (%d,%d)",
-                            idx + 1, i, i2, j1, j2);
-                } else {
-                    // proper crossing or touching at non-endpoint -> invalid
-                    ensuref(false,
-                            "Polygon %d has self-intersecting edges (%d,%d) and (%d,%d)",
-                            idx + 1, i, i2, j1, j2);
+                if (aNext == b || bNext == a) {
+                    continue;
                 }
+
+                ensuref(!segmentsIntersect(polygon[a], polygon[aNext], polygon[b], polygon[bNext]),
+                        "polygon %d has intersecting non-adjacent edges %d-%d and %d-%d",
+                        i + 1, a + 1, aNext + 1, b + 1, bNext + 1);
             }
         }
-    }
 
-    // Global: polygons do not overlap in area.
-    // Problem statement allows contact (no overlap), and says "서로 교차하지 않는다"
-    // i.e., edges do not cross in interiors. However, example 3 has polygons
-    // that share a boundary segment, which our previous validator rejected.
-    // To remain compatible with official examples and typical statements,
-    // we do NOT perform cross-polygon geometric checks here.
-    // We only trust the input generator / setter for the "no overlap / no crossing"
-    // property, and we validated each polygon individually above.
+        Box box = boundsOf(polygon);
+        for (int previous = 0; previous < (int)polygons.size(); ++previous) {
+            if (!boxesIntersect(box, boxes[previous])) {
+                continue;
+            }
+            ensuref(!polygonsIntersectOrOverlap(polygon, polygons[previous]),
+                    "polygons %d and %d overlap or intersect", previous + 1, i + 1);
+        }
+
+        polygons.push_back(polygon);
+        boxes.push_back(box);
+    }
 
     inf.readEof();
 }

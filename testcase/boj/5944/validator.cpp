@@ -1,9 +1,6 @@
 #include "testlib.h"
 #include <vector>
 #include <queue>
-#include <set>
-#include <algorithm>
-#include <numeric>
 using namespace std;
 
 int main(int argc, char* argv[]) {
@@ -27,7 +24,6 @@ int main(int argc, char* argv[]) {
 
     // Read edges
     vector<vector<pair<int, int>>> adj(P + 1); // 1-based
-    set<pair<int, int>> edge_set;
     long long sum_D = 0;
     for (int i = 0; i < C; ++i) {
         int P1 = inf.readInt(1, P, "P1_i");
@@ -38,11 +34,6 @@ int main(int argc, char* argv[]) {
         inf.readEoln();
 
         ensuref(P1 != P2, "Cowpath leads from a pasture to itself at line %d: (%d, %d)", i + 2, P1, P2);
-
-        // No multiple edges (bidirectional)
-        int a = min(P1, P2), b = max(P1, P2);
-        ensuref(!edge_set.count({a, b}), "Multiple cowpaths between (%d, %d) at line %d", a, b, i + 2);
-        edge_set.insert({a, b});
 
         adj[P1].emplace_back(P2, D);
         adj[P2].emplace_back(P1, D);

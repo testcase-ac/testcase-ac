@@ -1,46 +1,48 @@
 #include "testlib.h"
+#include <algorithm>
+#include <map>
 #include <set>
-#include <utility>
+#include <vector>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read number of test cases T
     int T = inf.readInt(1, 100000, "T");
     inf.readEoln();
 
     for (int tc = 1; tc <= T; tc++) {
         setTestCase(tc);
 
-        // Read n
         int n = inf.readInt(2, 100000, "n");
         inf.readEoln();
 
-        // Read n cafe coordinates
-        set<long long> seen;
+        set<pair<int, int>> seen;
+        map<int, vector<int>> ysByX;
         bool hasEntrance = false;
-        const long long OFFSET = 1000000LL; // to separate x and y in key
         for (int i = 0; i < n; i++) {
             int x = inf.readInt(0, 100000, "x");
             inf.readSpace();
             int y = inf.readInt(-100000, 100000, "y");
             inf.readEoln();
 
-            // Check for duplicate coordinates
-            long long key = ( (long long)x + OFFSET ) << 20 | ( (long long)y + 200000 );
-            ensuref(!seen.count(key),
-                    "Duplicate cafe coordinate at index %d: (%d, %d)", i, x, y);
-            seen.insert(key);
-
-            // Check for entrance (0,0)
+            ensuref(seen.insert({x, y}).second,
+                    "duplicate cafe coordinate at index %d: (%d, %d)", i + 1, x, y);
+            ysByX[x].push_back(y);
             if (x == 0 && y == 0) {
                 hasEntrance = true;
             }
         }
         ensuref(hasEntrance, "No entrance cafe at (0,0)");
 
-        // Read the query line: m and k_i's
+        int currentY = 0;
+        for (auto& [x, ys] : ysByX) {
+            sort(ys.begin(), ys.end());
+            ensuref(ys.front() == currentY || ys.back() == currentY,
+                    "x=%d vertical cafe group cannot be reached from y=%d", x, currentY);
+            currentY = (ys.front() == currentY) ? ys.back() : ys.front();
+        }
+
         int m = inf.readInt(1, 10, "m");
         for (int i = 0; i < m; i++) {
             inf.readSpace();

@@ -5,31 +5,23 @@ using namespace std;
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read N and K
-    int N = inf.readInt(1, 100000, "N");
+    int n = inf.readInt(1, 100000, "N");
     inf.readSpace();
-    int K = inf.readInt(1, 100000, "K");
+    int k = inf.readInt(1, 100000, "K");
     inf.readEoln();
 
-    // Read directions string
     string dirs = inf.readToken("[ABCD]+", "dirs");
-    ensuref((int)dirs.length() == K,
-            "Length of dirs (%d) does not match K (%d)", (int)dirs.length(), K);
+    ensuref((int)dirs.size() == k, "dirs length is %d, expected %d", (int)dirs.size(), k);
     inf.readEoln();
 
-    // Read plant coordinates and ensure uniqueness
-    set<pair<int,int>> plants;
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; ++i) {
         int x = inf.readInt(0, 1000000000, "x_i");
         inf.readSpace();
         int y = inf.readInt(0, 1000000000, "y_i");
         inf.readEoln();
-        pair<int,int> p = {x, y};
-        ensuref(!plants.count(p),
-                "Duplicate plant detected at index %d: (%d, %d)", i, x, y);
-        plants.insert(p);
     }
+    // CHECK: The statement gives N plant coordinates but does not explicitly say
+    // that two plants cannot share the same coordinates, so duplicates are accepted.
 
     inf.readEof();
-    return 0;
 }

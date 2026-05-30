@@ -14,8 +14,8 @@ int main(int argc, char* argv[]) {
         string ts = inf.readToken("[0-9][0-9]:[0-9][0-9]", "time");
         // Exactly one space
         inf.readSpace();
-        // Duration DD: 1 or 2 decimal digits, allowing leading zero
-        string dd_str = inf.readToken("[0-9]{1,2}", "DD");
+        // Duration DD: exactly 2 decimal digits, with leading zero for one digit.
+        string dd_str = inf.readToken("[0-9][0-9]", "DD");
         inf.readEoln(); // end of this line
 
         // Parse hours and minutes
@@ -31,7 +31,8 @@ int main(int argc, char* argv[]) {
         for (char c : dd_str) {
             dd = dd * 10 + (c - '0');
         }
-        ensuref(dd >= 0 && dd <= 60,
+        // CHECK: The statement only writes DD <= 60; reject 00 as vacuous call duration.
+        ensuref(dd >= 1 && dd <= 60,
                 "Duration out of range at call %d: %d", i + 1, dd);
     }
 

@@ -1,0 +1,13 @@
+10 20 10
+4
+Zoom Zoom 30 40
+Fueler Up 100 0
+Taxi Garage 0 0
+Go More 0 100
+Go More 40
+Zoom Zoom 50
+Fueler Up 60
+3
+Go to Go More.
+Go to Fueler Up.
+Go to Taxi Garage.

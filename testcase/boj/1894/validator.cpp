@@ -2,97 +2,115 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-static bool isThreeDecimal(const string &s) {
-    // Matches optional '-' + digits + '.' + exactly 3 digits
-    // No leading '+' allowed, no leading zeros except "0.xxx"
-    int n = (int)s.size();
-    if (n < 5) return false; // minimal: "0.000" or "-0.000"
+struct Point {
+    long long x;
+    long long y;
+};
+
+static long long readMillimeterCoordinate(const string& token, int line, int index) {
     int pos = 0;
-    bool neg = false;
-    if (s[pos] == '-') {
-        neg = true;
-        pos++;
-        if (pos >= n) return false;
-    } else if (s[pos] == '+') {
-        return false; // '+' not allowed
+    bool negative = false;
+    if (pos < (int)token.size() && token[pos] == '-') {
+        negative = true;
+        ++pos;
     }
 
-    int startDigits = pos;
-    if (!isdigit(s[pos])) return false;
+    ensuref(pos < (int)token.size() && isdigit((unsigned char)token[pos]),
+            "line %d coordinate %d has invalid numeric format: %s", line, index, token.c_str());
 
-    // integer part
-    while (pos < n && isdigit(s[pos])) pos++;
-    int intLen = pos - startDigits;
-    if (intLen <= 0) return false;
+    int firstDigit = pos;
+    while (pos < (int)token.size() && isdigit((unsigned char)token[pos])) {
+        ++pos;
+    }
+    int integerDigits = pos - firstDigit;
+    ensuref(integerDigits == 1 || token[firstDigit] != '0',
+            "line %d coordinate %d has leading zeroes: %s", line, index, token.c_str());
 
-    // no leading zeros in integer part except "0"
-    if (intLen > 1 && s[startDigits] == '0') return false;
+    ensuref(pos < (int)token.size() && token[pos] == '.',
+            "line %d coordinate %d is missing decimal point: %s", line, index, token.c_str());
+    ++pos;
 
-    // must have dot and three decimals
-    if (pos >= n || s[pos] != '.') return false;
-    pos++;
-    int decStart = pos;
+    ensuref(pos + 3 == (int)token.size(),
+            "line %d coordinate %d must have exactly three decimal digits: %s",
+            line, index, token.c_str());
+
+    long long whole = 0;
+    for (int i = firstDigit; i < firstDigit + integerDigits; ++i) {
+        whole = whole * 10 + (token[i] - '0');
+    }
+
+    long long frac = 0;
     for (int i = 0; i < 3; ++i) {
-        if (pos >= n || !isdigit(s[pos])) return false;
-        pos++;
+        ensuref(isdigit((unsigned char)token[pos + i]),
+                "line %d coordinate %d has invalid decimal digit: %s", line, index, token.c_str());
+        frac = frac * 10 + (token[pos + i] - '0');
     }
-    if (pos != n) return false; // nothing after 3 decimals
 
-    // value range check: -10000 <= value <= 10000
-    // parse as double safely
-    double v = atof(s.c_str());
-    if (v < -10000.0 - 1e-9 || v > 10000.0 + 1e-9) return false;
+    long long value = whole * 1000 + frac;
+    if (negative) {
+        value = -value;
+    }
+    ensuref(-10000000 <= value && value <= 10000000,
+            "line %d coordinate %d is outside [-10000.000, 10000.000]: %s",
+            line, index, token.c_str());
+    return value;
+}
 
-    return true;
+static bool samePoint(const Point& a, const Point& b) {
+    return a.x == b.x && a.y == b.y;
+}
+
+static long long cross(const Point& a, const Point& b, const Point& c) {
+    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // The problem input consists of multiple lines,
-    // each with 8 real numbers: x1 y1 x2 y2 x3 y3 x4 y4
-    // Each coordinate: real, mm precision (3 decimals), range [-10000, 10000].
-    // Lines continue until EOF.
+    int lines = 0;
+    while (!inf.seekEof()) {
+        ensuref(lines < 100000, "too many input lines");
+        ++lines;
 
-    int lineIndex = 0;
-    while (!inf.eof()) {
-        // Peek if there's data; readLine is easier/safer for variable count,
-        // but we need strict whitespace handling.
-        // We'll read 8 tokens per line using readToken and enforce spacing.
-        // Stop if EOF is encountered before any token on a new line.
-        string t[8];
-        bool got = false;
-
-        // Try to read first token of the line; if EOF here, we are done.
-        if (inf.seekEof())
-            break;
-
-        // First token
-        t[0] = inf.readToken("[^ \t\r\n]+", "coord0");
-        got = true;
-        for (int i = 1; i < 8; ++i) {
-            inf.readSpace();
-            t[i] = inf.readToken("[^ \t\r\n]+", ("coord" + to_string(i)).c_str());
+        string token[8];
+        for (int i = 0; i < 8; ++i) {
+            if (i > 0) {
+                inf.readSpace();
+            }
+            token[i] = inf.readToken("[^ \t\r\n]+", ("coordinate_" + to_string(i + 1)).c_str());
         }
         inf.readEoln();
-        lineIndex++;
 
-        // Validate each token as canonical real with 3 decimals and in range
-        for (int i = 0; i < 8; ++i) {
-            ensuref(
-                isThreeDecimal(t[i]),
-                "Invalid coordinate format or range at line %d, index %d: '%s'",
-                lineIndex, i, t[i].c_str()
-            );
+        Point p[4];
+        for (int i = 0; i < 4; ++i) {
+            p[i].x = readMillimeterCoordinate(token[2 * i], lines, 2 * i + 1);
+            p[i].y = readMillimeterCoordinate(token[2 * i + 1], lines, 2 * i + 2);
         }
 
-        // Now we could additionally check that the four points define
-        // two adjacent sides of some parallelogram.
-        // The statement does NOT guarantee any special global property
-        // like existence of answer (it always exists mathematically),
-        // nor non-degeneracy, so no extra geometric checks are required.
+        ensuref(!samePoint(p[0], p[1]), "line %d first side has zero length", lines);
+        ensuref(!samePoint(p[2], p[3]), "line %d second side has zero length", lines);
+
+        int sharedFirst = -1;
+        int sharedSecond = -1;
+        int sharedCount = 0;
+        for (int i = 0; i < 2; ++i) {
+            for (int j = 2; j < 4; ++j) {
+                if (samePoint(p[i], p[j])) {
+                    sharedFirst = i;
+                    sharedSecond = j;
+                    ++sharedCount;
+                }
+            }
+        }
+
+        ensuref(sharedCount == 1, "line %d sides must share exactly one endpoint", lines);
+        Point shared = p[sharedFirst];
+        Point otherFirst = p[1 - sharedFirst];
+        Point otherSecond = p[5 - sharedSecond];
+        ensuref(cross(shared, otherFirst, otherSecond) != 0,
+                "line %d adjacent sides must not be collinear", lines);
     }
 
-    // At this point we're at EOF
+    ensuref(lines > 0, "input must contain at least one line");
     inf.readEof();
 }

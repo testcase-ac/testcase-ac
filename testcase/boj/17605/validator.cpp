@@ -29,11 +29,11 @@ int main(int argc, char* argv[]) {
             inf.readEoln();
         }
 
-        // Check the global property on heights: h_{i-1} != h_i for all 0 < i < n
+        int equalAdjacent = 0;
         for (int i = 1; i < n; ++i) {
-            ensuref(h[i - 1] != h[i],
-                    "Initial heights must satisfy h[i-1] != h[i] for all 0 < i < n, but h[%d] == h[%d] == %lld",
-                    i - 1, i, h[i]);
+            if (h[i - 1] == h[i]) {
+                ++equalAdjacent;
+            }
         }
 
         int q = inf.readInt(Q_MIN, Q_MAX, "q");
@@ -47,26 +47,35 @@ int main(int argc, char* argv[]) {
                 // Update: "1 p d"
                 int p = inf.readInt(0, n - 1, "p");
                 inf.readSpace();
-                long long d = inf.readLong(-H_MAX, H_MAX, "d"); // range on d is not specified; choose safe wide range
+                long long d = inf.readLong(LLONG_MIN, LLONG_MAX, "d");
                 inf.readEoln();
 
-                long long newH = h[p] + d;
-                ensuref(newH >= H_MIN && newH <= H_MAX,
-                        "Height after update out of range at position %d: %lld (must be in [%lld, %lld])",
-                        p, newH, H_MIN, H_MAX);
-                h[p] = newH;
+                auto removePair = [&](int left) {
+                    if (0 <= left && left + 1 < n && h[left] == h[left + 1]) {
+                        --equalAdjacent;
+                    }
+                };
+                auto addPair = [&](int left) {
+                    if (0 <= left && left + 1 < n && h[left] == h[left + 1]) {
+                        ++equalAdjacent;
+                    }
+                };
 
-                // Re-check local neighbors for inequality as guaranteed by statement
-                if (p - 1 >= 0) {
-                    ensuref(h[p - 1] != h[p],
-                            "Heights must satisfy h[i-1] != h[i] after each update, but h[%d] == h[%d] == %lld",
-                            p - 1, p, h[p]);
-                }
-                if (p + 1 < n) {
-                    ensuref(h[p] != h[p + 1],
-                            "Heights must satisfy h[i-1] != h[i] after each update, but h[%d] == h[%d] == %lld",
-                            p, p + 1, h[p]);
-                }
+                removePair(p - 1);
+                removePair(p);
+
+                __int128 newH = (__int128)h[p] + d;
+                ensuref(newH >= H_MIN && newH <= H_MAX,
+                        "Height after update out of range at position %d (must be in [%lld, %lld])",
+                        p, H_MIN, H_MAX);
+                h[p] = (long long)newH;
+
+                addPair(p - 1);
+                addPair(p);
+
+                ensuref(equalAdjacent == 0,
+                        "Heights must satisfy h[i-1] != h[i] for all 0 < i < n after update %d",
+                        qi + 1);
             } else {
                 // Query: "2 l r"
                 int l = inf.readInt(0, n - 1, "l");

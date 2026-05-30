@@ -1,0 +1,19 @@
+30 40 50
+5
+Station A 0 0
+Station B 10 10
+Taxi Garage 20 20
+Station C 30 30
+KonKat's 40 40
+Station A 10
+Station B 10
+Station C 10
+8
+Go to Station A.
+Pickup a passenger going to KonKat's.
+Go to Station B.
+Pickup a passenger going to KonKat's.
+Pickup a passenger going to Station A.
+Go to Station C.
+Pickup a passenger going to KonKat's.
+Go to Taxi Garage.

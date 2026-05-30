@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
         // Read N lines: Sang-geun's CDs
         vector<int> sang(N);
         for (int i = 0; i < N; ++i) {
-            sang[i] = inf.readInt(0, MAX_CD, "sang_cd");
+            sang[i] = inf.readInt(1, MAX_CD, "sang_cd");
             inf.readEoln();
         }
         // Check strictly increasing order (no duplicates)
@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
         // Read M lines: Sun-young's CDs
         vector<int> sun(M);
         for (int i = 0; i < M; ++i) {
-            sun[i] = inf.readInt(0, MAX_CD, "sun_cd");
+            sun[i] = inf.readInt(1, MAX_CD, "sun_cd");
             inf.readEoln();
         }
         // Check strictly increasing order (no duplicates)

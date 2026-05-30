@@ -2,28 +2,16 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-// Read a fixed-point decimal with exactly two digits after the decimal point,
-// in canonical form, and ensure its numeric value is within [lo, hi].
-double readFixed2(double lo, double hi, const char* name) {
+// Read a canonical fixed-point decimal with exactly two digits after the
+// decimal point and return the value in cents.
+int readFixed2(int lo, int hi, const char* name) {
     string s = inf.readToken("[^ ]+", name);
 
-    // Canonical form:
-    //  - optional single leading '-'
-    //  - integer part: "0" or non-zero without leading zeros
-    //  - a dot '.'
-    //  - exactly two digits
-    //
-    // Regex explanation:
-    //   ^-?           optional '-'
-    //   (0|[1-9][0-9]*)  "0" or non-zero without leading zeros
-    //   \.            decimal point
-    //   [0-9]{2}$     exactly two digits after decimal
     static const regex re("^(-?(0|[1-9][0-9]*))\\.[0-9]{2}$");
     ensuref(regex_match(s, re),
             "%s must be a decimal number with exactly two digits after decimal and no leading zeros: got '%s'",
             name, s.c_str());
 
-    // Parse as integer cents to avoid floating-point issues and check bounds exactly
     bool neg = (s[0] == '-');
     string t = s;
     if (neg) t = t.substr(1);
@@ -48,14 +36,11 @@ double readFixed2(double lo, double hi, const char* name) {
     long long cents = intVal * 100 + fracVal;
     if (neg) cents = -cents;
 
-    long long loC = llround(lo * 100.0);
-    long long hiC = llround(hi * 100.0);
-
-    ensuref(cents >= loC && cents <= hiC,
+    ensuref(cents >= lo && cents <= hi,
             "%s = %s out of range [%.2f, %.2f]",
-            name, s.c_str(), lo, hi);
+            name, s.c_str(), lo / 100.0, hi / 100.0);
 
-    return cents / 100.0;
+    return (int)cents;
 }
 
 int main(int argc, char* argv[]) {
@@ -68,21 +53,20 @@ int main(int argc, char* argv[]) {
     for (int tc = 1; tc <= T; ++tc) {
         setTestCase(tc);
 
-        // First line of test case: N A B
-        // The "Limits" section says N = 1, but the sample has N = 2.
-        // To support both, we validate 1 ≤ N ≤ 100000 and then enforce
-        // the other stated constraints (ranges on coordinates, distinct C_i).
-        int N = inf.readInt(1, 100000, "N");
+        // First line of test case: N A B.
+        // CHECK: The unjudged sample includes N = 2, but this Small statement's
+        // official input limit is N = 1.
+        int N = inf.readInt(1, 1, "N");
         inf.readSpace();
-        double A = readFixed2(-10.00, 10.00, "A");
+        readFixed2(-1000, 1000, "A");
         inf.readSpace();
-        double B = readFixed2(-10.00, 10.00, "B");
+        readFixed2(-1000, 1000, "B");
         inf.readEoln();
 
         // Second line: N floating-point numbers C_i
-        vector<double> C(N);
+        vector<int> C(N);
         for (int i = 0; i < N; ++i) {
-            C[i] = readFixed2(-10.00, 10.00, "C_i");
+            C[i] = readFixed2(-1000, 1000, "C_i");
             if (i + 1 < N) inf.readSpace();
         }
         inf.readEoln();
@@ -93,7 +77,7 @@ int main(int argc, char* argv[]) {
         for (int i = 1; i < N; ++i) {
             ensuref(C[i] != C[i - 1],
                     "C_i must be distinct, but two islands share coordinate %.2f",
-                    C[i]);
+                    C[i] / 100.0);
         }
 
         // No additional global geometric / path properties are guaranteed by the

@@ -1,109 +1,75 @@
 #include "testlib.h"
-#include <vector>
-#include <set>
-#include <queue>
-#include <algorithm>
+#include <bits/stdc++.h>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read number of vertices
     int V = inf.readInt(2, 100000, "V");
     inf.readEoln();
 
-    // Track which vertices have been described
-    vector<bool> seen(V+1, false);
-    // Adjacency list: for each u, store pairs (v, w)
-    vector<vector<pair<int,int>>> adj(V+1);
+    vector<bool> seen(V + 1, false);
+    vector<vector<pair<int, int>>> adj(V + 1);
+    map<pair<int, int>, vector<int>> weights_by_edge;
 
-    // Read V lines of adjacency info
-    for (int i = 0; i < V; i++) {
-        // Line index in file is i+2 (since first line is V)
+    for (int line = 1; line <= V; ++line) {
         int u = inf.readInt(1, V, "u");
-        ensuref(!seen[u],
-                "Vertex %d is described more than once (line %d)", 
-                u, i+2);
+        ensuref(!seen[u], "vertex %d is described more than once", u);
         seen[u] = true;
 
-        // Read pairs v, w until we see v == -1
+        set<int> neighbors;
         while (true) {
             inf.readSpace();
             int v = inf.readInt(-1, V, "v");
-            if (v == -1) break;
+            if (v == -1) {
+                break;
+            }
+
             inf.readSpace();
             int w = inf.readInt(1, 10000, "w");
-
-            // No self-loops
-            ensuref(u != v,
-                    "Loop detected at line %d: (%d,%d)", 
-                    i+2, u, v);
-
+            ensuref(u != v, "self-loop in adjacency list for vertex %d", u);
+            ensuref(neighbors.insert(v).second,
+                    "duplicate neighbor %d in adjacency list for vertex %d", v, u);
             adj[u].push_back({v, w});
+            weights_by_edge[{min(u, v), max(u, v)}].push_back(w);
         }
         inf.readEoln();
     }
 
-    // Ensure every vertex 1..V was described exactly once
-    for (int u = 1; u <= V; u++) {
-        ensuref(seen[u],
-                "Vertex %d is not described in input", 
-                u);
+    for (int u = 1; u <= V; ++u) {
+        ensuref(seen[u], "vertex %d is not described", u);
     }
 
-    // Within each adjacency list, no duplicate neighbors
-    for (int u = 1; u <= V; u++) {
-        auto &lst = adj[u];
-        vector<int> vs;
-        vs.reserve(lst.size());
-        for (auto &p : lst) vs.push_back(p.first);
-        sort(vs.begin(), vs.end());
-        for (int i = 1; i < (int)vs.size(); i++) {
-            ensuref(vs[i] != vs[i-1],
-                    "Multiple edges in adjacency list of vertex %d: (%d,%d)",
-                    u, vs[i-1], vs[i]);
-        }
+    ensuref((int)weights_by_edge.size() == V - 1,
+            "tree must have exactly %d undirected edges, found %d",
+            V - 1, (int)weights_by_edge.size());
+
+    for (const auto& [edge, weights] : weights_by_edge) {
+        ensuref(weights.size() == 2,
+                "edge %d-%d must appear in both endpoint adjacency lists",
+                edge.first, edge.second);
+        ensuref(weights[0] == weights[1],
+                "edge %d-%d has inconsistent weights %d and %d",
+                edge.first, edge.second, weights[0], weights[1]);
     }
 
-    // Collect undirected edges, ensure exactly V-1 and no parallel edges
-    set<pair<int,int>> edges;
-    for (int u = 1; u <= V; u++) {
-        for (auto &p : adj[u]) {
-            int v = p.first;
-            if (u < v) {
-                auto e = make_pair(u, v);
-                ensuref(!edges.count(e),
-                        "Multiple edges detected: (%d,%d)", 
-                        u, v);
-                edges.insert(e);
-            }
-        }
-    }
-    ensuref((int)edges.size() == V-1,
-            "Number of edges is %d but expected %d", 
-            (int)edges.size(), V-1);
-
-    // Check connectivity via BFS from vertex 1
-    vector<char> vis(V+1, 0);
+    vector<bool> visited(V + 1, false);
     queue<int> q;
-    vis[1] = 1;
+    visited[1] = true;
     q.push(1);
     while (!q.empty()) {
-        int u = q.front(); q.pop();
-        for (auto &p : adj[u]) {
-            int v = p.first;
-            if (!vis[v]) {
-                vis[v] = 1;
+        int u = q.front();
+        q.pop();
+        for (const auto& [v, w] : adj[u]) {
+            if (!visited[v]) {
+                visited[v] = true;
                 q.push(v);
             }
         }
     }
-    for (int u = 1; u <= V; u++) {
-        ensuref(vis[u],
-                "Graph is disconnected: vertex %d is unreachable", 
-                u);
+    for (int u = 1; u <= V; ++u) {
+        ensuref(visited[u], "graph is disconnected: vertex %d is unreachable", u);
     }
 
     inf.readEof();
-    return 0;
 }

@@ -1,5 +1,4 @@
 #include "testlib.h"
-#include <set>
 #include <vector>
 using namespace std;
 
@@ -9,11 +8,8 @@ int main(int argc, char* argv[]) {
     // Read n and m
     int n = inf.readInt(1, 200, "n");
     inf.readSpace();
-    int m = inf.readInt(0, 10000, "m");
+    int m = inf.readInt(1, 10000, "m");
     inf.readEoln();
-
-    // Store edges to check for multiple edges and self-loops
-    set<pair<int, int>> edges;
 
     // To check connectivity, build adjacency list
     vector<vector<pair<int, int>>> adj(n + 1);
@@ -27,10 +23,6 @@ int main(int argc, char* argv[]) {
         inf.readEoln();
 
         ensuref(a != b, "Self-loop detected at edge index %d: (%d, %d)", i + 1, a, b);
-        int u = min(a, b), v = max(a, b);
-        ensuref(!edges.count({u, v}), "Multiple edge detected between %d and %d at edge index %d", a, b, i + 1);
-        edges.insert({u, v});
-
         adj[a].emplace_back(b, t);
         adj[b].emplace_back(a, t);
     }

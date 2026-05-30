@@ -38,6 +38,7 @@ int main(int argc, char* argv[]) {
         // Parse integer part
         __int128 ip = 0;
         int int_digits = 0;
+        int int_start = pos;
         while (pos < n && isdigit(s[pos])) {
             int digit = s[pos] - '0';
             // Prevent ip overflow roughly
@@ -47,6 +48,8 @@ int main(int argc, char* argv[]) {
             int_digits++;
         }
         ensuref(int_digits >= 1, "No integer digits found in \"%s\"", s.c_str());
+        ensuref(int_digits == 1 || s[int_start] != '0',
+                "Leading zero in integer part of \"%s\"", s.c_str());
         // Parse fractional part if any
         __int128 frac = 0;
         int frac_digits = 0;
@@ -75,6 +78,7 @@ int main(int argc, char* argv[]) {
         // if frac_digits == 0, frac is already 0; if ==2, use as is
         val100 += frac;
         if (neg) val100 = -val100;
+        ensuref(!neg || val100 != 0, "Negative zero is not canonical in \"%s\"", s.c_str());
         // Check numeric range: [-10.00, 200.00] => [-1000, 20000] in hundredths
         ensuref(val100 >= -1000 && val100 <= 20000,
                 "Temperature %.2f out of allowed range [-10.00,200.00] in \"%s\"",

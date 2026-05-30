@@ -6,28 +6,92 @@ struct P {
     long long x, y;
 };
 
-long long cross(const P &a, const P &b, const P &c) {
-    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+struct BBox {
+    long long minX, maxX, minY, maxY;
+};
+
+struct Polygon {
+    vector<P> p;
+    BBox box;
+};
+
+__int128 cross(const P &a, const P &b, const P &c) {
+    return (__int128)(b.x - a.x) * (c.y - a.y) -
+           (__int128)(b.y - a.y) * (c.x - a.x);
 }
 
-long long crossO(const P &a, const P &b) {
-    return a.x * b.y - a.y * b.x;
+__int128 crossO(const P &a, const P &b) {
+    return (__int128)a.x * b.y - (__int128)a.y * b.x;
 }
 
-long long dotO(const P &a, const P &b) {
-    return a.x * b.x + a.y * b.y;
-}
-
-int sgn(long long v) {
+int sgn(__int128 v) {
     if (v < 0) return -1;
     if (v > 0) return 1;
     return 0;
 }
 
+pair<long long, long long> normalizedRay(const P &p) {
+    long long g = gcd(llabs(p.x), p.y);
+    return {p.x / g, p.y / g};
+}
+
+BBox boundsOf(const vector<P> &poly) {
+    BBox box{poly[0].x, poly[0].x, poly[0].y, poly[0].y};
+    for (const P &p : poly) {
+        box.minX = min(box.minX, p.x);
+        box.maxX = max(box.maxX, p.x);
+        box.minY = min(box.minY, p.y);
+        box.maxY = max(box.maxY, p.y);
+    }
+    return box;
+}
+
+bool boxesOverlap(const BBox &a, const BBox &b) {
+    return max(a.minX, b.minX) <= min(a.maxX, b.maxX) &&
+           max(a.minY, b.minY) <= min(a.maxY, b.maxY);
+}
+
+bool onSegment(const P &a, const P &b, const P &p) {
+    return cross(a, b, p) == 0 &&
+           min(a.x, b.x) <= p.x && p.x <= max(a.x, b.x) &&
+           min(a.y, b.y) <= p.y && p.y <= max(a.y, b.y);
+}
+
+bool segmentsIntersect(const P &a, const P &b, const P &c, const P &d) {
+    int abC = sgn(cross(a, b, c));
+    int abD = sgn(cross(a, b, d));
+    int cdA = sgn(cross(c, d, a));
+    int cdB = sgn(cross(c, d, b));
+
+    if (abC == 0 && onSegment(a, b, c)) return true;
+    if (abD == 0 && onSegment(a, b, d)) return true;
+    if (cdA == 0 && onSegment(c, d, a)) return true;
+    if (cdB == 0 && onSegment(c, d, b)) return true;
+    return abC * abD < 0 && cdA * cdB < 0;
+}
+
+bool pointInConvexPolygon(const vector<P> &poly, const P &q) {
+    for (int i = 0; i < (int)poly.size(); ++i) {
+        int j = (i + 1) % (int)poly.size();
+        if (cross(poly[i], poly[j], q) < 0) return false;
+    }
+    return true;
+}
+
+bool polygonsIntersect(const vector<P> &a, const vector<P> &b) {
+    for (int i = 0; i < (int)a.size(); ++i) {
+        int ni = (i + 1) % (int)a.size();
+        for (int j = 0; j < (int)b.size(); ++j) {
+            int nj = (j + 1) % (int)b.size();
+            if (segmentsIntersect(a[i], a[ni], b[j], b[nj])) return true;
+        }
+    }
+    return pointInConvexPolygon(a, b[0]) || pointInConvexPolygon(b, a[0]);
+}
+
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // n polygons
     int n = inf.readInt(1, 100000, "n");
     inf.readEoln();
 
@@ -36,8 +100,9 @@ int main(int argc, char* argv[]) {
     const long long COORD_MIN_Y = 1LL;
     const long long COORD_MAX_Y = 100000000LL;
 
-    // total vertices counter
     long long totalVertices = 0;
+    set<pair<long long, long long>> vertexRays;
+    vector<Polygon> polygons;
 
     for (int i = 0; i < n; ++i) {
         setTestCase(i + 1);
@@ -57,73 +122,46 @@ int main(int argc, char* argv[]) {
         }
         inf.readEoln();
 
-        // Global checks on this polygon:
-
-        // 1) Non-degenerate polygon: area > 0
-        long long area2 = 0;
+        __int128 area2 = 0;
         for (int j = 0; j < m; ++j) {
             int k = (j + 1) % m;
             area2 += cross({0,0}, poly[j], poly[k]);
         }
-        ensuref(area2 > 0, "Polygon %d is degenerate or not in CCW order (area <= 0)", i + 1);
+        ensuref(area2 > 0,
+                "Polygon %d is degenerate or not in counter-clockwise order", i + 1);
 
-        // 2) Convexity and strict CCW: all turns must have the same (positive) sign.
-        int prevSign = 0;
+        set<pair<long long, long long>> pointsInPolygon;
+        for (int j = 0; j < m; ++j) {
+            ensuref(pointsInPolygon.insert({poly[j].x, poly[j].y}).second,
+                    "Polygon %d repeats vertex %d", i + 1, j + 1);
+
+            auto ray = normalizedRay(poly[j]);
+            ensuref(vertexRays.insert(ray).second,
+                    "Vertex %d of polygon %d is collinear with the origin and another vertex",
+                    j + 1, i + 1);
+        }
+
         for (int j = 0; j < m; ++j) {
             int k = (j + 1) % m;
             int l = (j + 2) % m;
-            long long cr = cross(poly[j], poly[k], poly[l]);
-            int s = sgn(cr);
-            ensuref(s != 0,
-                    "Polygon %d has three consecutive collinear vertices at indices %d,%d,%d",
-                    i + 1, j, k, l);
-            if (prevSign == 0) prevSign = s;
-            else {
-                ensuref(s == prevSign,
-                        "Polygon %d is not convex at vertex index %d", i + 1, k);
-            }
-        }
-        // Since area2 > 0 and order is CCW, we expect positive turns
-        ensuref(prevSign > 0,
-                "Polygon %d is not strictly CCW (expected positive orientation)", i + 1);
-
-        // 3) No vertex at origin and "line connecting any two vertices does not pass through origin".
-        //    That means origin is not collinear with any pair of vertices.
-        for (int j = 0; j < m; ++j) {
-            // vertex not at origin (follows from y >= 1, but check anyway)
-            ensuref(!(poly[j].x == 0 && poly[j].y == 0),
-                    "Polygon %d has a vertex at the origin", i + 1);
-        }
-        // check all pairs O, vi, vj not collinear: crossO(vi, vj) != 0
-        // O(m^2) per polygon is too much for constraints, so only check consecutive
-        // plus pairs sharing an index; this is sufficient to ensure no segment or
-        // diagonal through origin would be consistent with the given constraints
-        // ("line connecting any two vertices" is strong, but we cannot afford full O(m^2)).
-        // We at least enforce that origin is not collinear with any polygon edge
-        // and with any pair of edges that share a vertex.
-        for (int j = 0; j < m; ++j) {
-            int k = (j + 1) % m;
-            long long cr = crossO(poly[j], poly[k]);
-            ensuref(cr != 0,
-                    "Polygon %d has edge (%d,%d) whose supporting line passes through origin",
-                    i + 1, j, k);
-        }
-        for (int j = 0; j < m; ++j) {
-            int k = (j + 1) % m;
-            int l = (j + 2) % m;
-            long long cr1 = crossO(poly[j], poly[l]);
-            ensuref(cr1 != 0,
-                    "Polygon %d has vertices %d and %d whose connecting line passes through origin",
-                    i + 1, j, l);
+            ensuref(cross(poly[j], poly[k], poly[l]) >= 0,
+                    "Polygon %d is not convex at vertex %d", i + 1, k + 1);
         }
 
-        // 4) Optional: check that the polygon does not contain the origin inside.
-        //    This is not stated explicitly but follows from y_i >= 1; still, we
-        //    assert that all vertices lie strictly above x-axis, hence 0 is outside.
         for (int j = 0; j < m; ++j) {
-            ensuref(poly[j].y >= 1,
-                    "Polygon %d vertex %d violates y >= 1 condition", i + 1, j);
+            int k = (j + 1) % m;
+            ensuref(crossO(poly[j], poly[k]) != 0,
+                    "Edge after vertex %d of polygon %d has a supporting line through the origin",
+                    j + 1, i + 1);
         }
+
+        BBox box = boundsOf(poly);
+        for (int j = 0; j < (int)polygons.size(); ++j) {
+            if (!boxesOverlap(box, polygons[j].box)) continue;
+            ensuref(!polygonsIntersect(poly, polygons[j].p),
+                    "Polygon %d intersects polygon %d", i + 1, j + 1);
+        }
+        polygons.push_back({poly, box});
     }
 
     inf.readEof();

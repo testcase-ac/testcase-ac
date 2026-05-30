@@ -36,6 +36,17 @@ bool segmentsIntersect(const Point &a1, const Point &a2,
     return false;
 }
 
+bool adjacentEdgesOverlap(const Point &a, const Point &b, const Point &c) {
+    if (cross(a, b, c) != 0) {
+        return false;
+    }
+    long long dx1 = a.x - b.x;
+    long long dy1 = a.y - b.y;
+    long long dx2 = c.x - b.x;
+    long long dy2 = c.y - b.y;
+    return dx1 * dx2 + dy1 * dy2 > 0;
+}
+
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
@@ -65,6 +76,13 @@ int main(int argc, char* argv[]) {
             ensuref(!seen.count(pr),
                     "Duplicate vertex at index %d: (%d, %d)", i, pts[i].x, pts[i].y);
             seen.insert(pr);
+        }
+
+        for (int i = 0; i < n; i++) {
+            int prev = (i + n - 1) % n;
+            int next = (i + 1) % n;
+            ensuref(!adjacentEdgesOverlap(pts[prev], pts[i], pts[next]),
+                    "Adjacent edges overlap at vertex %d", i);
         }
 
         // Check that the polygon is simple: no self-intersection

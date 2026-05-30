@@ -1,78 +1,70 @@
 #include "testlib.h"
-#include <string>
-#include <set>
+#include <bits/stdc++.h>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read number of known open-source repositories
+    const int maxLineLength = 254;
+    const int maxSourceLines = 10000;
+    const int maxTotalChars = 1000000;
+    int totalChars = 0;
+
+    auto addLineSize = [&](const string& line) {
+        totalChars += (int)line.size() + 1;
+        ensuref(totalChars <= maxTotalChars,
+                "total input size exceeds %d characters", maxTotalChars);
+    };
+
+    auto checkCodeLine = [&](const string& line, const char* context, int lineIndex) {
+        ensuref((int)line.size() <= maxLineLength,
+                "%s line %d is too long: got %d, max is %d",
+                context, lineIndex, (int)line.size(), maxLineLength);
+        for (int i = 0; i < (int)line.size(); ++i) {
+            unsigned char ch = line[i];
+            ensuref(32 <= ch && ch <= 126,
+                    "%s line %d has invalid character code %d at position %d",
+                    context, lineIndex, ch, i + 1);
+        }
+    };
+
     int N = inf.readInt(0, 100, "N");
     inf.readEoln();
+    addLineSize(to_string(N));
 
-    // Track filenames to ensure uniqueness
-    set<string> filenames;
-
-    // Read each open-source entry
-    for (int i = 0; i < N; i++) {
-        // File name: no spaces, ASCII 33('!') to 126('~'), length 1..254
+    for (int i = 0; i < N; ++i) {
         string fname = inf.readToken("[!-~]{1,254}", "file_name");
         inf.readEoln();
-        ensuref(!filenames.count(fname),
-                "Duplicate file name: %s", fname.c_str());
-        filenames.insert(fname);
+        addLineSize(fname);
 
-        // Read source lines until "***END***"
-        int line_cnt = 0;
+        int lineCnt = 0;
         while (true) {
-            // Read entire line (up to newline), any characters
             string s = inf.readLine("[^]*", "source_line");
-            // Check sentinel
+            addLineSize(s);
+            checkCodeLine(s, "source", lineCnt + 1);
             if (s == "***END***") {
                 break;
             }
-            // Count and bounds checks
-            line_cnt++;
-            ensuref(line_cnt <= 10000,
-                    "Too many lines in source %s: got %d, max is 10000",
-                    fname.c_str(), line_cnt);
-            // Each line length ≤ 254
-            ensuref((int)s.size() <= 254,
-                    "Line too long in source %s: length %d, max is 254",
-                    fname.c_str(), (int)s.size());
-            // Each character must be ASCII 32..126
-            for (int j = 0; j < (int)s.size(); j++) {
-                unsigned char c = s[j];
-                ensuref(c >= 32 && c <= 126,
-                        "Invalid character (code %d) in source %s at line %d, pos %d",
-                        c, fname.c_str(), line_cnt, j+1);
-            }
+            ++lineCnt;
+            ensuref(lineCnt <= maxSourceLines,
+                    "too many lines in source %s: got %d, max is %d",
+                    fname.c_str(), lineCnt, maxSourceLines);
         }
     }
 
-    // Read the submitted source to compare (no filename header)
-    int cmp_lines = 0;
+    int cmpLines = 0;
     while (true) {
         string s = inf.readLine("[^]*", "compare_source_line");
+        addLineSize(s);
+        checkCodeLine(s, "comparison source", cmpLines + 1);
         if (s == "***END***") {
             break;
         }
-        cmp_lines++;
-        ensuref(cmp_lines <= 10000,
-                "Too many lines in comparison source: got %d, max is 10000",
-                cmp_lines);
-        ensuref((int)s.size() <= 254,
-                "Line too long in comparison source: length %d, max is 254",
-                (int)s.size());
-        for (int j = 0; j < (int)s.size(); j++) {
-            unsigned char c = s[j];
-            ensuref(c >= 32 && c <= 126,
-                    "Invalid character (code %d) in comparison source at line %d, pos %d",
-                    c, cmp_lines, j+1);
-        }
+        ++cmpLines;
+        ensuref(cmpLines <= maxSourceLines,
+                "too many lines in comparison source: got %d, max is %d",
+                cmpLines, maxSourceLines);
     }
 
-    // No extra data after final END
     inf.readEof();
-    return 0;
 }

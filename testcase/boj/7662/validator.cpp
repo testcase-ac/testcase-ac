@@ -1,32 +1,34 @@
 #include "testlib.h"
+#include <bits/stdc++.h>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Number of test cases
+    // CHECK: The statement gives no T bound; use the repo default practical cap.
     int T = inf.readInt(1, 100000, "T");
     inf.readEoln();
 
+    long long totalOperations = 0;
     for (int tc = 1; tc <= T; tc++) {
         setTestCase(tc);
-        // Number of operations (allow 0 per statement's lack of lower bound)
-        int k = inf.readInt(1, 1000000, "k");
+        int k = inf.readInt(0, 1000000, "k");
         inf.readEoln();
+        totalOperations += k;
+        // CHECK: No aggregate limit is stated, but unbounded T*k is impractical.
+        ensuref(totalOperations <= 5000000,
+                "total number of operations must not exceed 5000000");
 
         for (int i = 0; i < k; i++) {
-            // Operation type: either 'I' or 'D'
             string op = inf.readToken("[ID]", "op");
             inf.readSpace();
             if (op == "I") {
-                // Insert operation: value in range [-2^31, 2^31-1]
-                long long v = inf.readLong(-2147483648LL, 2147483647LL, "n");
-                (void)v;
+                inf.readLong(-2147483648LL, 2147483647LL, "n");
             } else {
-                // Delete operation: argument must be exactly 1 or -1
-                int d = inf.readInt(-1, 1, "n");
+                int d = inf.readInt(-1, 1, "d");
                 ensuref(d == 1 || d == -1,
-                        "For 'D' operation, argument must be 1 or -1, found %d", d);
+                        "delete argument at operation %d must be 1 or -1, found %d",
+                        i + 1, d);
             }
             inf.readEoln();
         }

@@ -3,6 +3,71 @@
 #include <string>
 using namespace std;
 
+bool solve(int a[9][9]) {
+    int bestI = -1;
+    int bestJ = -1;
+    int bestMask = 0;
+    int bestCount = 10;
+
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            if (a[i][j] != 0) {
+                continue;
+            }
+
+            bool used[10] = {false};
+            for (int k = 0; k < 9; k++) {
+                used[a[i][k]] = true;
+                used[a[k][j]] = true;
+            }
+
+            int bi = (i / 3) * 3;
+            int bj = (j / 3) * 3;
+            for (int di = 0; di < 3; di++) {
+                for (int dj = 0; dj < 3; dj++) {
+                    used[a[bi + di][bj + dj]] = true;
+                }
+            }
+
+            int mask = 0;
+            int count = 0;
+            for (int v = 1; v <= 9; v++) {
+                if (!used[v]) {
+                    mask |= 1 << v;
+                    count++;
+                }
+            }
+
+            if (count == 0) {
+                return false;
+            }
+            if (count < bestCount) {
+                bestI = i;
+                bestJ = j;
+                bestMask = mask;
+                bestCount = count;
+            }
+        }
+    }
+
+    if (bestI == -1) {
+        return true;
+    }
+
+    for (int v = 1; v <= 9; v++) {
+        if ((bestMask & (1 << v)) == 0) {
+            continue;
+        }
+        a[bestI][bestJ] = v;
+        if (solve(a)) {
+            return true;
+        }
+        a[bestI][bestJ] = 0;
+    }
+
+    return false;
+}
+
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
@@ -65,6 +130,14 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+
+    int copy[9][9];
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            copy[i][j] = a[i][j];
+        }
+    }
+    ensuref(solve(copy), "Sudoku puzzle has no solution");
 
     inf.readEof();
     return 0;

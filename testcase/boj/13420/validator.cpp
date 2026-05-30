@@ -2,6 +2,10 @@
 #include <climits>
 using namespace std;
 
+static bool isSigned64(__int128 value) {
+    return LLONG_MIN <= value && value <= LLONG_MAX;
+}
+
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
@@ -47,6 +51,18 @@ int main(int argc, char* argv[]) {
             ensuref(rem == 0,
                     "Non-integer division at test case %d: %lld / %lld has remainder %lld",
                     tc, A, B, rem);
+        } else if (op == "+") {
+            ensuref(isSigned64((__int128)A + B),
+                    "Addition result out of signed 64-bit range at test case %d: %lld + %lld",
+                    tc, A, B);
+        } else if (op == "-") {
+            ensuref(isSigned64((__int128)A - B),
+                    "Subtraction result out of signed 64-bit range at test case %d: %lld - %lld",
+                    tc, A, B);
+        } else {
+            ensuref(isSigned64((__int128)A * B),
+                    "Multiplication result out of signed 64-bit range at test case %d: %lld * %lld",
+                    tc, A, B);
         }
     }
 

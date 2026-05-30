@@ -1,82 +1,63 @@
 #include "testlib.h"
-#include <vector>
-#include <set>
-#include <queue>
+
 #include <algorithm>
+#include <cstdint>
+#include <queue>
+#include <unordered_set>
+#include <vector>
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // 1. Read N, M
-    int N = inf.readInt(2, 300000, "N");
+    int n = inf.readInt(2, 300000, "N");
     inf.readSpace();
-    int M = inf.readInt(1, 300000, "M");
+    int m = inf.readInt(1, 300000, "M");
     inf.readEoln();
 
-    // 2. Read edges, check constraints: 1 <= u,v <= N, u != v, no multi-edges, undirected
-    set<pair<int,int>> edges;
-    vector<vector<int>> adj(N+1); // 1-based
+    vector<vector<int>> adj(n + 1);
+    unordered_set<uint64_t> seen;
+    seen.reserve(static_cast<size_t>(m) * 2);
 
-    for (int i = 0; i < M; ++i) {
-        int u = inf.readInt(1, N, "u");
+    for (int i = 1; i <= m; ++i) {
+        int u = inf.readInt(1, n, "u");
         inf.readSpace();
-        int v = inf.readInt(1, N, "v");
+        int v = inf.readInt(1, n, "v");
         inf.readEoln();
 
-        ensuref(u != v, "Self-loop detected at edge %d: (%d, %d)", i+1, u, v);
+        ensuref(u != v, "edge %d is a self-loop: %d %d", i, u, v);
 
-        int a = min(u, v), b = max(u, v);
-        ensuref(!edges.count({a, b}), "Multiple edge detected between %d and %d at edge %d", u, v, i+1);
-        edges.insert({a, b});
+        int a = min(u, v);
+        int b = max(u, v);
+        uint64_t key = (static_cast<uint64_t>(a) << 32) | static_cast<uint64_t>(b);
+        ensuref(seen.insert(key).second, "edge %d duplicates edge %d %d", i, a, b);
 
         adj[u].push_back(v);
         adj[v].push_back(u);
     }
 
-    // 3. Check connectivity: BFS/DFS from node 1, all nodes must be reachable
-    vector<bool> vis(N+1, false);
+    vector<char> visited(n + 1, false);
     queue<int> q;
     q.push(1);
-    vis[1] = true;
-    int cnt = 1;
+    visited[1] = true;
+
+    int reachable = 0;
     while (!q.empty()) {
-        int u = q.front(); q.pop();
+        int u = q.front();
+        q.pop();
+        ++reachable;
+
         for (int v : adj[u]) {
-            if (!vis[v]) {
-                vis[v] = true;
+            if (!visited[v]) {
+                visited[v] = true;
                 q.push(v);
-                ++cnt;
             }
         }
     }
-    ensuref(cnt == N, "Graph is not connected: only %d/%d nodes reachable from node 1", cnt, N);
 
-    // 4. Check that there is at least one cycle (i.e., "반복적으로 도는 방법이 적어도 하나는 있다는 것이 보장된다")
-    // This is implied by the problem, but as a validator, we must check it.
-    // In a connected undirected graph, a cycle exists iff M >= N.
-    // But let's check for a cycle explicitly (DFS, find a back edge).
-    vector<bool> visited(N+1, false);
-    bool found_cycle = false;
-    function<void(int,int)> dfs = [&](int u, int parent) {
-        visited[u] = true;
-        for (int v : adj[u]) {
-            if (v == parent) continue;
-            if (visited[v]) {
-                found_cycle = true;
-                return;
-            } else {
-                dfs(v, u);
-                if (found_cycle) return;
-            }
-        }
-    };
-    dfs(1, -1);
-    ensuref(found_cycle, "No cycle found in the graph, but problem guarantees at least one cycle");
+    ensuref(reachable == n, "graph is not connected: only %d of %d rooms are reachable", reachable, n);
+    ensuref(m >= n, "connected graph has no cycle: N=%d M=%d", n, m);
 
-    // 5. Each edge must be between two different nodes, and at most one edge per pair (already checked above)
-
-    // 6. Each line ends with EOLN, and file ends with EOF
     inf.readEof();
 }

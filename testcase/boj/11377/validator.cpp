@@ -25,14 +25,8 @@ int main(int argc, char* argv[]) {
         }
         inf.readEoln();
 
-        // Ensure within each employee's list, job IDs are unique
-        // (implicit that each job index is in [1, M] by readInts)
-        set<int> seen;
-        for (int job : jobs) {
-            ensuref(!seen.count(job),
-                    "Duplicate job %d in list of employee %d", job, i);
-            seen.insert(job);
-        }
+        // CHECK: The statement describes a list of job numbers but does not
+        // explicitly require distinct job numbers within one employee's list.
     }
 
     // No extra data

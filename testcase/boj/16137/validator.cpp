@@ -1,86 +1,141 @@
 #include "testlib.h"
-#include <vector>
+#include <bits/stdc++.h>
 using namespace std;
+
+namespace {
+
+int n;
+int m;
+vector<vector<int>> grid;
+
+bool isCliffCell(int value) {
+    return value != 1;
+}
+
+bool isBridgeCell(int value) {
+    return value >= 2;
+}
+
+bool isCliffIntersection(int r, int c) {
+    bool horizontal = false;
+    bool vertical = false;
+
+    if (c > 0 && isCliffCell(grid[r][c - 1])) {
+        horizontal = true;
+    }
+    if (c + 1 < n && isCliffCell(grid[r][c + 1])) {
+        horizontal = true;
+    }
+    if (r > 0 && isCliffCell(grid[r - 1][c])) {
+        vertical = true;
+    }
+    if (r + 1 < n && isCliffCell(grid[r + 1][c])) {
+        vertical = true;
+    }
+
+    return horizontal && vertical;
+}
+
+bool canPlaceNewBridge(int r, int c) {
+    return grid[r][c] == 0 && !isCliffIntersection(r, c);
+}
+
+bool canReachAfterPlacingOneBridge() {
+    struct State {
+        int r;
+        int c;
+        int usedNewBridge;
+    };
+
+    vector<vector<array<bool, 2>>> visited(
+        n, vector<array<bool, 2>>(n, {false, false}));
+    queue<State> q;
+
+    visited[0][0][0] = true;
+    q.push({0, 0, 0});
+
+    const int dr[4] = {-1, 1, 0, 0};
+    const int dc[4] = {0, 0, -1, 1};
+
+    while (!q.empty()) {
+        State cur = q.front();
+        q.pop();
+
+        if (cur.r == n - 1 && cur.c == n - 1) {
+            return true;
+        }
+
+        for (int dir = 0; dir < 4; ++dir) {
+            int nr = cur.r + dr[dir];
+            int nc = cur.c + dc[dir];
+            if (nr < 0 || nr >= n || nc < 0 || nc >= n) {
+                continue;
+            }
+
+            bool fromBridge = isBridgeCell(grid[cur.r][cur.c]);
+            bool toBridge = isBridgeCell(grid[nr][nc]);
+            int nextUsedNewBridge = cur.usedNewBridge;
+
+            if (grid[nr][nc] == 0) {
+                if (cur.usedNewBridge || !canPlaceNewBridge(nr, nc)) {
+                    continue;
+                }
+                toBridge = true;
+                nextUsedNewBridge = 1;
+            }
+
+            if (fromBridge && toBridge) {
+                continue;
+            }
+
+            if (!visited[nr][nc][nextUsedNewBridge]) {
+                visited[nr][nc][nextUsedNewBridge] = true;
+                q.push({nr, nc, nextUsedNewBridge});
+            }
+        }
+    }
+
+    return false;
+}
+
+} // namespace
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    int N = inf.readInt(2, 10, "N");
+    n = inf.readInt(2, 10, "N");
     inf.readSpace();
-    int M = inf.readInt(2, 20, "M");
+    m = inf.readInt(2, 20, "M");
     inf.readEoln();
 
-    vector<vector<int>> a(N, vector<int>(N));
-    bool hasZero = false;
-
-    for (int i = 0; i < N; ++i) {
-        a[i][0] = inf.readInt(0, 20, "cell");
-        for (int j = 1; j < N; ++j) {
+    grid.assign(n, vector<int>(n));
+    for (int i = 0; i < n; ++i) {
+        grid[i][0] = inf.readInt(0, 20, "cell");
+        for (int j = 1; j < n; ++j) {
             inf.readSpace();
-            a[i][j] = inf.readInt(0, 20, "cell");
+            grid[i][j] = inf.readInt(0, 20, "cell");
         }
         inf.readEoln();
     }
 
-    // Start and end cells must be normal land (1)
-    ensuref(a[0][0] == 1, "Start cell (0,0) must be 1 (land), got %d", a[0][0]);
-    ensuref(a[N-1][N-1] == 1, "End cell (N-1,N-1) must be 1 (land), got %d", a[N-1][N-1]);
+    ensuref(grid[0][0] == 1, "start cell must be ordinary land");
+    ensuref(grid[n - 1][n - 1] == 1, "destination cell must be ordinary land");
 
-    // Check that all >1 cells are bridges (periodic)
-    // and mark presence of at least one zero (cliff).
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j) {
-            if (a[i][j] == 0) hasZero = true;
+    bool hasBuildableCliff = false;
+    for (int r = 0; r < n; ++r) {
+        for (int c = 0; c < n; ++c) {
+            if (isBridgeCell(grid[r][c])) {
+                ensuref(!isCliffIntersection(r, c),
+                        "existing bridge at (%d,%d) is on a cliff intersection", r, c);
+            }
+            if (canPlaceNewBridge(r, c)) {
+                hasBuildableCliff = true;
+            }
         }
     }
 
-    // “또한, 주어지는 지형 정보에서 오작교를 반드시 하나 이상 놓을 수 있다.”
-    // => there must exist at least one zero-cell where:
-    //   - it's not already a bridge (value must be 0), and
-    //   - it's not at an intersection of a horizontal and vertical zero-cliff.
-    // Intersection condition from statement: a zero cell where there exists
-    // zero to left and right in row, and zero up and down in column.
-    bool canPlaceNewBridge = false;
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j) {
-            if (a[i][j] != 0) continue; // must be a pure cliff, not existing bridge
-
-            bool hasLeftZero = false, hasRightZero = false;
-            bool hasUpZero = false, hasDownZero = false;
-
-            // check left
-            for (int y = j - 1; y >= 0; --y) {
-                if (a[i][y] == 0) { hasLeftZero = true; break; }
-                if (a[i][y] != 0) break;
-            }
-            // check right
-            for (int y = j + 1; y < N; ++y) {
-                if (a[i][y] == 0) { hasRightZero = true; break; }
-                if (a[i][y] != 0) break;
-            }
-            // check up
-            for (int x = i - 1; x >= 0; --x) {
-                if (a[x][j] == 0) { hasUpZero = true; break; }
-                if (a[x][j] != 0) break;
-            }
-            // check down
-            for (int x = i + 1; x < N; ++x) {
-                if (a[x][j] == 0) { hasDownZero = true; break; }
-                if (a[x][j] != 0) break;
-            }
-
-            bool isIntersection = hasLeftZero && hasRightZero && hasUpZero && hasDownZero;
-            if (!isIntersection) {
-                canPlaceNewBridge = true;
-                break;
-            }
-        }
-        if (canPlaceNewBridge) break;
-    }
-
-    ensuref(hasZero, "There must be at least one cliff cell (0) to potentially place a new bridge.");
-    ensuref(canPlaceNewBridge,
-            "Terrain must allow placing at least one new bridge of period M on some cliff cell.");
+    ensuref(hasBuildableCliff, "there must be at least one cliff where a new bridge can be placed");
+    ensuref(canReachAfterPlacingOneBridge(), "destination must be reachable after placing one new bridge");
 
     inf.readEof();
 }

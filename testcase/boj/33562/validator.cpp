@@ -52,6 +52,7 @@ int main(int argc, char* argv[]) {
             ensuref((int)layer.size() == 8,
                     "Initial shape %d, layer %d: length must be 8, found %d",
                     i, li+1, (int)layer.size());
+            bool has_piece = false;
             // check each quadrant (2 chars)
             for (int p = 0; p < 8; p += 2) {
                 char c1 = layer[p];
@@ -59,6 +60,7 @@ int main(int argc, char* argv[]) {
                 if (c1 == '-' && c2 == '-') {
                     // empty quadrant is okay
                 } else {
+                    has_piece = true;
                     ensuref(is_shape_char(c1),
                             "Initial shape %d, layer %d, cell %d: invalid shape '%c'",
                             i, li+1, p/2+1, c1);
@@ -67,6 +69,9 @@ int main(int argc, char* argv[]) {
                             i, li+1, p/2+1, c2);
                 }
             }
+            ensuref(has_piece,
+                    "Initial shape %d, layer %d: layer must not be completely empty",
+                    i, li+1);
         }
     }
 

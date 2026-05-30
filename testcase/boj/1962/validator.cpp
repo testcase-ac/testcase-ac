@@ -8,7 +8,7 @@ int main(int argc, char* argv[]) {
     // Max N is 10^52 - 1, which has 52 digits
     const string DIGIT_REGEX = "[1-9][0-9]{0,51}";
 
-    int T = inf.readInt(1, 100000, "T"); // global rule: assume up to 1e5 if not specified
+    int T = inf.readInt(1, 1000, "T");
     inf.readEoln();
 
     // Allowed consonants and vowels (as per statement).

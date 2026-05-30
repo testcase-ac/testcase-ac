@@ -41,13 +41,17 @@ int main(int argc, char* argv[]) {
         int cnt = inf.readInt(0, K, "existing_count");
         if (cnt > 0) inf.readSpace();
         already[city].resize(cnt);
+        vector<bool> seen(K, false);
         for (int j = 0; j < cnt; ++j) {
             int c = inf.readInt(0, K - 1, "existing_company");
+            ensuref(!seen[c],
+                    "Duplicate existing guard company %d at city %d",
+                    c, city);
+            seen[c] = true;
             if (j + 1 < cnt) inf.readSpace();
             already[city][j] = c;
         }
         inf.readEoln();
-        // No extra constraints on multiplicity of companies (problem allows multiple guards)
     }
 
     // Offices per city
@@ -56,8 +60,13 @@ int main(int argc, char* argv[]) {
         int cnt = inf.readInt(0, K, "office_count");
         if (cnt > 0) inf.readSpace();
         offices[city].resize(cnt);
+        vector<bool> seen(K, false);
         for (int j = 0; j < cnt; ++j) {
             int c = inf.readInt(0, K - 1, "office_company");
+            ensuref(!seen[c],
+                    "Duplicate office company %d at city %d",
+                    c, city);
+            seen[c] = true;
             if (j + 1 < cnt) inf.readSpace();
             offices[city][j] = c;
         }

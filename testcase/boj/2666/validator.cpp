@@ -5,7 +5,7 @@ int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
     // Read number of cupboards
-    int n = inf.readInt(3, 20, "n");
+    int n = inf.readInt(4, 20, "n");
     inf.readEoln();
 
     // Read the two initially open cupboards

@@ -22,9 +22,6 @@ int main(int argc, char* argv[]) {
         return id;
     };
 
-    vector<vector<int>> g(N);
-    vector<int> indeg(N, 0);
-
     // Read M relations: "A B" meaning A -> B, one per line
     for (int i = 0; i < M; ++i) {
         int u = readNode("u");
@@ -32,10 +29,8 @@ int main(int argc, char* argv[]) {
         int v = readNode("v");
         inf.readEoln();
 
-        // Multiple edges and self-loops are not forbidden by statement,
-        // so we allow them. But we still build graph/indegree.
-        g[u].push_back(v);
-        indeg[v]++;
+        (void)u;
+        (void)v;
     }
 
     // Read last line: number of known suppliers K, then K labels
@@ -56,49 +51,6 @@ int main(int argc, char* argv[]) {
         arrested.push_back(x);
     }
     inf.readEoln();
-
-    // Now validate the implied global condition:
-    // "마약의 원산지: 다른 공급책에게 공급받지 않으면서 마약을 공급하는 공급책"
-    // i.e., at least one node with indeg == 0 and outdeg > 0.
-    int originCount = 0;
-    for (int i = 0; i < N; ++i) {
-        if (indeg[i] == 0 && !g[i].empty())
-            originCount++;
-    }
-    ensuref(originCount >= 1,
-            "There must be at least one origin supplier (indegree 0 and outgoing >= 1), found %d",
-            originCount);
-
-    // Additionally, the problem guarantees answer always exists in terms of:
-    // after arresting given suppliers, some suppliers may still receive drugs.
-    // This is not strictly stated as "always at least one", so we don't enforce
-    // positive count, but we can simulate and ensure that the model is consistent.
-
-    // Simulate supply availability:
-    // Origin suppliers that are not arrested initially have supply.
-    vector<bool> hasSupply(N, false);
-    queue<int> q;
-    for (int i = 0; i < N; ++i) {
-        if (indeg[i] == 0 && !g[i].empty() && !isArrested[i]) {
-            hasSupply[i] = true;
-            q.push(i);
-        }
-    }
-    // BFS / multi-source propagation through directed edges,
-    // skipping arrested suppliers as intermediates / receivers.
-    while (!q.empty()) {
-        int u = q.front(); q.pop();
-        for (int v : g[u]) {
-            if (isArrested[v]) continue;
-            if (!hasSupply[v]) {
-                hasSupply[v] = true;
-                q.push(v);
-            }
-        }
-    }
-    // No additional guarantee to check; simulation is mainly to
-    // catch pathological inconsistencies if any further constraints
-    // were implicit.
 
     inf.readEof();
 }

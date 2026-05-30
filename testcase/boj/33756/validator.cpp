@@ -9,8 +9,8 @@ int main(int argc, char* argv[]) {
     int T = inf.readInt(1, 100000, "T");
     inf.readEoln();
 
-    // Maximum allowed N as string: 10^21
-    const string MAXN = "1000000000000000000000"; 
+    // Maximum allowed N as string: 10^18
+    const string MAXN = "1000000000000000000";
 
     for (int tc = 1; tc <= T; tc++) {
         // Read N as a token of digits

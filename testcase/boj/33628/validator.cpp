@@ -55,6 +55,7 @@ int main(int argc, char* argv[]) {
 
     const int MAX_N = 100000;
     const int MAX_Q = 500000;
+    const int MAX_ENCODED = 131071;
 
     int N = inf.readInt(2, MAX_N, "N");
     inf.readSpace();
@@ -71,9 +72,9 @@ int main(int argc, char* argv[]) {
     for (int qi = 0; qi < Q; ++qi) {
         int T = inf.readInt(1, 2, "T");
         inf.readSpace();
-        int X = inf.readInt(0, MAX_N, "X");
+        int X = inf.readInt(0, MAX_ENCODED, "X");
         inf.readSpace();
-        int Y = inf.readInt(0, MAX_N, "Y");
+        int Y = inf.readInt(0, MAX_ENCODED, "Y");
         inf.readEoln();
 
         long long A_ll = (long long)X ^ last_ans;

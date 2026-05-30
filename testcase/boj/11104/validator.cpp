@@ -5,6 +5,7 @@ using namespace std;
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
     // Number of test cases
+    // CHECK: the statement only writes n <= 1000; require at least one testcase to avoid a vacuous input.
     int n = inf.readInt(1, 1000, "n");
     inf.readEoln();
     // Each of the next n lines: a 24-bit binary string representing a positive number

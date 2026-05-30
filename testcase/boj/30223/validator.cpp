@@ -1,8 +1,8 @@
 #include "testlib.h"
-#include <vector>
-#include <set>
-#include <cmath>
 #include <algorithm>
+#include <cstdlib>
+#include <set>
+#include <vector>
 using namespace std;
 
 typedef long long ll;
@@ -18,7 +18,6 @@ struct Point {
 };
 
 ll polygon_area2(const vector<Point>& poly) {
-    // Returns 2*area (signed, positive if CCW, negative if CW)
     int n = poly.size();
     ll area2 = 0;
     for (int i = 0; i < n; ++i) {
@@ -27,30 +26,54 @@ ll polygon_area2(const vector<Point>& poly) {
     return area2;
 }
 
+int sign(ll value) {
+    if (value < 0) return -1;
+    if (value > 0) return 1;
+    return 0;
+}
+
+bool between(int a, int b, int c) {
+    return min(a, b) <= c && c <= max(a, b);
+}
+
+bool on_segment(const Point& a, const Point& b, const Point& p) {
+    return (b - a).cross(p - a) == 0 &&
+           between(a.x, b.x, p.x) &&
+           between(a.y, b.y, p.y);
+}
+
+bool segments_intersect(const Point& a, const Point& b,
+                        const Point& c, const Point& d) {
+    ll ab_c = (b - a).cross(c - a);
+    ll ab_d = (b - a).cross(d - a);
+    ll cd_a = (d - c).cross(a - c);
+    ll cd_b = (d - c).cross(b - c);
+
+    if (sign(ab_c) * sign(ab_d) < 0 && sign(cd_a) * sign(cd_b) < 0) {
+        return true;
+    }
+    return on_segment(a, b, c) ||
+           on_segment(a, b, d) ||
+           on_segment(c, d, a) ||
+           on_segment(c, d, b);
+}
+
 bool is_simple_polygon(const vector<Point>& poly) {
-    // Checks for self-intersection
     int n = poly.size();
     for (int i = 0; i < n; ++i) {
         int i2 = (i+1)%n;
         for (int j = i+1; j < n; ++j) {
             int j2 = (j+1)%n;
-            // Skip adjacent edges and same edge
             if (i == j || i2 == j || i == j2) continue;
-            Point a1 = poly[i], a2 = poly[i2];
-            Point b1 = poly[j], b2 = poly[j2];
-            // Check if segments (a1,a2) and (b1,b2) intersect
-            auto ccw = [](const Point& A, const Point& B, const Point& C) {
-                return (C-B).cross(A-B) > 0;
-            };
-            bool inter = (ccw(a1,a2,b1) != ccw(a1,a2,b2)) && (ccw(b1,b2,a1) != ccw(b1,b2,a2));
-            if (inter) return false;
+            if (segments_intersect(poly[i], poly[i2], poly[j], poly[j2])) {
+                return false;
+            }
         }
     }
     return true;
 }
 
 bool is_convex(const vector<Point>& poly) {
-    // Checks if all turns are the same direction (CW or CCW)
     int n = poly.size();
     int sign = 0;
     for (int i = 0; i < n; ++i) {

@@ -96,6 +96,8 @@ int main(int argc, char* argv[]) {
                 int b = inf.readInt(1, N, "b");
                 inf.readEoln();
 
+                ensuref(a != b, "Query #%d has same samples a=b=%d", i, a);
+
                 // If connected, the answer is computable: check abs diff <= 1e6
                 int ra = findRoot(a);
                 int rb = findRoot(b);
