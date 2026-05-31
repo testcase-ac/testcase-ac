@@ -24,6 +24,8 @@ shift
 
 generator_file="${1:-}"
 runs="${2:-100}"
+generator_timeout_seconds="${GENERATOR_RUN_TIMEOUT_SECONDS:-5}"
+validator_timeout_seconds="${VALIDATOR_RUN_TIMEOUT_SECONDS:-5}"
 
 if [ -z "${generator_file}" ]; then
   candidates=()
@@ -39,6 +41,14 @@ fi
 
 if ! [[ "${runs}" =~ ^[0-9]+$ ]] || [ "${runs}" -le 0 ]; then
   echo "runs must be a positive integer" >&2
+  exit 2
+fi
+if ! [[ "${generator_timeout_seconds}" =~ ^[0-9]+$ ]] || [ "${generator_timeout_seconds}" -le 0 ]; then
+  echo "GENERATOR_RUN_TIMEOUT_SECONDS must be a positive integer" >&2
+  exit 2
+fi
+if ! [[ "${validator_timeout_seconds}" =~ ^[0-9]+$ ]] || [ "${validator_timeout_seconds}" -le 0 ]; then
+  echo "VALIDATOR_RUN_TIMEOUT_SECONDS must be a positive integer" >&2
   exit 2
 fi
 
@@ -79,6 +89,8 @@ docker run --rm \
   -e "GENERATOR_FILE=${generator_file}" \
   -e "RUNS=${runs}" \
   -e "HAS_VALIDATOR=${has_validator}" \
+  -e "GENERATOR_RUN_TIMEOUT_SECONDS=${generator_timeout_seconds}" \
+  -e "VALIDATOR_RUN_TIMEOUT_SECONDS=${validator_timeout_seconds}" \
   "${IMAGE_NAME}" \
   -lc '
     set -euo pipefail
@@ -91,10 +103,26 @@ docker run --rm \
     mkdir -p /tmp/generator-cases
     for ((seed = 0; seed < RUNS; ++seed)); do
       out="/tmp/generator-cases/case_${seed}.txt"
-      /tmp/generator-check "${seed}" > "${out}"
+      timeout "${GENERATOR_RUN_TIMEOUT_SECONDS}" /tmp/generator-check "${seed}" > "${out}" || {
+        status=$?
+        if [ "${status}" -eq 124 ]; then
+          echo "seed ${seed}: generator timed out after ${GENERATOR_RUN_TIMEOUT_SECONDS}s" >&2
+        else
+          echo "seed ${seed}: generator failed with exit code ${status}" >&2
+        fi
+        exit 1
+      }
       [ -s "${out}" ] || { echo "seed ${seed}: generator produced empty output" >&2; exit 1; }
       if [ "${HAS_VALIDATOR}" = "1" ]; then
-        /tmp/validator-check < "${out}" || { echo "seed ${seed}: validator rejected generator output" >&2; exit 1; }
+        timeout "${VALIDATOR_RUN_TIMEOUT_SECONDS}" /tmp/validator-check < "${out}" || {
+          status=$?
+          if [ "${status}" -eq 124 ]; then
+            echo "seed ${seed}: validator timed out after ${VALIDATOR_RUN_TIMEOUT_SECONDS}s" >&2
+          else
+            echo "seed ${seed}: validator rejected generator output" >&2
+          fi
+          exit 1
+        }
       fi
     done
 
