@@ -69,9 +69,13 @@ Examples:
 
 ## Template
 
+Avoid `#include <bits/stdc++.h>` and keep the header includes minimal to reduce compilation time.
+
 ```cpp
 #include "testlib.h"
-#include <bits/stdc++.h>
+#include <vector>
+#include <utility>
+// Include any additional headers you need
 using namespace std;
 
 int main(int argc, char* argv[]) {
@@ -102,3 +106,5 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 ```
+
+

@@ -105,9 +105,12 @@ Important limitations:
 
 ## Template
 
+Avoid `#include <bits/stdc++.h>` and keep the header includes minimal to reduce compilation time.
+
 ```cpp
 #include "testlib.h"
-#include <bits/stdc++.h>
+// Other includes as needed, for example:
+#include <set>
 using namespace std;
 
 int main(int argc, char* argv[]) {
@@ -125,7 +128,7 @@ Undirected graph without loops or multiple edges:
 
 ```cpp
 #include "testlib.h"
-#include <bits/stdc++.h>
+#include <set>
 using namespace std;
 
 int main(int argc, char* argv[]) {
@@ -152,3 +155,4 @@ int main(int argc, char* argv[]) {
     inf.readEof();
 }
 ```
+
