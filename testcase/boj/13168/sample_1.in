@@ -1,0 +1,28 @@
+14 40000
+Boseong Busan Changwon Cheonan Chuncheon Daegu Daejeon Gwangju Jeonju Jinju Masan Seoul Suncheon Yeosu
+9
+Seoul Jeonju Suncheon Yeosu Suncheon Boseong Jinju Busan Seoul
+23
+KTX Seoul Busan 20000
+KTX Seoul Gwangju 12000
+KTX Gwangju Yeosu 8000
+KTX Seoul Jinju 17000
+ITX-Saemaeul Seoul Cheonan 7000
+ITX-Cheongchun Seoul Chuncheon 3000
+V-Train Chuncheon Daegu 10000
+Subway Seoul Cheonan 2000
+ITX-Saemaeul Cheonan Daejeon 4000
+ITX-Saemaeul Daejeon Daegu 10000
+ITX-Saemaeul Daegu Busan 7000
+Mugunghwa Daejeon Daegu 6000
+Mugunghwa Daejeon Gwangju 5000
+Mugunghwa Gwangju Jeonju 1500
+Mugunghwa Jeonju Suncheon 4000
+Mugunghwa Suncheon Yeosu 1500
+S-Train Busan Changwon 3000
+S-Train Changwon Masan 1000
+S-Train Masan Jinju 2000
+S-Train Jinju Suncheon 2000
+S-Train Suncheon Boseong 1000
+Bus Busan Jinju 1500
+Bus Suncheon Jinju 4000

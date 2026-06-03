@@ -1,0 +1,10 @@
+5 50000
+Seoul Cheonan Daejeon Daegu Busan
+3
+Seoul Busan Seoul
+5
+ITX-Saemaeul Seoul Cheonan 7000
+ITX-Saemaeul Cheonan Daejeon 4000
+ITX-Saemaeul Daejeon Daegu 10000
+ITX-Saemaeul Daegu Busan 7000
+KTX Seoul Busan 24999

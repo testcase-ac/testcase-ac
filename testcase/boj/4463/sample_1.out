@@ -1,0 +1,28 @@
+Range 0 to 8:
+Fib(0) = 0, lg does not exist
+No prime factors
+Fib(1) = 1, lg is 0.000000
+No prime factors
+Fib(2) = 1, lg is 0.000000
+No prime factors
+Fib(3) = 2, lg is 1.000000
+Prime factors: 2
+Fib(4) = 3, lg is 1.584963
+Prime factors: 3
+Fib(5) = 5, lg is 2.321928
+Prime factors: 5
+Fib(6) = 8, lg is 3.000000
+Prime factors: 2 2 2
+
+Range 9 to 12:
+No Fibonacci numbers in the range
+
+Range 9 to 64:
+Fib(7) = 13, lg is 3.700440
+Prime factors: 13
+Fib(8) = 21, lg is 4.392317
+Prime factors: 3 7
+Fib(9) = 34, lg is 5.087463
+Prime factors: 2 17
+Fib(10) = 55, lg is 5.781360
+Prime factors: 5 11
