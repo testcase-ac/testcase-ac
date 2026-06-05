@@ -94,9 +94,9 @@ docker run --rm \
   "${IMAGE_NAME}" \
   -lc '
     set -euo pipefail
-    g++ -std=c++23 -O2 -Wall -Wextra -I/opt/testlib "/workspace/${PROBLEM_REL}/${GENERATOR_FILE}" -o /tmp/generator-check
+    g++ -std=c++23 -O2 -Wall -Wextra -I/opt/testlib -I/opt/boost "/workspace/${PROBLEM_REL}/${GENERATOR_FILE}" -o /tmp/generator-check
     if [ "${HAS_VALIDATOR}" = "1" ]; then
-      g++ -std=c++23 -O2 -Wall -Wextra -I/opt/testlib "/workspace/${PROBLEM_REL}/validator.cpp" -o /tmp/validator-check
+      g++ -std=c++23 -O2 -Wall -Wextra -I/opt/testlib -I/opt/boost "/workspace/${PROBLEM_REL}/validator.cpp" -o /tmp/validator-check
     fi
 
     rm -rf /tmp/generator-cases
