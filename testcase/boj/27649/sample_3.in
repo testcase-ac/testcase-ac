@@ -1,0 +1,1 @@
+grep Wall <Makefile|| echo NotSetCflagsWall>outfile

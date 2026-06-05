@@ -1,0 +1,19 @@
+#include "testlib.h"
+
+int main(int argc, char* argv[]) {
+    registerValidation(argc, argv);
+
+    int t = inf.readInt(1, 1000, "T");
+    inf.readEoln();
+
+    for (int i = 1; i <= t; ++i) {
+        setTestCase(i);
+
+        inf.readInt(0, 1000, "A");
+        inf.readSpace();
+        inf.readInt(0, 1000, "B");
+        inf.readEoln();
+    }
+
+    inf.readEof();
+}

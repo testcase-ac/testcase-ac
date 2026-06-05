@@ -1,0 +1,10 @@
+5 4
+Kingdom of A
+Kingdom of B
+Kingdom of C
+Kingdom of D
+Kingdom of E
+Kingdom of A,Kingdom of B,2
+Kingdom of C,Kingdom of D,1
+Kingdom of E,Kingdom of C,2
+Kingdom of A,Kingdom of C,1

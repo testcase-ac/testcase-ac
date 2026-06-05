@@ -1,0 +1,1 @@
+cmd_1&&echo $? + VALUE2
