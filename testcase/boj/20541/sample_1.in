@@ -1,0 +1,25 @@
+24
+mkalb animal
+mkalb insect
+ca animal
+mkalb sky
+mkalb land
+mkalb ocean
+ca land
+insert elephant
+insert tiger
+insert banana
+delete banana
+ca elephant
+ca ..
+ca ocean
+insert whale
+ca /
+ca insect
+mkalb land
+mkalb sky
+ca ocean
+ca ..
+ca ..
+rmalb -1
+rmalb -1
