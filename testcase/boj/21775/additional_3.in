@@ -1,0 +1,8 @@
+2 6
+1 1 2 1 2 1
+1 acquire 1
+2 acquire 2
+3 acquire 3
+4 release 1
+5 release 3
+6 release 2

@@ -1,0 +1,9 @@
+8
+add A a
+add B bcd
+add A ab
+add B cd
+find abcd
+delete A a
+delete B bcd
+find abcd

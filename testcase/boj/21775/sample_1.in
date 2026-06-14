@@ -1,0 +1,12 @@
+2 10
+1 1 2 2 1 1 2 2 2 2
+1 next
+2 acquire 1
+3 acquire 1
+4 next
+5 release 1
+6 release 1
+7 next
+8 acquire 1
+9 next
+10 next

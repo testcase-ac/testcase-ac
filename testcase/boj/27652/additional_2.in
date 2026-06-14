@@ -1,0 +1,6 @@
+5
+add A abc
+add B xyz
+delete A abc
+delete B xyz
+find abcxyz

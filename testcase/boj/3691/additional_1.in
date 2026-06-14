@@ -1,0 +1,8 @@
+2
+1 1
+cpu base_0 0 0
+4 7
+cpu c1 5 3
+cpu c2 6 4
+ram r1 2 5
+case box1 0 1

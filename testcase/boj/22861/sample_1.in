@@ -1,0 +1,16 @@
+3 6
+main FolderA 1
+main FolderB 1
+FolderA File1 0
+FolderA File2 0
+FolderB FolderC 1
+FolderC File4 0
+FolderC File5 0
+FolderB File1 0
+FolderB File3 0
+1
+main/FolderB main/FolderA
+3
+main
+main/FolderA
+main/FolderA/FolderC
