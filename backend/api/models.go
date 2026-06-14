@@ -153,6 +153,7 @@ type ProblemDetail struct {
 	MemoryLimitMB  int            `json:"memoryLimitMb"`
 	Description    *string        `json:"description"`
 	IsSpecialJudge bool           `json:"isSpecialJudge"`
+	OutputOnly     bool           `json:"outputOnly"`
 	CorrectCodes   []CodeInfo     `json:"correctCodes"`
 	Generators     []CodeInfo     `json:"generators"`
 	Singlegens     []CodeInfo     `json:"singlegens"`

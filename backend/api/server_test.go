@@ -65,6 +65,31 @@ func (c errorStresserClient) Invoke(_ context.Context, _ contracts.StressEvent) 
 	return contracts.StressResult{}, c.err
 }
 
+type outputOnlyStresserClient struct {
+	t *testing.T
+}
+
+func (c outputOnlyStresserClient) Invoke(_ context.Context, event contracts.StressEvent) (contracts.StressResult, error) {
+	c.t.Helper()
+	if event.Iterations != 1 {
+		c.t.Fatalf("Iterations = %d, want 1", event.Iterations)
+	}
+	if len(event.CaseProviders) != 1 {
+		c.t.Fatalf("len(CaseProviders) = %d, want 1", len(event.CaseProviders))
+	}
+	provider := event.CaseProviders[0]
+	if provider.Type != contracts.CaseProviderText || provider.ID != contracts.OutputOnlyEmptyInputID || provider.Content != "" {
+		c.t.Fatalf("CaseProviders[0] = %#v, want output-only empty text provider", provider)
+	}
+	return contracts.StressResult{
+		RequestID:         event.RequestID,
+		Error:             false,
+		CorrectCases:      []contracts.CorrectCase{{GeneratedBy: contracts.GeneratedBy{Stage: provider.Type, ID: provider.ID}}},
+		TotalCases:        1,
+		CorrectCasesCount: 1,
+	}, nil
+}
+
 func basicStressProblem() Problem {
 	return Problem{
 		ProblemType:   "boj",
@@ -93,6 +118,54 @@ func basicStressRequestBody(t *testing.T) []byte {
 		t.Fatalf("json.Marshal() error = %v", err)
 	}
 	return body
+}
+
+func TestHandleStressOutputOnlyRunsEmptyStdin(t *testing.T) {
+	problem := Problem{
+		ProblemType:   "boj",
+		ExternalID:    "2557",
+		TimeLimitMS:   2000,
+		MemoryLimitMB: 256,
+		OutputOnly:    true,
+		CorrectCodes: []CodeFile{
+			{Filename: "correct.cpp", Language: contracts.LanguageCpp23, Content: "correct"},
+		},
+	}
+	iterations := 25
+	body, err := json.Marshal(StressRequest{
+		TargetCode:         "target",
+		TargetCodeLang:     contracts.LanguageCpp23,
+		GeneratorFilenames: []string{},
+		SinglegenFilenames: []string{},
+		TestcaseFilenames:  []string{},
+		Iterations:         &iterations,
+	})
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+	app := newTestApp(
+		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
+		map[[2]string]Problem{{"boj", "2557"}: problem},
+		outputOnlyStresserClient{t: t},
+	)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/problems/boj/2557/stress", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	app.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var response StressResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if response.CorrectCasesCount != 1 || len(response.AttemptedCases) != 1 {
+		t.Fatalf("response = %+v, want one attempted output-only case", response)
+	}
+	if response.AttemptedCases[0].ID != contracts.OutputOnlyEmptyInputID {
+		t.Fatalf("AttemptedCases[0].ID = %q, want %q", response.AttemptedCases[0].ID, contracts.OutputOnlyEmptyInputID)
+	}
 }
 
 func TestHandleStressAcceptsSupportedTargetLanguages(t *testing.T) {
@@ -272,6 +345,7 @@ func TestGetProblemAcceptsEscapedSlashExternalID(t *testing.T) {
 		Title:         "박 터뜨리기",
 		TimeLimitMS:   2000,
 		MemoryLimitMB: 256,
+		OutputOnly:    true,
 	}
 	app := newTestApp(
 		Settings{RateLimitMax: 1, RateLimitWindowS: 60},
@@ -292,6 +366,9 @@ func TestGetProblemAcceptsEscapedSlashExternalID(t *testing.T) {
 	}
 	if response.ExternalID != "2020/1/elem/1" {
 		t.Fatalf("ExternalID = %q, want nested id", response.ExternalID)
+	}
+	if !response.OutputOnly {
+		t.Fatal("OutputOnly = false, want true")
 	}
 }
 

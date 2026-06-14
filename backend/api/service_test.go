@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
@@ -164,6 +165,103 @@ func TestBuildStresserEventUsesInlineMaterialsWhenProvided(t *testing.T) {
 	}
 	if event.CorrectTimeLimit != 8 {
 		t.Fatalf("CorrectTimeLimit = %.3f, want 8", event.CorrectTimeLimit)
+	}
+}
+
+func TestBuildStresserEventOutputOnlyInjectsEmptyTextProvider(t *testing.T) {
+	iterations := 37
+	event, statusCode, detail, ok := BuildStresserEvent(
+		Problem{
+			ProblemType:   "boj",
+			ExternalID:    "2557",
+			TimeLimitMS:   2000,
+			MemoryLimitMB: 128,
+			OutputOnly:    true,
+			CorrectCodes: []CodeFile{
+				{Filename: "correct.cpp", Language: "cpp23", Content: "correct"},
+			},
+		},
+		StressRequest{
+			TargetCode:         "target",
+			TargetCodeLang:     "cpp23",
+			GeneratorFilenames: []string{},
+			SinglegenFilenames: []string{},
+			TestcaseFilenames:  []string{},
+			GeneratorSources:   []InlineCodeInput{},
+			TextTestcases:      []InlineTextcaseInput{},
+			Iterations:         &iterations,
+		},
+		"req-output-only",
+	)
+	if !ok {
+		t.Fatalf("BuildStresserEvent() failed: status=%d detail=%q", statusCode, detail)
+	}
+	if event.Iterations != 1 {
+		t.Fatalf("Iterations = %d, want 1", event.Iterations)
+	}
+	if len(event.CaseProviders) != 1 {
+		t.Fatalf("len(CaseProviders) = %d, want 1", len(event.CaseProviders))
+	}
+	provider := event.CaseProviders[0]
+	if provider.Type != contracts.CaseProviderText || provider.ID != contracts.OutputOnlyEmptyInputID || provider.Content != "" {
+		t.Fatalf("CaseProviders[0] = %#v, want empty text provider", provider)
+	}
+}
+
+func TestBuildStresserEventOutputOnlyRejectsNonEmptyProviderInputs(t *testing.T) {
+	nonEmptyGeneratorSource := []InlineCodeInput{{ID: "generator_inline.py", Code: "print(0)", Language: contracts.LanguagePython3}}
+	nonEmptyTextTestcase := []InlineTextcaseInput{{ID: "sample.txt", Content: "1\n"}}
+	tests := []struct {
+		name    string
+		request StressRequest
+	}{
+		{
+			name:    "generator filename",
+			request: StressRequest{GeneratorFilenames: []string{"generator.cpp"}},
+		},
+		{
+			name:    "singlegen filename",
+			request: StressRequest{SinglegenFilenames: []string{"singlegen.cpp"}},
+		},
+		{
+			name:    "testcase filename",
+			request: StressRequest{TestcaseFilenames: []string{"testcase.txt"}},
+		},
+		{
+			name:    "inline generator",
+			request: StressRequest{GeneratorSources: nonEmptyGeneratorSource},
+		},
+		{
+			name:    "inline testcase",
+			request: StressRequest{TextTestcases: nonEmptyTextTestcase},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.request.TargetCode = "target"
+			tt.request.TargetCodeLang = "cpp23"
+			_, statusCode, detail, ok := BuildStresserEvent(
+				Problem{
+					ProblemType:   "boj",
+					ExternalID:    "2557",
+					TimeLimitMS:   2000,
+					MemoryLimitMB: 128,
+					OutputOnly:    true,
+					CorrectCodes: []CodeFile{
+						{Filename: "correct.cpp", Language: "cpp23", Content: "correct"},
+					},
+				},
+				tt.request,
+				"req-output-only",
+			)
+			if ok {
+				t.Fatal("BuildStresserEvent() succeeded, want failure")
+			}
+			if statusCode != http.StatusBadRequest {
+				t.Fatalf("statusCode = %d, want %d; detail=%q", statusCode, http.StatusBadRequest, detail)
+			}
+		})
 	}
 }
 

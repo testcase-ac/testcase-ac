@@ -323,6 +323,7 @@ func buildProblemDetail(problem Problem) ProblemDetail {
 		MemoryLimitMB:  problem.MemoryLimitMB,
 		Description:    nilIfEmpty(problem.Description),
 		IsSpecialJudge: problem.IsSpecialJudge,
+		OutputOnly:     problem.OutputOnly,
 		CorrectCodes:   mapCodeInfos(problem.CorrectCodes),
 		Generators:     mapCodeInfos(problem.Generators),
 		Singlegens:     mapCodeInfos(problem.Singlegens),

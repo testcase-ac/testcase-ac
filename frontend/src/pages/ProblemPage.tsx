@@ -105,6 +105,7 @@ function isUsingAutoFilledSource({
 function buildStressRequest({
   source,
   language,
+  outputOnly,
   selectedCorrectCode,
   selectedGenerators,
   selectedSinglegens,
@@ -114,6 +115,7 @@ function buildStressRequest({
 }: {
   source: string;
   language: LanguageValue;
+  outputOnly: boolean;
   selectedCorrectCode: string | null;
   selectedGenerators: string[];
   selectedSinglegens: string[];
@@ -121,16 +123,27 @@ function buildStressRequest({
   iterations: number;
   totalRuntimeLimitSeconds: number;
 }): StressRequest {
-  return {
+  const request: StressRequest = {
     targetCode: source,
     targetCodeLang: language,
     correctCodeFilename: selectedCorrectCode ?? undefined,
-    generatorFilenames: selectedGenerators,
-    singlegenFilenames: selectedSinglegens,
-    testcaseFilenames: selectedTestcases,
-    iterations,
+    iterations: outputOnly ? 1 : iterations,
     totalRuntimeLimitSeconds,
   };
+  if (!outputOnly) {
+    request.generatorFilenames = selectedGenerators;
+    request.singlegenFilenames = selectedSinglegens;
+    request.testcaseFilenames = selectedTestcases;
+  }
+  return request;
+}
+
+function linkableSourceIdsForProblem(problem: ProblemDetail): string[] {
+  return [
+    ...problem.generators.map((code) => code.filename),
+    ...problem.singlegens.map((code) => code.filename),
+    ...problem.testcases.map((tc) => tc.filename),
+  ];
 }
 
 function clampIterations(value: number): number {
@@ -204,9 +217,15 @@ export function ProblemWorkspace({
   useEffect(() => {
     if (!problemQuery.data) return;
     setSelectedCorrectCode(problemQuery.data.correctCodes[0]?.filename ?? null);
-    setSelectedGenerators(problemQuery.data.generators.map((code) => code.filename));
-    setSelectedSinglegens(problemQuery.data.singlegens.map((code) => code.filename));
-    setSelectedTestcases(problemQuery.data.testcases.map((tc) => tc.filename));
+    setSelectedGenerators(
+      problemQuery.data.outputOnly ? [] : problemQuery.data.generators.map((code) => code.filename),
+    );
+    setSelectedSinglegens(
+      problemQuery.data.outputOnly ? [] : problemQuery.data.singlegens.map((code) => code.filename),
+    );
+    setSelectedTestcases(
+      problemQuery.data.outputOnly ? [] : problemQuery.data.testcases.map((tc) => tc.filename),
+    );
   }, [problemQuery.data]);
 
   useEffect(() => {
@@ -235,6 +254,7 @@ export function ProblemWorkspace({
     const payload = buildStressRequest({
       source,
       language,
+      outputOnly: problemQuery.data?.outputOnly ?? false,
       selectedCorrectCode,
       selectedGenerators,
       selectedSinglegens,
@@ -269,11 +289,14 @@ export function ProblemWorkspace({
   const submitting = stressMutation.isPending;
   const selectedProviderCount =
     selectedGenerators.length + selectedSinglegens.length + selectedTestcases.length;
+  const providerSelectionRequired = !problem.outputOnly;
   const repoDir = problemDirUrl(problem.problemType, problem.externalId);
+  const linkableSourceIds = linkableSourceIdsForProblem(problem);
   const currentRequest = JSON.stringify(
     buildStressRequest({
       source,
       language,
+      outputOnly: problem.outputOnly,
       selectedCorrectCode,
       selectedGenerators,
       selectedSinglegens,
@@ -376,7 +399,7 @@ export function ProblemWorkspace({
               setTotalRuntimeLimitSeconds={setTotalRuntimeLimitSeconds}
             />
 
-            {selectedProviderCount === 0 && (
+            {providerSelectionRequired && selectedProviderCount === 0 && (
               <p className="text-sm font-medium text-destructive">
                 {t("problem.providers.noneSelected")}
               </p>
@@ -385,7 +408,12 @@ export function ProblemWorkspace({
             <div className="flex justify-end">
               <Button
                 type="submit"
-                disabled={submitting || !source.trim() || selectedProviderCount === 0 || !selectedCorrectCode}
+                disabled={
+                  submitting ||
+                  !source.trim() ||
+                  (providerSelectionRequired && selectedProviderCount === 0) ||
+                  !selectedCorrectCode
+                }
                 className={cn(
                   submitting &&
                     "disabled:opacity-100 dark:disabled:bg-primary dark:disabled:text-primary-foreground",
@@ -404,6 +432,7 @@ export function ProblemWorkspace({
           result={result}
           problemType={problem.problemType}
           externalId={problem.externalId}
+          linkableSourceIds={linkableSourceIds}
         />
       )}
     </section>
@@ -455,17 +484,23 @@ function AdvancedStressOptions({
   setTotalRuntimeLimitSeconds: (n: number) => void;
 }) {
   const { t } = useI18n();
-  const summary = [
-    t("problem.summary.iterations", { count: clampIterations(iterations) }),
-    t("problem.summary.totalRuntimeLimit", {
-      seconds: clampTotalRuntimeLimitSeconds(totalRuntimeLimitSeconds),
-    }),
-    t("problem.summary.generators", { count: selectedGenerators.length }),
-    t("problem.summary.singlegens", { count: selectedSinglegens.length }),
-    t("problem.summary.testcases", { count: selectedTestcases.length }),
-  ]
-    .filter(Boolean)
-    .join(" · ") || t("problem.summary.none");
+  const summaryItems = problem.outputOnly
+    ? [
+        t("problem.summary.outputOnly"),
+        t("problem.summary.totalRuntimeLimit", {
+          seconds: clampTotalRuntimeLimitSeconds(totalRuntimeLimitSeconds),
+        }),
+      ]
+    : [
+        t("problem.summary.iterations", { count: clampIterations(iterations) }),
+        t("problem.summary.totalRuntimeLimit", {
+          seconds: clampTotalRuntimeLimitSeconds(totalRuntimeLimitSeconds),
+        }),
+        t("problem.summary.generators", { count: selectedGenerators.length }),
+        t("problem.summary.singlegens", { count: selectedSinglegens.length }),
+        t("problem.summary.testcases", { count: selectedTestcases.length }),
+      ];
+  const summary = summaryItems.filter(Boolean).join(" · ") || t("problem.summary.none");
 
   return (
     <div className="rounded-md border bg-muted/20">
@@ -484,7 +519,7 @@ function AdvancedStressOptions({
 
       {open && (
         <div className="space-y-5 border-t px-4 py-4">
-          <IterationsField value={iterations} onChange={setIterations} />
+          {!problem.outputOnly && <IterationsField value={iterations} onChange={setIterations} />}
           <TotalRuntimeLimitField
             value={totalRuntimeLimitSeconds}
             onChange={setTotalRuntimeLimitSeconds}
@@ -499,32 +534,36 @@ function AdvancedStressOptions({
             externalId={problem.externalId}
           />
 
-          <SelectableFileGroup
-            label={t("problem.providers.generators")}
-            files={problem.generators}
-            selected={selectedGenerators}
-            onChange={setSelectedGenerators}
-            problemType={problem.problemType}
-            externalId={problem.externalId}
-          />
+          {!problem.outputOnly && (
+            <>
+              <SelectableFileGroup
+                label={t("problem.providers.generators")}
+                files={problem.generators}
+                selected={selectedGenerators}
+                onChange={setSelectedGenerators}
+                problemType={problem.problemType}
+                externalId={problem.externalId}
+              />
 
-          <SelectableFileGroup
-            label={t("problem.providers.singlegens")}
-            files={problem.singlegens}
-            selected={selectedSinglegens}
-            onChange={setSelectedSinglegens}
-            problemType={problem.problemType}
-            externalId={problem.externalId}
-          />
+              <SelectableFileGroup
+                label={t("problem.providers.singlegens")}
+                files={problem.singlegens}
+                selected={selectedSinglegens}
+                onChange={setSelectedSinglegens}
+                problemType={problem.problemType}
+                externalId={problem.externalId}
+              />
 
-          <SelectableTestcaseGroup
-            label={t("problem.providers.testcases")}
-            files={problem.testcases}
-            selected={selectedTestcases}
-            onChange={setSelectedTestcases}
-            problemType={problem.problemType}
-            externalId={problem.externalId}
-          />
+              <SelectableTestcaseGroup
+                label={t("problem.providers.testcases")}
+                files={problem.testcases}
+                selected={selectedTestcases}
+                onChange={setSelectedTestcases}
+                problemType={problem.problemType}
+                externalId={problem.externalId}
+              />
+            </>
+          )}
 
           {problem.isSpecialJudge && (
             <ReferenceFileGroup
@@ -536,13 +575,15 @@ function AdvancedStressOptions({
             />
           )}
 
-          <ReferenceFileGroup
-            label={t("problem.providers.validator")}
-            file={problem.validator}
-            hint={t("problem.reference.validatorHint")}
-            problemType={problem.problemType}
-            externalId={problem.externalId}
-          />
+          {!problem.outputOnly && (
+            <ReferenceFileGroup
+              label={t("problem.providers.validator")}
+              file={problem.validator}
+              hint={t("problem.reference.validatorHint")}
+              problemType={problem.problemType}
+              externalId={problem.externalId}
+            />
+          )}
         </div>
       )}
     </div>

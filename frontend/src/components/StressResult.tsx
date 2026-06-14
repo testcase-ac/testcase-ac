@@ -29,11 +29,13 @@ export default function StressResultView({
   result,
   problemType,
   externalId,
+  linkableSourceIds = [],
   showSourceLinks = true,
 }: {
   result: StressResponse;
   problemType: string;
   externalId: string;
+  linkableSourceIds?: readonly string[];
   showSourceLinks?: boolean;
 }) {
   const { t } = useI18n();
@@ -103,6 +105,7 @@ export default function StressResultView({
                   index={index}
                   problemType={problemType}
                   externalId={externalId}
+                  linkableSourceIds={linkableSourceIds}
                   showSourceLinks={showSourceLinks}
                 />
               </div>
@@ -125,6 +128,7 @@ export default function StressResultView({
                   index={index}
                   problemType={problemType}
                   externalId={externalId}
+                  linkableSourceIds={linkableSourceIds}
                   showSourceLinks={showSourceLinks}
                 />
               </div>
@@ -141,6 +145,7 @@ export default function StressResultView({
             status={result.status}
             problemType={problemType}
             externalId={externalId}
+            linkableSourceIds={linkableSourceIds}
             showSourceLinks={showSourceLinks}
           />
         )}
@@ -200,17 +205,19 @@ function CounterexampleView({
   index,
   problemType,
   externalId,
+  linkableSourceIds,
   showSourceLinks,
 }: {
   ce: Counterexample;
   index: number;
   problemType: string;
   externalId: string;
+  linkableSourceIds: readonly string[];
   showSourceLinks: boolean;
 }) {
   const { t } = useI18n();
   const { id, seed } = ce.generatedBy;
-  const url = showSourceLinks ? sourceFileUrl(problemType, externalId, id) : null;
+  const url = generatedBySourceUrl(showSourceLinks, linkableSourceIds, problemType, externalId, id);
   const verdict = ce.verdict && ce.verdict !== "WA" ? ce.verdict : null;
 
   return (
@@ -261,17 +268,19 @@ function ExecutionFailedCaseView({
   index,
   problemType,
   externalId,
+  linkableSourceIds,
   showSourceLinks,
 }: {
   ce: ExecutionFailedCase;
   index: number;
   problemType: string;
   externalId: string;
+  linkableSourceIds: readonly string[];
   showSourceLinks: boolean;
 }) {
   const { t } = useI18n();
   const { id, seed } = ce.generatedBy;
-  const url = showSourceLinks ? sourceFileUrl(problemType, externalId, id) : null;
+  const url = generatedBySourceUrl(showSourceLinks, linkableSourceIds, problemType, externalId, id);
 
   return (
     <div className="overflow-hidden rounded-md border">
@@ -349,6 +358,7 @@ function AttemptedCasesSection({
   status,
   problemType,
   externalId,
+  linkableSourceIds,
   showSourceLinks,
 }: {
   cases: AttemptedCase[];
@@ -356,6 +366,7 @@ function AttemptedCasesSection({
   status: "found" | "not_found";
   problemType: string;
   externalId: string;
+  linkableSourceIds: readonly string[];
   showSourceLinks: boolean;
 }) {
   const { t } = useI18n();
@@ -400,6 +411,7 @@ function AttemptedCasesSection({
               attempted={c}
               problemType={problemType}
               externalId={externalId}
+              linkableSourceIds={linkableSourceIds}
               showSourceLinks={showSourceLinks}
             />
           ))}
@@ -413,15 +425,23 @@ function AttemptedRow({
   attempted,
   problemType,
   externalId,
+  linkableSourceIds,
   showSourceLinks,
 }: {
   attempted: AttemptedCase;
   problemType: string;
   externalId: string;
+  linkableSourceIds: readonly string[];
   showSourceLinks: boolean;
 }) {
   const { t } = useI18n();
-  const url = showSourceLinks ? sourceFileUrl(problemType, externalId, attempted.id) : null;
+  const url = generatedBySourceUrl(
+    showSourceLinks,
+    linkableSourceIds,
+    problemType,
+    externalId,
+    attempted.id,
+  );
   return (
     <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-2">
       {url ? (
@@ -438,6 +458,19 @@ function AttemptedRow({
       )}
     </li>
   );
+}
+
+function generatedBySourceUrl(
+  showSourceLinks: boolean,
+  linkableSourceIds: readonly string[],
+  problemType: string,
+  externalId: string,
+  id: string,
+): string | null {
+  if (!showSourceLinks || !linkableSourceIds.includes(id)) {
+    return null;
+  }
+  return sourceFileUrl(problemType, externalId, id);
 }
 
 function TextBlock({ title, tt }: { title: string; tt: TextWithMetadata }) {

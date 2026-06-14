@@ -134,11 +134,17 @@ func addStaticFindings(report *VerifyReport, problem loader.Problem, options Ver
 	if options.Mode != VerifyModeValidateInputs && len(problem.CorrectCodes) == 0 {
 		report.AddFinding(SeverityWarning, StageStatic, "", nil, "problem has no correct solution; skipping correct-solution checks", "", "")
 	}
-	if len(problem.Generators)+len(problem.Singlegens)+len(problem.Testcases) == 0 {
-		report.AddFinding(SeverityError, StageStatic, "", nil, "problem has no case provider", "", "")
-	}
-	if problem.Validator == nil {
-		report.AddFinding(SeverityError, StageStatic, "validator.cpp", nil, "problem has no validator", "", "")
+	if problem.OutputOnly {
+		for _, file := range problem.IgnoredOutputOnlyFiles {
+			report.AddFinding(SeverityError, StageStatic, file.Filename, nil, fmt.Sprintf("output-only problem must not include %s file", file.Role), "", "")
+		}
+	} else {
+		if len(problem.Generators)+len(problem.Singlegens)+len(problem.Testcases) == 0 {
+			report.AddFinding(SeverityError, StageStatic, "", nil, "problem has no case provider", "", "")
+		}
+		if problem.Validator == nil {
+			report.AddFinding(SeverityError, StageStatic, "validator.cpp", nil, "problem has no validator", "", "")
+		}
 	}
 	for _, testcase := range problem.Testcases {
 		verifyTestcaseText(report, testcase.Filename, testcase.Content)
@@ -197,6 +203,12 @@ func sourceFilesForMode(problem loader.Problem, mode VerifyMode) []loader.CodeFi
 	if mode != VerifyModeValidateInputs {
 		out = append(out, problem.CorrectCodes...)
 	}
+	if problem.OutputOnly {
+		if mode != VerifyModeValidateInputs && problem.Checker != nil {
+			out = append(out, *problem.Checker)
+		}
+		return out
+	}
 	out = append(out, problem.Generators...)
 	out = append(out, problem.Singlegens...)
 	if problem.Validator != nil {
@@ -209,6 +221,10 @@ func sourceFilesForMode(problem loader.Problem, mode VerifyMode) []loader.CodeFi
 }
 
 func (v verifier) verifyInputs(ctx context.Context, report *VerifyReport, problem loader.Problem, compiled compiledFiles, options VerifyOptions) {
+	if problem.OutputOnly {
+		v.verifyOutputOnly(ctx, report, problem, compiled, options)
+		return
+	}
 	if problem.Validator == nil {
 		return
 	}
@@ -286,6 +302,21 @@ func (v verifier) verifyInputs(ctx context.Context, report *VerifyReport, proble
 			report.AddFinding(SeverityError, StageGenerator, generator.Filename, nil, fmt.Sprintf("generator produced %d distinct outputs across %d seeds; want at least %d", len(seen), GeneratorRuns, MinimumDistinctGeneratorIO), "", "")
 		}
 	}
+}
+
+func (v verifier) verifyOutputOnly(ctx context.Context, report *VerifyReport, problem loader.Problem, compiled compiledFiles, options VerifyOptions) {
+	if options.Mode == VerifyModeValidateInputs || len(problem.CorrectCodes) == 0 {
+		return
+	}
+	var checker *executor.CompiledProgram
+	if problem.Checker != nil {
+		checker = compiled[problem.Checker.Filename]
+	}
+	report.SampledCasesCount++
+	v.verifyInputAgainstPrimaryCorrect(ctx, report, problem, compiled, checker, testInput{
+		Content:  "",
+		Filename: contracts.OutputOnlyEmptyInputID,
+	})
 }
 
 func answerFilesByProvider(answerFiles []loader.AnswerFile) map[string]*loader.AnswerFile {

@@ -10,7 +10,7 @@ A problem is a directory at `testcase/<problemType>/<externalId>/`. The
 All files in a problem directory are optional, but a runnable/stressable problem
 needs at least one `correct_*` solution. To allow an actual stress run, the
 problem also needs at least one `generator_*`, `singlegen_*`, or fixed input
-testcase.
+testcase, unless it is marked `outputOnly: true`.
 
 ### `metadata.yaml` (optional)
 
@@ -37,6 +37,9 @@ codes:                    # optional per-file language overrides
 - `memoryLimitMb`: per-testcase memory limit in megabytes.
 - `isSpecialJudge`: whether the original problem is special-judged. This is
   used by the frontend to decide whether checker-related UI should be shown.
+- `outputOnly`: set to `true` only for problems with no input. These problems
+  use one implicit empty-stdin case, so do not add validators, generators,
+  fixed testcases, or answer files.
 - `codes`: optional map from source filename to a language tag that overrides
   extension-based inference, such as pinning a `.cpp` file to `cpp14` instead
   of the default `cpp23`.
@@ -133,7 +136,7 @@ Verification checks that reference solution output matches the answer file.
 When `checker.cpp` exists, verification uses the checker. Otherwise it uses the
 default output comparison.
 
-### `validator.cpp` (required)
+### `validator.cpp` (required except output-only)
 
 Input validator using `testlib.h`. Exactly this filename. Every committed
 testcase provider output must pass this validator.

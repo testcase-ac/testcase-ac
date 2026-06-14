@@ -98,6 +98,7 @@ export interface ProblemDetail {
   memoryLimitMb: number;
   description: string | null;
   isSpecialJudge: boolean;
+  outputOnly: boolean;
   correctCodes: CodeInfo[];
   generators: CodeInfo[];
   singlegens: CodeInfo[];

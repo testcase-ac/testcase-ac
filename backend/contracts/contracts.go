@@ -87,6 +87,8 @@ const (
 	CaseProviderSinglegen CaseProviderType = "singlegen"
 )
 
+const OutputOnlyEmptyInputID = "empty-stdin"
+
 type Verdict string
 
 const (

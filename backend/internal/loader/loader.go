@@ -66,24 +66,31 @@ type AnswerFile struct {
 	TargetProviderFilename string
 }
 
+type IgnoredOutputOnlyFile struct {
+	Filename string
+	Role     string
+}
+
 type Problem struct {
-	ProblemType    string
-	ExternalID     string
-	Title          string
-	ExternalLink   string
-	TimeLimitMS    int
-	MemoryLimitMB  int
-	Description    string
-	IsSpecialJudge bool
-	CorrectCodes   []CodeFile
-	Generators     []CodeFile
-	Singlegens     []CodeFile
-	Validator      *CodeFile
-	Checker        *CodeFile
-	Testcases      []TestcaseFile
-	AnswerFiles    []AnswerFile
-	UnknownFiles   []string
-	Runnable       bool
+	ProblemType            string
+	ExternalID             string
+	Title                  string
+	ExternalLink           string
+	TimeLimitMS            int
+	MemoryLimitMB          int
+	Description            string
+	IsSpecialJudge         bool
+	OutputOnly             bool
+	CorrectCodes           []CodeFile
+	Generators             []CodeFile
+	Singlegens             []CodeFile
+	Validator              *CodeFile
+	Checker                *CodeFile
+	Testcases              []TestcaseFile
+	AnswerFiles            []AnswerFile
+	IgnoredOutputOnlyFiles []IgnoredOutputOnlyFile
+	UnknownFiles           []string
+	Runnable               bool
 }
 
 type TypeMetadata struct {
@@ -140,6 +147,7 @@ type metadataFile struct {
 	TimeLimitMS    int               `yaml:"timeLimitMs"`
 	MemoryLimitMB  int               `yaml:"memoryLimitMb"`
 	IsSpecialJudge bool              `yaml:"isSpecialJudge"`
+	OutputOnly     bool              `yaml:"outputOnly"`
 	Codes          map[string]string `yaml:"codes"`
 }
 
@@ -416,6 +424,7 @@ func (l problemLoader) loadProblem(dirPath string, options Options) (Problem, er
 		MemoryLimitMB:  meta.MemoryLimitMB,
 		Description:    description,
 		IsSpecialJudge: meta.IsSpecialJudge,
+		OutputOnly:     meta.OutputOnly,
 	}
 
 	seen := map[string]struct{}{}
@@ -430,7 +439,15 @@ func (l problemLoader) loadProblem(dirPath string, options Options) (Problem, er
 		}
 		name := entry.Name()
 		seen[name] = struct{}{}
-		if name == "metadata.yaml" || name == "description.md" {
+		classified := classifyProblemFile(name, answerTargets)
+		if classified.Role == fileRoleMetadata || classified.Role == fileRoleDescription {
+			continue
+		}
+		if ignoredRole, ok := outputOnlyIgnoredRole(classified.Role); problem.OutputOnly && ok {
+			problem.IgnoredOutputOnlyFiles = append(problem.IgnoredOutputOnlyFiles, IgnoredOutputOnlyFile{
+				Filename: name,
+				Role:     ignoredRole,
+			})
 			continue
 		}
 		contentBytes, err := l.files.ReadFile(filepath.Join(dirPath, name))
@@ -438,41 +455,41 @@ func (l problemLoader) loadProblem(dirPath string, options Options) (Problem, er
 			return Problem{}, err
 		}
 		authorName := sourceAuthor(name, meta.Authors, options.AuthorByRelPath, problemType, externalID)
-		if target, ok := answerTargets[name]; ok {
+		if classified.Role == fileRoleAnswer {
 			problem.AnswerFiles = append(problem.AnswerFiles, AnswerFile{
 				Filename:               name,
 				Content:                string(contentBytes),
 				AuthorName:             authorName,
-				TargetProviderFilename: target,
+				TargetProviderFilename: classified.TargetProviderFilename,
 			})
 			continue
 		}
-		switch {
-		case name == "validator.cpp":
+		switch classified.Role {
+		case fileRoleValidator:
 			file := CodeFile{Filename: name, Language: contracts.LanguageCpp23, Content: string(contentBytes), AuthorName: authorName}
 			problem.Validator = &file
-		case name == "checker.cpp":
+		case fileRoleChecker:
 			file := CodeFile{Filename: name, Language: contracts.LanguageCpp23, Content: string(contentBytes), AuthorName: authorName}
 			problem.Checker = &file
-		case IsRoleFile(name, "correct"):
+		case fileRoleCorrect:
 			lang, err := InferLanguage(name, meta.Codes)
 			if err != nil {
 				return Problem{}, err
 			}
 			problem.CorrectCodes = append(problem.CorrectCodes, CodeFile{Filename: name, Language: lang, Content: string(contentBytes), AuthorName: authorName})
-		case IsRoleFile(name, "generator"):
+		case fileRoleGenerator:
 			lang, err := InferLanguage(name, meta.Codes)
 			if err != nil {
 				return Problem{}, err
 			}
 			problem.Generators = append(problem.Generators, CodeFile{Filename: name, Language: lang, Content: string(contentBytes), AuthorName: authorName})
-		case IsRoleFile(name, "singlegen"):
+		case fileRoleSinglegen:
 			lang, err := InferLanguage(name, meta.Codes)
 			if err != nil {
 				return Problem{}, err
 			}
 			problem.Singlegens = append(problem.Singlegens, CodeFile{Filename: name, Language: lang, Content: string(contentBytes), AuthorName: authorName})
-		case isTestcaseFile(name):
+		case fileRoleTestcase:
 			problem.Testcases = append(problem.Testcases, TestcaseFile{Filename: name, Content: string(contentBytes), AuthorName: authorName})
 		default:
 			problem.UnknownFiles = append(problem.UnknownFiles, name)
@@ -498,6 +515,9 @@ func (l problemLoader) loadProblem(dirPath string, options Options) (Problem, er
 	slices.SortFunc(problem.Singlegens, func(a, b CodeFile) int { return strings.Compare(a.Filename, b.Filename) })
 	slices.SortFunc(problem.Testcases, func(a, b TestcaseFile) int { return strings.Compare(a.Filename, b.Filename) })
 	slices.SortFunc(problem.AnswerFiles, func(a, b AnswerFile) int { return strings.Compare(a.Filename, b.Filename) })
+	slices.SortFunc(problem.IgnoredOutputOnlyFiles, func(a, b IgnoredOutputOnlyFile) int {
+		return strings.Compare(a.Filename, b.Filename)
+	})
 	slices.Sort(problem.UnknownFiles)
 	problem.Runnable = isRunnableProblem(problem)
 	return problem, nil
@@ -507,7 +527,67 @@ func isRunnableProblem(problem Problem) bool {
 	hasCorrect := len(problem.CorrectCodes) > 0
 	hasProvider := len(problem.Generators)+len(problem.Singlegens)+len(problem.Testcases) > 0
 	hasRequiredChecker := !problem.IsSpecialJudge || problem.Checker != nil
+	if problem.OutputOnly {
+		return hasCorrect && hasRequiredChecker
+	}
 	return hasCorrect && hasProvider && hasRequiredChecker
+}
+
+type fileRole string
+
+const (
+	fileRoleMetadata    fileRole = "metadata"
+	fileRoleDescription fileRole = "description"
+	fileRoleAnswer      fileRole = "answer"
+	fileRoleValidator   fileRole = "validator"
+	fileRoleChecker     fileRole = "checker"
+	fileRoleCorrect     fileRole = "correct"
+	fileRoleGenerator   fileRole = "generator"
+	fileRoleSinglegen   fileRole = "singlegen"
+	fileRoleTestcase    fileRole = "testcase"
+	fileRoleUnknown     fileRole = "unknown"
+)
+
+type classifiedProblemFile struct {
+	Role                   fileRole
+	TargetProviderFilename string
+}
+
+func classifyProblemFile(name string, answerTargets map[string]string) classifiedProblemFile {
+	if name == "metadata.yaml" {
+		return classifiedProblemFile{Role: fileRoleMetadata}
+	}
+	if name == "description.md" {
+		return classifiedProblemFile{Role: fileRoleDescription}
+	}
+	if target, ok := answerTargets[name]; ok {
+		return classifiedProblemFile{Role: fileRoleAnswer, TargetProviderFilename: target}
+	}
+	switch {
+	case name == "validator.cpp":
+		return classifiedProblemFile{Role: fileRoleValidator}
+	case name == "checker.cpp":
+		return classifiedProblemFile{Role: fileRoleChecker}
+	case IsRoleFile(name, "correct"):
+		return classifiedProblemFile{Role: fileRoleCorrect}
+	case IsRoleFile(name, "generator"):
+		return classifiedProblemFile{Role: fileRoleGenerator}
+	case IsRoleFile(name, "singlegen"):
+		return classifiedProblemFile{Role: fileRoleSinglegen}
+	case isTestcaseFile(name):
+		return classifiedProblemFile{Role: fileRoleTestcase}
+	default:
+		return classifiedProblemFile{Role: fileRoleUnknown}
+	}
+}
+
+func outputOnlyIgnoredRole(role fileRole) (string, bool) {
+	switch role {
+	case fileRoleValidator, fileRoleAnswer, fileRoleGenerator, fileRoleSinglegen, fileRoleTestcase:
+		return string(role), true
+	default:
+		return "", false
+	}
 }
 
 func sourceAuthor(filename string, authors map[string]string, authorByRelPath map[string]string, problemType, externalID string) string {

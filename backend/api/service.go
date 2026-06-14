@@ -45,6 +45,11 @@ type executionLimitPolicy struct {
 	memoryAdditionMB int
 }
 
+type caseProviderPlan struct {
+	Providers  []contracts.CaseProvider
+	Iterations int
+}
+
 var bojExecutionLimitPolicies = map[contracts.Language]executionLimitPolicy{
 	contracts.LanguagePython3:  {timeMultiplier: 3, timeAdditionMS: 2000, memoryMultiplier: 2, memoryAdditionMB: 32},
 	contracts.LanguagePyPy3:    {timeMultiplier: 3, timeAdditionMS: 2000, memoryMultiplier: 2, memoryAdditionMB: 128},
@@ -70,6 +75,9 @@ func adjustedExecutionLimits(problemType string, language contracts.Language, ti
 }
 
 func BuildStresserEvent(problem Problem, request StressRequest, requestID string) (contracts.StressEvent, int, string, bool) {
+	if problem.OutputOnly && hasOutputOnlyProviderInput(request) {
+		return contracts.StressEvent{}, http.StatusBadRequest, "Output-only problems do not accept testcase, generator, or single generator selections", false
+	}
 	if len(problem.CorrectCodes) == 0 {
 		return contracts.StressEvent{}, http.StatusUnprocessableEntity, fmt.Sprintf("Problem %s/%s has no correct solution", problem.ProblemType, problem.ExternalID), false
 	}
@@ -82,18 +90,9 @@ func BuildStresserEvent(problem Problem, request StressRequest, requestID string
 	if request.CheckerCode != nil {
 		checkerCode = *request.CheckerCode
 	}
-	caseProviders, ok, detail := resolveCaseProviders(problem, request)
+	providerPlan, statusCode, detail, ok := buildCaseProviderPlan(problem, request)
 	if !ok {
-		return contracts.StressEvent{}, http.StatusUnprocessableEntity, detail, false
-	}
-	selectedSinglegens, ok, detail := selectByFilename(problem.Singlegens, request.SinglegenFilenames, "single generators")
-	if !ok {
-		return contracts.StressEvent{}, http.StatusUnprocessableEntity, detail, false
-	}
-
-	caseProviders = append(caseProviders, buildSinglegenProviders(selectedSinglegens)...)
-	if len(caseProviders) == 0 {
-		return contracts.StressEvent{}, http.StatusUnprocessableEntity, "At least one testcase, generator, or single generator must be selected", false
+		return contracts.StressEvent{}, statusCode, detail, false
 	}
 
 	targetLang := request.targetLangValue()
@@ -111,10 +110,46 @@ func BuildStresserEvent(problem Problem, request StressRequest, requestID string
 		TargetMemoryLimit:        targetMemoryLimitMB,
 		CorrectTimeLimit:         correctTimeLimitS,
 		CorrectMemoryLimit:       correctMemoryLimitMB,
-		Iterations:               request.iterationsValue(),
+		Iterations:               providerPlan.Iterations,
 		TotalRuntimeLimitSeconds: request.totalRuntimeLimitSecondsValue(),
-		CaseProviders:            caseProviders,
+		CaseProviders:            providerPlan.Providers,
 	}, 0, "", true
+}
+
+func buildCaseProviderPlan(problem Problem, request StressRequest) (caseProviderPlan, int, string, bool) {
+	if problem.OutputOnly {
+		return caseProviderPlan{
+			Providers: []contracts.CaseProvider{{
+				Type:    contracts.CaseProviderText,
+				ID:      contracts.OutputOnlyEmptyInputID,
+				Content: "",
+			}},
+			Iterations: 1,
+		}, 0, "", true
+	}
+
+	caseProviders, ok, detail := resolveCaseProviders(problem, request)
+	if !ok {
+		return caseProviderPlan{}, http.StatusUnprocessableEntity, detail, false
+	}
+	selectedSinglegens, ok, detail := selectByFilename(problem.Singlegens, request.SinglegenFilenames, "single generators")
+	if !ok {
+		return caseProviderPlan{}, http.StatusUnprocessableEntity, detail, false
+	}
+
+	caseProviders = append(caseProviders, buildSinglegenProviders(selectedSinglegens)...)
+	if len(caseProviders) == 0 {
+		return caseProviderPlan{}, http.StatusUnprocessableEntity, "At least one testcase, generator, or single generator must be selected", false
+	}
+	return caseProviderPlan{Providers: caseProviders, Iterations: request.iterationsValue()}, 0, "", true
+}
+
+func hasOutputOnlyProviderInput(request StressRequest) bool {
+	return len(request.GeneratorFilenames) > 0 ||
+		len(request.SinglegenFilenames) > 0 ||
+		len(request.TestcaseFilenames) > 0 ||
+		len(request.GeneratorSources) > 0 ||
+		len(request.TextTestcases) > 0
 }
 
 func BuildCustomStresserEvent(request StressRequest, requestID string) (contracts.StressEvent, int, string, bool) {

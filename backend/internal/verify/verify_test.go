@@ -75,6 +75,99 @@ func TestLocalValidatorInspectionArtifactsDoNotFailStaticVerification(t *testing
 	}
 }
 
+func TestOutputOnlyIgnoredMaterialsFailStatically(t *testing.T) {
+	problem := loader.Problem{
+		ProblemType:   "boj",
+		ExternalID:    "1",
+		Title:         "Fake",
+		TimeLimitMS:   2000,
+		MemoryLimitMB: 256,
+		OutputOnly:    true,
+		CorrectCodes: []loader.CodeFile{{
+			Filename: "correct_main.py",
+			Content:  "correct_main.py",
+			Language: contracts.LanguagePython3,
+		}},
+		IgnoredOutputOnlyFiles: []loader.IgnoredOutputOnlyFile{
+			{Filename: "validator.cpp", Role: "validator"},
+			{Filename: "testcase_1.in", Role: "testcase"},
+			{Filename: "testcase_1.out", Role: "answer"},
+		},
+	}
+
+	report := fakeVerifier(newFakeExecutor()).verifyProblem(context.Background(), problem)
+
+	for _, filename := range []string{"validator.cpp", "testcase_1.in", "testcase_1.out"} {
+		if !hasFinding(report, SeverityError, StageStatic, filename) {
+			t.Fatalf("expected output-only ignored file finding for %s, got %+v", filename, report.Findings)
+		}
+	}
+}
+
+func TestOutputOnlyFullModeRunsCorrectsOnceWithEmptyInput(t *testing.T) {
+	fake := newFakeExecutor()
+	problem := loader.Problem{
+		ProblemType:   "boj",
+		ExternalID:    "1",
+		Title:         "Fake",
+		TimeLimitMS:   2000,
+		MemoryLimitMB: 256,
+		OutputOnly:    true,
+		CorrectCodes: []loader.CodeFile{
+			{Filename: "correct_a.py", Content: "correct_a.py", Language: contracts.LanguagePython3},
+			{Filename: "correct_b.py", Content: "correct_b.py", Language: contracts.LanguagePython3},
+		},
+		Checker: &loader.CodeFile{Filename: "checker.cpp", Content: "checker.cpp", Language: contracts.LanguageCpp23},
+	}
+
+	report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
+
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
+	}
+	if report.SampledCasesCount != 1 {
+		t.Fatalf("SampledCasesCount = %d, want 1", report.SampledCasesCount)
+	}
+	want := []string{
+		"run correct_a.py input=",
+		"checker input= participant=correct_a.py jury=correct_a.py",
+		"run correct_b.py input=",
+		"checker input= participant=correct_b.py jury=correct_a.py",
+	}
+	if !reflect.DeepEqual(fake.calls, want) {
+		t.Fatalf("calls:\n%s\nwant:\n%s", strings.Join(fake.calls, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+func TestOutputOnlyValidateInputsModeSkipsRuntime(t *testing.T) {
+	fake := newFakeExecutor()
+	problem := loader.Problem{
+		ProblemType:   "boj",
+		ExternalID:    "1",
+		Title:         "Fake",
+		TimeLimitMS:   2000,
+		MemoryLimitMB: 256,
+		OutputOnly:    true,
+		CorrectCodes: []loader.CodeFile{{
+			Filename: "correct_main.py",
+			Content:  "correct_main.py",
+			Language: contracts.LanguagePython3,
+		}},
+	}
+
+	report := fakeVerifier(fake).verifyProblemWithOptions(context.Background(), problem, VerifyOptions{Mode: VerifyModeValidateInputs})
+
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
+	}
+	if report.SampledCasesCount != 0 {
+		t.Fatalf("SampledCasesCount = %d, want 0", report.SampledCasesCount)
+	}
+	if len(fake.calls) != 0 {
+		t.Fatalf("calls:\n%s\nwant none", strings.Join(fake.calls, "\n"))
+	}
+}
+
 func TestInputPipelineIsSerial(t *testing.T) {
 	fake := newFakeExecutor()
 	problem := fakeProblem(

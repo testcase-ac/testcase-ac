@@ -94,6 +94,7 @@ const translations = {
     "problem.summary.testcases": "{count} testcases",
     "problem.summary.iterations": "{count} iterations",
     "problem.summary.totalRuntimeLimit": "{seconds}s total limit",
+    "problem.summary.outputOnly": "empty input",
     "problem.summary.checker": "checker",
     "problem.summary.validator": "validator",
     "problem.summary.none": "nothing selected",
@@ -106,8 +107,10 @@ const translations = {
     "problem.providers.none": "Nothing available in this group.",
     "problem.providers.noneSelected":
       "At least one testcase or generator source must be selected.",
-    "problem.reference.validatorHint": "Reference only. Not sent to the stresser.",
-    "problem.reference.checkerHint": "Used to compare output of correct code and submitted code.",
+    "problem.reference.validatorHint":
+      "Reference only. Not sent to the stresser.",
+    "problem.reference.checkerHint":
+      "Used to compare output of correct code and submitted code.",
     "problem.correct.cannotDeselect":
       "At least one correct code must stay selected.",
     "problem.author.unknown": "unknown author",
@@ -128,7 +131,8 @@ const translations = {
     "custom.target.title": "Target submission",
     "custom.target.subtitle": "This is the code you want to stress-test.",
     "custom.correct.title": "Correct code",
-    "custom.correct.subtitle": "Paste the reference implementation you want to compare against.",
+    "custom.correct.subtitle":
+      "Paste the reference implementation you want to compare against.",
     "custom.generators.title": "Generators",
     "custom.generators.subtitle":
       "Add seeded generators if you want randomized coverage. Each generator receives the seed as its first command-line argument.",
@@ -271,6 +275,7 @@ const translations = {
     "problem.summary.testcases": "고정 테스트케이스 {count}개",
     "problem.summary.iterations": "{count}회 시도",
     "problem.summary.totalRuntimeLimit": "총 {seconds}초 제한",
+    "problem.summary.outputOnly": "입력 없음",
     "problem.summary.checker": "체커",
     "problem.summary.validator": "밸리데이터",
     "problem.summary.none": "선택된 항목 없음",
@@ -283,8 +288,10 @@ const translations = {
     "problem.providers.none": "이 그룹에는 선택 가능한 항목이 없습니다.",
     "problem.providers.noneSelected":
       "테스트케이스 또는 제너레이터 계열 입력은 최소 하나가 선택되어 있어야 합니다.",
-    "problem.reference.validatorHint": "참고용입니다. 스트레서에는 전달되지 않습니다.",
-    "problem.reference.checkerHint": "정답 코드와 제출된 코드의 출력 비교에 사용됩니다.",
+    "problem.reference.validatorHint":
+      "참고용입니다. 스트레서에는 전달되지 않습니다.",
+    "problem.reference.checkerHint":
+      "정답 코드와 제출된 코드의 출력 비교에 사용됩니다.",
     "problem.correct.cannotDeselect":
       "정답 코드는 최소 하나가 선택되어 있어야 합니다.",
     "problem.author.unknown": "작성자 미상",
@@ -368,8 +375,7 @@ const translations = {
     "stress.samples.note":
       "아래에는 이번 실행에서 반환된 가장 짧은 오답/실행 실패 예시만 보여줍니다.",
     "stress.section.wrongCases": "오답 예시 (총 {total}개)",
-    "stress.section.executionFailedCases":
-      "실행 실패 예시 (총 {total}개)",
+    "stress.section.executionFailedCases": "실행 실패 예시 (총 {total}개)",
     "stress.attempted.notFound": "시도한 케이스들 ({n}개)",
     "stress.attempted.found": "기타 정답과 일치한 케이스들 ({n}개)",
     "stress.attempted.empty": "기록된 케이스가 없습니다.",

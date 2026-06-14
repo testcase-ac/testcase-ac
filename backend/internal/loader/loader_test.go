@@ -46,6 +46,41 @@ func (m mapFilesystem) ReadFile(path string) ([]byte, error) {
 	return fs.ReadFile(m.fsys, filepath.ToSlash(path))
 }
 
+type readTrackingFilesystem struct {
+	base      filesystem
+	readPath  map[string]bool
+	forbidden map[string]bool
+}
+
+func newReadTrackingFilesystem(files map[string]string, forbidden []string) *readTrackingFilesystem {
+	forbiddenByPath := map[string]bool{}
+	for _, path := range forbidden {
+		forbiddenByPath[filepath.ToSlash(path)] = true
+	}
+	return &readTrackingFilesystem{
+		base:      newMapFilesystem(files),
+		readPath:  map[string]bool{},
+		forbidden: forbiddenByPath,
+	}
+}
+
+func (f *readTrackingFilesystem) Stat(path string) (fs.FileInfo, error) {
+	return f.base.Stat(path)
+}
+
+func (f *readTrackingFilesystem) ReadDir(path string) ([]fs.DirEntry, error) {
+	return f.base.ReadDir(path)
+}
+
+func (f *readTrackingFilesystem) ReadFile(path string) ([]byte, error) {
+	normalized := filepath.ToSlash(path)
+	f.readPath[normalized] = true
+	if f.forbidden[normalized] {
+		return nil, fs.ErrPermission
+	}
+	return f.base.ReadFile(path)
+}
+
 func TestLoadProblemRejectsUnknownMetadataField(t *testing.T) {
 	loader := newFakeProblemLoader(map[string]string{
 		"boj/1000/metadata.yaml": "title: A+B\nunknown: true\n",
@@ -294,7 +329,79 @@ func TestLoadProblemClassifiesAnswerFiles(t *testing.T) {
 	}
 }
 
+func TestLoadProblemOutputOnlySuppressesInputMaterialsWithoutReadingContent(t *testing.T) {
+	// Given: an output-only directory still containing old validator and provider files.
+	files := map[string]string{
+		"boj/1000/metadata.yaml":         "title: A+B\noutputOnly: true\ncodes:\n  generator_1.bad: python3\nauthors:\n  validator.cpp: alice\n",
+		"boj/1000/correct.cpp":           "int main(){}",
+		"boj/1000/checker.cpp":           "int main(){}",
+		"boj/1000/validator.cpp":         "must not be read",
+		"boj/1000/generator_1.bad":       "must not be read",
+		"boj/1000/singlegen_edge.py":     "must not be read",
+		"boj/1000/singlegen_edge.py.out": "must not be read",
+		"boj/1000/testcase_1.in":         "must not be read",
+		"boj/1000/testcase_1.out":        "must not be read",
+	}
+	forbidden := []string{
+		"boj/1000/validator.cpp",
+		"boj/1000/generator_1.bad",
+		"boj/1000/singlegen_edge.py",
+		"boj/1000/singlegen_edge.py.out",
+		"boj/1000/testcase_1.in",
+		"boj/1000/testcase_1.out",
+	}
+	tracker := newReadTrackingFilesystem(files, forbidden)
+	loader := problemLoader{
+		files: tracker,
+		gitAuthorIndex: func(string) map[string]string {
+			return map[string]string{}
+		},
+	}
+
+	// When: the loader builds the domain problem.
+	problem, err := loader.loadProblem("boj/1000", Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Then: forbidden files are excluded from usable materials and recorded by filename only.
+	if !problem.OutputOnly {
+		t.Fatal("OutputOnly = false, want true")
+	}
+	if problem.Validator != nil {
+		t.Fatalf("Validator = %#v, want nil", problem.Validator)
+	}
+	if len(problem.Generators) != 0 || len(problem.Singlegens) != 0 || len(problem.Testcases) != 0 || len(problem.AnswerFiles) != 0 {
+		t.Fatalf("usable input materials = generators:%d singlegens:%d testcases:%d answers:%d, want all zero", len(problem.Generators), len(problem.Singlegens), len(problem.Testcases), len(problem.AnswerFiles))
+	}
+	gotIgnored := ignoredOutputOnlyFilenames(problem.IgnoredOutputOnlyFiles)
+	wantIgnored := []string{
+		"generator_1.bad",
+		"singlegen_edge.py",
+		"singlegen_edge.py.out",
+		"testcase_1.in",
+		"testcase_1.out",
+		"validator.cpp",
+	}
+	if !slices.Equal(gotIgnored, wantIgnored) {
+		t.Fatalf("IgnoredOutputOnlyFiles = %v, want %v", gotIgnored, wantIgnored)
+	}
+	for _, path := range forbidden {
+		if tracker.readPath[path] {
+			t.Fatalf("ReadFile(%q) was called for suppressed output-only material", path)
+		}
+	}
+}
+
 func testcaseFilenames(files []TestcaseFile) []string {
+	out := make([]string, 0, len(files))
+	for _, file := range files {
+		out = append(out, file.Filename)
+	}
+	return out
+}
+
+func ignoredOutputOnlyFilenames(files []IgnoredOutputOnlyFile) []string {
 	out := make([]string, 0, len(files))
 	for _, file := range files {
 		out = append(out, file.Filename)
@@ -364,6 +471,32 @@ func TestLoadProblemComputesRunnable(t *testing.T) {
 				"checker.cpp":   "int main(){}",
 			},
 			want: true,
+		},
+		{
+			name: "output only with correct and no provider",
+			files: map[string]string{
+				"metadata.yaml": "outputOnly: true\n",
+				"correct.cpp":   "int main(){}",
+			},
+			want: true,
+		},
+		{
+			name: "output only special judge with checker and no provider",
+			files: map[string]string{
+				"metadata.yaml":   "outputOnly: true\nisSpecialJudge: true\n",
+				"correct.cpp":     "int main(){}",
+				"checker.cpp":     "int main(){}",
+				"testcase_old.in": "1\n",
+			},
+			want: true,
+		},
+		{
+			name: "output only special judge without checker",
+			files: map[string]string{
+				"metadata.yaml": "outputOnly: true\nisSpecialJudge: true\n",
+				"correct.cpp":   "int main(){}",
+			},
+			want: false,
 		},
 	}
 
