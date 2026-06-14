@@ -3,3 +3,4 @@ externalLink: "https://www.acmicpc.net/problem/19568"
 timeLimitMs: 1000
 memoryLimitMb: 256
 isSpecialJudge: true
+outputOnly: true
