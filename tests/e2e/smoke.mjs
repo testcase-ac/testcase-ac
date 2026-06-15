@@ -7,6 +7,7 @@ const frontendUrl = process.env.E2E_FRONTEND_URL;
 if (!frontendUrl) {
   throw new Error("E2E_FRONTEND_URL is required");
 }
+const chromePath = process.env.E2E_CHROME_PATH?.trim();
 
 function stage(message) {
   console.log(`[e2e] ${message}`);
@@ -30,7 +31,10 @@ async function assertUrl(page, pattern, label) {
   pass(`${label}: ${page.url()}`);
 }
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({
+  headless: true,
+  executablePath: chromePath || undefined,
+});
 try {
   const context = await browser.newContext();
   const page = await context.newPage();

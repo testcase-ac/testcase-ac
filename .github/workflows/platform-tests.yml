@@ -64,7 +64,12 @@ jobs:
           DOCKERTEST_SKIP_BUILD: "1"
         run: ./tests/dockertest/run_test.sh ./stresser ./internal/executor ./internal/verify
 
+      - name: Setup Chrome
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+
       - name: Run E2E smoke test
         env:
           STRESSER_IMAGE: testcase-ac-dockertest
+          E2E_CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
         run: ./tests/e2e/run_smoke.sh

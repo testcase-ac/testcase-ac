@@ -99,8 +99,12 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-stage "install/check Playwright Chromium"
-(cd frontend && npx playwright install chromium)
+if [ -n "${E2E_CHROME_PATH:-}" ]; then
+  stage "use provided Chrome"
+else
+  stage "install/check Playwright Chromium"
+  (cd frontend && npx playwright install chromium)
+fi
 
 stage "start isolated dev stack"
 echo "[e2e] frontend: http://127.0.0.1:$FRONTEND_PORT"
