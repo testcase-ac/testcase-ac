@@ -1,0 +1,4 @@
+for (int Z = 1; Z < 9; Z++)
+ for (int a = 1; a < 9; a++)
+  for (int Z = 1; Z < 9; Z++)
+   1+Z * a - Q;
