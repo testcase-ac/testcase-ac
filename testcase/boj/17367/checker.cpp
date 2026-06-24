@@ -1,0 +1,37 @@
+#include "testlib.h"
+
+#include <cmath>
+
+using namespace std;
+
+const double EPS = 1e-6;
+
+int main(int argc, char* argv[]) {
+    registerTestlibCmd(argc, argv);
+
+    double jury = ans.readDouble();
+    if (!isfinite(jury)) {
+        quitf(_fail, "jury answer is not finite");
+    }
+    if (!ans.seekEof()) {
+        quitf(_fail, "extra output after jury answer");
+    }
+
+    double participant = ouf.readDouble();
+    if (!isfinite(participant)) {
+        quitf(_wa, "participant answer is not finite");
+    }
+    if (!ouf.seekEof()) {
+        quitf(_wa, "extra output after participant answer");
+    }
+
+    if (!doubleCompare(jury, participant, EPS)) {
+        quitf(_wa,
+              "expected %.17g, found %.17g, error %.17g",
+              jury,
+              participant,
+              doubleDelta(jury, participant));
+    }
+
+    quitf(_ok, "answer %.17g is within tolerance", participant);
+}

@@ -38,11 +38,15 @@ int v = ouf.readInt(1, n, format("answer[%d]", i + 1).c_str());
 
 ## Jury Baseline
 
-Treat `ans` as the judging baseline. Add checker logic only for the non-exact rule that made a checker necessary.
+Treat `ans` as the baseline claim. A checker should parse and validate each output stream, normalize it into a comparable claim, then compare participant `ouf` against jury `ans` under the statement's exact, tolerance, feasibility, or objective rule.
 
-- For a certificate, witness, path, subset, coordinate among ties, or any other non-unique object, use the shared parser pattern below. Use `inf` to validate the submitted object and compute the object's claimed value when needed.
-- Do not turn a checker into a second full reference solution for ordinary unique-output problems.
-- If the participant output is semantically valid and strictly better than the jury output for an optimization problem, return `_fail`.
+Use input-derived computation only to validate a supplied output object or compute the objective value of that supplied output. Do not compute an independent expected answer from input just to judge ordinary exact, scalar, floating, or effectively unique outputs.
+
+- For a certificate, witness, path, subset, coordinate among ties, or any other non-unique object, use the shared parser pattern below. Validate both `ans` and `ouf` through that parser, even when `ouf` can be judged without comparing directly to `ans`.
+- For exact or effectively unique output under legacy special-judge metadata, parse and validate the output format, then compare `ouf` to `ans`.
+- For optimization output with a certificate or witness, validate both `ans` and `ouf` with the same parser, compute each output's objective from the supplied certificate, and compare objectives. If the participant output is semantically valid and strictly better than the jury output, return `_fail`.
+- For value-only optimization output, treat the jury value in `ans` as the baseline. Parse and validate both scalar values, then compare participant objective against jury objective. Do not run a solver inside the checker to prove the jury value is globally optimal.
+- Never read wall-clock time, random state, files, network, or other environment state to recreate an expected answer.
 
 ## Shared Answer Parser
 
@@ -124,11 +128,13 @@ int main(int argc, char* argv[]) {
 }
 ```
 
-For optimization problems, prefer comparing participant output against the jury output rather than solving the whole optimization problem inside the checker. The checker should still validate each output certificate and compute the value claimed by that output when the value is derivable from the certificate and input.
+For optimization problems, compare participant output against jury output instead of solving the whole optimization problem inside the checker. Validate each supplied certificate or witness and compute its objective value when that value is derivable from the output and input. For value-only output, compare the scalar objective directly; reject impossible or malformed scalar values only when that is a direct output-validity check, not by running a full solver to certify that `ans` is globally optimal.
 
 ## Floating Tolerance
 
 For floating-output problems, compare participant output to jury output using the statement's tolerance. The jury output is expected to be produced with sufficient precision for judging.
+
+This applies to high-precision decimal and rational-style scalar outputs too. Parse `ans` and `ouf` with enough precision for the statement tolerance, then compare the participant value to the jury value.
 
 Use `doubleCompare` when the statement allows absolute-or-relative error. If the statement defines only absolute error, only relative error, percentage error, or another custom tolerance, implement that rule directly.
 
@@ -169,6 +175,7 @@ int main(int argc, char* argv[]) {
 - When enforcing EOF after a line-based output token, consume the expected end-of-line before `readEof()`.
 - Validate the jury answer when it contains a certificate, claimed optimum, or feasibility decision that can be checked.
 - For `NO` or `YES` plus witness, if jury says impossible but participant provides a valid witness, return `_fail`.
+- For negative/impossible sentinels such as `NO` or `-1`, parse the jury sentinel without trying to prove impossibility from the input. Do not independently prove impossibility inside the checker. If jury says impossible and participant supplies a witness, validate that witness; return `_fail` if it is valid, otherwise reject the participant output. If the statement requires an explicit impossibility certificate, validate that certificate as ordinary output data.
 - Follow the statement's output format, including line structure when the statement specifies it. Use token-flexible parsing only when line layout is not part of the contract.
 - Use `long long` or wider arithmetic for computed scores, sums, products, and path costs.
 - Write diagnostic messages that include the failing field, index, and values.
