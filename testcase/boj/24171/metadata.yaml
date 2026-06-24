@@ -7,5 +7,4 @@ isSpecialJudge: false
 authors:
   correct_migrated.cpp: "INTERCAL"
   testcase_migrated_1.txt: "INTERCAL"
-  testcase_migrated_2.txt: "INTERCAL"
   testcase_migrated_3.txt: "INTERCAL"
