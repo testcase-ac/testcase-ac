@@ -3,9 +3,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-IMAGE_NAME="testcase-ac-dockertest"
+IMAGE_NAME="${RUNTIME_IMAGE:-testcase-ac-runtime:local}"
 CONTAINER_NAME="testcase-ac-dockertest-$$"
 DOCKERFILE_PATH="${REPO_ROOT}/deploy/stresser.Dockerfile"
+
+# shellcheck source=../../deploy/util/runtime_image.sh
+source "${REPO_ROOT}/deploy/util/runtime_image.sh"
 
 if ! command -v docker >/dev/null 2>&1; then
     echo "docker is not installed" >&2
@@ -19,12 +22,7 @@ fi
 
 cd "${REPO_ROOT}"
 
-if [ "${DOCKERTEST_SKIP_BUILD:-0}" = "1" ]; then
-    echo "Using existing Linux runtime test image (${IMAGE_NAME})..."
-else
-    echo "Building Linux runtime test image..."
-    docker build -f "${DOCKERFILE_PATH}" -t "${IMAGE_NAME}" .
-fi
+ensure_runtime_image "${REPO_ROOT}" "${IMAGE_NAME}" "${DOCKERFILE_PATH}" "${DOCKERTEST_FORCE_BUILD:-0}"
 
 TEST_CMD=(test ./internal/executor)
 if [ "$#" -gt 0 ]; then

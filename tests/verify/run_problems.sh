@@ -3,8 +3,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-IMAGE_NAME="testcase-ac-dockertest"
+IMAGE_NAME="${RUNTIME_IMAGE:-testcase-ac-runtime:local}"
 DOCKERFILE_PATH="${REPO_ROOT}/deploy/stresser.Dockerfile"
+
+# shellcheck source=../../deploy/util/runtime_image.sh
+source "${REPO_ROOT}/deploy/util/runtime_image.sh"
 
 if [ "$#" -lt 1 ]; then
     echo "usage: $0 [--validate-inputs] testcase/<type>/<id> [testcase/<type>/<id> ...]" >&2
@@ -63,12 +66,7 @@ fi
 
 cd "${REPO_ROOT}"
 
-if [ "${DOCKERTEST_SKIP_BUILD:-0}" = "1" ]; then
-    echo "Using existing Linux runtime test image (${IMAGE_NAME})..."
-else
-    echo "Building Linux runtime test image..."
-    docker build -f "${DOCKERFILE_PATH}" -t "${IMAGE_NAME}" .
-fi
+ensure_runtime_image "${REPO_ROOT}" "${IMAGE_NAME}" "${DOCKERFILE_PATH}" "${DOCKERTEST_FORCE_BUILD:-0}"
 
 echo "Verifying ${#PROBLEM_ARGS[@]} problem directory/directories..."
 VERIFY_CMD=(run ./cmd/verify)

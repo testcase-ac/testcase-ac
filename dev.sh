@@ -4,12 +4,15 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
+# shellcheck source=deploy/util/runtime_image.sh
+source "$ROOT/deploy/util/runtime_image.sh"
+
 MODE="${1:-default}"
 FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 STRESSER_PORT="${STRESSER_PORT:-9000}"
 REMOTE_API_BASE_URL="${REMOTE_API_BASE_URL:-https://api.testcase.ac}"
-STRESSER_IMAGE="${STRESSER_IMAGE:-testcase-ac-stresser:dev}"
+STRESSER_IMAGE="${STRESSER_IMAGE:-${RUNTIME_IMAGE:-testcase-ac-runtime:local}}"
 STRESSER_NAME="${STRESSER_NAME:-testcase-ac-stresser}"
 TESTCASE_LOCAL_PATH="${TESTCASE_LOCAL_PATH:-$ROOT}"
 REBUILD_STRESSER_IMAGE="${REBUILD_STRESSER_IMAGE:-0}"
@@ -26,6 +29,7 @@ Useful overrides:
   FRONTEND_PORT=5175
   BACKEND_PORT=8000
   STRESSER_PORT=9000
+  RUNTIME_IMAGE=testcase-ac-runtime:local
   TESTCASE_LOCAL_PATH=/absolute/path/to/repo-or-fixture
   REMOTE_API_BASE_URL=https://api.testcase.ac
   REBUILD_STRESSER_IMAGE=1       Force rebuild stresser image even if sources are unchanged
@@ -93,24 +97,7 @@ start_backend() {
 }
 
 ensure_stresser_image() {
-  local source_hash
-  local image_hash
-  source_hash="$(stresser_source_hash)"
-  image_hash="$(docker image inspect -f '{{ index .Config.Labels "testcase-ac.stresser-source-hash" }}' "$STRESSER_IMAGE" 2>/dev/null || true)"
-  if [ "$REBUILD_STRESSER_IMAGE" = "1" ] || [ "$source_hash" != "$image_hash" ]; then
-    echo "[dev] building stresser image ($STRESSER_IMAGE)"
-    docker build -q \
-      -f deploy/stresser.Dockerfile \
-      --label "testcase-ac.stresser-source-hash=$source_hash" \
-      -t "$STRESSER_IMAGE" . >/dev/null
-  fi
-}
-
-stresser_source_hash() {
-  {
-    git ls-files backend/stresser backend/internal backend/contracts backend/go.mod backend/go.sum deploy/stresser.Dockerfile
-    git ls-files --others --exclude-standard backend/stresser backend/internal backend/contracts backend/go.mod backend/go.sum deploy/stresser.Dockerfile
-  } | LC_ALL=C sort -u | xargs shasum | shasum | awk '{print $1}'
+  ensure_runtime_image "$ROOT" "$STRESSER_IMAGE" "$ROOT/deploy/stresser.Dockerfile" "$REBUILD_STRESSER_IMAGE"
 }
 
 start_stresser() {
