@@ -139,6 +139,7 @@ func TestBuildCatalogUsesInjectedFilesystemAndAuthorIndex(t *testing.T) {
 		"testcase/boj/1000/metadata.yaml":         "title: A+B\n",
 		"testcase/boj/1000/correct.cpp":           "int main(){}\n",
 		"testcase/boj/1000/testcase_1.txt":        "1 2\n",
+		"testcase/boj/1001/rejected_wrong.cpp":    "int main(){}\n",
 		"testcase/koi/2020/1/elem/1/title":        "ignored\n",
 		"testcase/koi/2020/1/elem/1/README":       "ignored\n",
 		"testcase/koi/2020/1/mid/2/metadata.yaml": "title: KOI\n",
@@ -158,6 +159,13 @@ func TestBuildCatalogUsesInjectedFilesystemAndAuthorIndex(t *testing.T) {
 	}
 	if got := bojProblem.CorrectCodes[0].AuthorName; got != "alice" {
 		t.Fatalf("boj/1000 correct author = %q, want alice", got)
+	}
+	rejectedOnlyProblem, ok := catalog[[2]string{"boj", "1001"}]
+	if !ok {
+		t.Fatalf("catalog missing rejected-only boj/1001: %+v", catalog)
+	}
+	if got := rejectedOnlyProblem.RejectedCodes[0].Filename; got != "rejected_wrong.cpp" {
+		t.Fatalf("boj/1001 rejected file = %q, want rejected_wrong.cpp", got)
 	}
 	if _, ok := catalog[[2]string{"koi", "2020/1/mid/2"}]; !ok {
 		t.Fatalf("catalog missing nested koi problem: %+v", catalog)
@@ -259,6 +267,8 @@ func TestLoadProblemInfersAndSortsFiles(t *testing.T) {
 		"boj/1000/correct.cpp":         "int main(){}",
 		"boj/1000/correct_slow.cpp":    "int main(){}",
 		"boj/1000/correct_fast.js":     "console.log(0)",
+		"boj/1000/rejected.cpp":        "int main(){}",
+		"boj/1000/rejected_slow.js":    "console.log(0)",
 		"boj/1000/generator.py":        "print('1 2')",
 		"boj/1000/generator_random.js": "console.log('1 2')",
 		"boj/1000/singlegen.py":        "print('1 2')",
@@ -277,8 +287,14 @@ func TestLoadProblemInfersAndSortsFiles(t *testing.T) {
 	if got := problem.CorrectCodes[2].Language; got != contracts.LanguageCpp14 {
 		t.Fatalf("override language = %q, want cpp14", got)
 	}
-	if len(problem.CorrectCodes) != 3 || len(problem.Generators) != 2 || len(problem.Singlegens) != 2 || len(problem.Testcases) != 2 {
-		t.Fatalf("loaded problem counts = correct:%d generator:%d singlegen:%d testcase:%d", len(problem.CorrectCodes), len(problem.Generators), len(problem.Singlegens), len(problem.Testcases))
+	if got := problem.RejectedCodes[0].Filename; got != "rejected.cpp" {
+		t.Fatalf("first rejected file = %q, want sorted rejected.cpp", got)
+	}
+	if got := problem.RejectedCodes[0].Language; got != contracts.LanguageCpp23 {
+		t.Fatalf("rejected language = %q, want cpp23", got)
+	}
+	if len(problem.CorrectCodes) != 3 || len(problem.RejectedCodes) != 2 || len(problem.Generators) != 2 || len(problem.Singlegens) != 2 || len(problem.Testcases) != 2 {
+		t.Fatalf("loaded problem counts = correct:%d rejected:%d generator:%d singlegen:%d testcase:%d", len(problem.CorrectCodes), len(problem.RejectedCodes), len(problem.Generators), len(problem.Singlegens), len(problem.Testcases))
 	}
 	if !problem.Runnable {
 		t.Fatal("Runnable = false, want true")
@@ -443,6 +459,14 @@ func TestLoadProblemComputesRunnable(t *testing.T) {
 			name: "correct without provider",
 			files: map[string]string{
 				"correct.cpp": "int main(){}",
+			},
+			want: false,
+		},
+		{
+			name: "rejected with provider but no correct",
+			files: map[string]string{
+				"rejected.cpp":  "int main(){}",
+				"generator.cpp": "int main(){}",
 			},
 			want: false,
 		},

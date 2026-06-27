@@ -90,6 +90,14 @@ inferred from the extension unless overridden by `metadata.yaml`.
 When multiple `correct_*` files exist, all are shown to users and one can be
 selected for a stress request. The default order is lexicographic by filename.
 
+### Rejected Solution Code (`rejected_*`) (optional)
+
+Verifier-only rejected solution. The filename basename must be `rejected` or
+start with `rejected_`. Examples: `rejected_slow.cpp`, `rejected.py`. Rejected
+solutions are not shown in the UI or API. They must compile, and full repository
+verification requires each one to receive a non-accepted verdict on at least one
+current case provider or output-only empty-stdin case.
+
 ### Generator Code (`generator_*`) (optional)
 
 Random test generator. A file is loaded as a generator when its filename starts

@@ -406,6 +406,231 @@ func TestCorrectConsistencyUsesPrimaryAgainstOthers(t *testing.T) {
 	}
 }
 
+func TestRejectedAcceptedOnAllSampledInputsFails(t *testing.T) {
+	// Given: a rejected solution whose output matches the primary correct solution.
+	fake := newFakeExecutor()
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		[]loader.TestcaseFile{{Filename: "testcase_1.txt", Content: "1\n"}},
+		false,
+	)
+	problem.RejectedCodes = []loader.CodeFile{{Filename: "rejected_slow.py", Content: "correct_a.py", Language: contracts.LanguagePython3}}
+
+	// When: full verification samples that input.
+	report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
+
+	// Then: the verifier reports that the rejected solution was accepted everywhere.
+	finding, ok := findFinding(report, SeverityError, StageRejected, "rejected_slow.py")
+	if !ok {
+		t.Fatalf("expected rejected solution finding, got %+v", report.Findings)
+	}
+	if !strings.Contains(finding.Message, "rejected solution was accepted by all sampled case providers") {
+		t.Fatalf("message = %q", finding.Message)
+	}
+}
+
+func TestRejectedNonAcceptedOnSampledInputPassesAndStops(t *testing.T) {
+	// Given: the first fixed testcase exposes the rejected solution as wrong.
+	fake := newFakeExecutor()
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		[]loader.TestcaseFile{
+			{Filename: "testcase_1.txt", Content: "1\n"},
+			{Filename: "testcase_2.txt", Content: "2\n"},
+		},
+		false,
+	)
+	problem.RejectedCodes = []loader.CodeFile{{Filename: "rejected_slow.py", Content: "rejected_slow.py", Language: contracts.LanguagePython3}}
+
+	// When: full verification samples both inputs.
+	report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
+
+	// Then: no rejected finding is emitted and that rejected source is not run again.
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
+	}
+	if got := countCalls(fake.calls, "run rejected_slow.py input="); got != 1 {
+		t.Fatalf("rejected run count = %d, want 1; calls:\n%s", got, strings.Join(fake.calls, "\n"))
+	}
+}
+
+func TestValidateInputsModeSkipsRejectedSolutions(t *testing.T) {
+	// Given: input-validation mode with a rejected source present.
+	fake := newFakeExecutor()
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		[]loader.TestcaseFile{{Filename: "testcase_1.txt", Content: "1\n"}},
+		false,
+	)
+	problem.RejectedCodes = []loader.CodeFile{{Filename: "rejected_slow.py", Content: "rejected_slow.py", Language: contracts.LanguagePython3}}
+
+	// When: verification is limited to input validation.
+	report := fakeVerifier(fake).verifyProblemWithOptions(context.Background(), problem, VerifyOptions{Mode: VerifyModeValidateInputs})
+
+	// Then: the rejected source is neither compiled nor run.
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
+	}
+	wantCompileCalls := []string{"validator.cpp"}
+	if !reflect.DeepEqual(fake.compileCalls, wantCompileCalls) {
+		t.Fatalf("compile calls = %v, want %v", fake.compileCalls, wantCompileCalls)
+	}
+	wantCalls := []string{"run validator.cpp input=1"}
+	if !reflect.DeepEqual(fake.calls, wantCalls) {
+		t.Fatalf("calls:\n%s\nwant:\n%s", strings.Join(fake.calls, "\n"), strings.Join(wantCalls, "\n"))
+	}
+}
+
+func TestRejectedCompileFailureReportsCompileErrorOnly(t *testing.T) {
+	// Given: a rejected solution that does not compile.
+	fake := newFakeExecutor()
+	fake.setCompileResult("rejected_slow.py", executor.CompileResult{
+		Success: false,
+		Stderr:  "compile error",
+	})
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		[]loader.TestcaseFile{{Filename: "testcase_1.txt", Content: "1\n"}},
+		false,
+	)
+	problem.RejectedCodes = []loader.CodeFile{{Filename: "rejected_slow.py", Content: "rejected_slow.py", Language: contracts.LanguagePython3}}
+
+	// When: full verification compiles problem source files.
+	report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
+
+	// Then: the compile error is reported, but it is not counted as a rejected proof.
+	if !hasFinding(report, SeverityError, StageCompile, "rejected_slow.py") {
+		t.Fatalf("expected rejected compile finding, got %+v", report.Findings)
+	}
+	if hasFinding(report, SeverityError, StageRejected, "rejected_slow.py") {
+		t.Fatalf("compile failure should not add accepted-all finding, got %+v", report.Findings)
+	}
+}
+
+func TestRejectedSkipsInputWhenOracleIsBroken(t *testing.T) {
+	// Given: the primary correct solution fails, so this input has no usable oracle.
+	fake := newFakeExecutor()
+	fake.setRunResult("correct_a.py", "1", nil, executor.ExecutionResult{
+		Success:    false,
+		Verdict:    contracts.VerdictRuntimeError,
+		ReturnCode: 1,
+	})
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		[]loader.TestcaseFile{{Filename: "testcase_1.txt", Content: "1\n"}},
+		false,
+	)
+	problem.RejectedCodes = []loader.CodeFile{{Filename: "rejected_slow.py", Content: "rejected_slow.py", Language: contracts.LanguagePython3}}
+
+	// When: full verification samples the broken input.
+	report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
+
+	// Then: the normal oracle finding remains and rejected verification skips that input.
+	if !hasFinding(report, SeverityError, StageCorrectConsistency, "correct_a.py") {
+		t.Fatalf("expected correct-consistency finding, got %+v", report.Findings)
+	}
+	if hasFinding(report, SeverityError, StageRejected, "rejected_slow.py") {
+		t.Fatalf("broken oracle input should not add rejected finding, got %+v", report.Findings)
+	}
+	want := []string{
+		"run validator.cpp input=1",
+		"run correct_a.py input=1",
+	}
+	if !reflect.DeepEqual(fake.calls, want) {
+		t.Fatalf("calls:\n%s\nwant:\n%s", strings.Join(fake.calls, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+func TestRejectedSkipsAnswerFileInputWhenCorrectDiffersFromAnswer(t *testing.T) {
+	tests := []struct {
+		name        string
+		withChecker bool
+	}{
+		{name: "without checker"},
+		{name: "with checker", withChecker: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given: a fixed answer file that rejects the correct solution output.
+			fake := newFakeExecutor()
+			fake.setSuccessfulRunResult("correct_a.py", "1", nil, "actual\n")
+			if tt.withChecker {
+				fake.setCheckerResult("1", "actual", "expected", executor.ExecutionResult{
+					Success:    true,
+					Verdict:    contracts.VerdictWrongAnswer,
+					ReturnCode: 0,
+					Stdout:     "answer mismatch\n",
+				})
+			}
+			problem := fakeProblem(
+				[]string{"correct_a.py"},
+				&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+				[]loader.TestcaseFile{{Filename: "testcase_1.in", Content: "1\n"}},
+				tt.withChecker,
+			)
+			problem.AnswerFiles = []loader.AnswerFile{{Filename: "testcase_1.out", Content: "expected\n", TargetProviderFilename: "testcase_1.in"}}
+			problem.RejectedCodes = []loader.CodeFile{{Filename: "rejected_slow.py", Content: "rejected_slow.py", Language: contracts.LanguagePython3}}
+
+			// When: full verification samples the input with the broken answer oracle.
+			report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
+
+			// Then: the normal oracle finding remains and rejected verification skips that input.
+			if !hasFinding(report, SeverityError, StageCorrectConsistency, "correct_a.py") {
+				t.Fatalf("expected correct-consistency finding, got %+v", report.Findings)
+			}
+			if hasFinding(report, SeverityError, StageRejected, "rejected_slow.py") {
+				t.Fatalf("broken answer oracle should not add rejected finding, got %+v", report.Findings)
+			}
+			if got := countCalls(fake.calls, "run rejected_slow.py input="); got != 0 {
+				t.Fatalf("rejected run count = %d, want 0; calls:\n%s", got, strings.Join(fake.calls, "\n"))
+			}
+		})
+	}
+}
+
+func TestOutputOnlyRejectedSolutionUsesEmptyInput(t *testing.T) {
+	// Given: an output-only problem with a rejected solution.
+	fake := newFakeExecutor()
+	problem := loader.Problem{
+		ProblemType:   "boj",
+		ExternalID:    "1",
+		Title:         "Fake",
+		TimeLimitMS:   2000,
+		MemoryLimitMB: 256,
+		OutputOnly:    true,
+		CorrectCodes: []loader.CodeFile{{
+			Filename: "correct_a.py",
+			Content:  "correct_a.py",
+			Language: contracts.LanguagePython3,
+		}},
+		RejectedCodes: []loader.CodeFile{{
+			Filename: "rejected_slow.py",
+			Content:  "rejected_slow.py",
+			Language: contracts.LanguagePython3,
+		}},
+	}
+
+	// When: full verification runs the implicit output-only case.
+	report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
+
+	// Then: the rejected solution is judged against empty stdin and no finding is emitted when it differs.
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
+	}
+	want := []string{
+		"run correct_a.py input=",
+		"run rejected_slow.py input=",
+	}
+	if !reflect.DeepEqual(fake.calls, want) {
+		t.Fatalf("calls:\n%s\nwant:\n%s", strings.Join(fake.calls, "\n"), strings.Join(want, "\n"))
+	}
+}
+
 func TestCorrectFailureReportsFixedTestcaseProvider(t *testing.T) {
 	// Given: a fixed testcase that makes the primary correct solution fail.
 	fake := newFakeExecutor()
@@ -644,6 +869,8 @@ func fakeVerifier(fake *fakeExecutor) verifier {
 type fakeExecutor struct {
 	runResultsByInput     map[runCall]executor.ExecutionResult
 	checkerResultsByInput map[checkerCall]executor.ExecutionResult
+	compileResultsByCode  map[string]executor.CompileResult
+	compileCalls          []string
 	calls                 []string
 	checkerCalls          []string
 }
@@ -652,15 +879,24 @@ func newFakeExecutor() *fakeExecutor {
 	return &fakeExecutor{
 		runResultsByInput:     map[runCall]executor.ExecutionResult{},
 		checkerResultsByInput: map[checkerCall]executor.ExecutionResult{},
+		compileResultsByCode:  map[string]executor.CompileResult{},
 	}
 }
 
 func (f *fakeExecutor) Compile(_ context.Context, source executor.Source) executor.CompileResult {
+	f.compileCalls = append(f.compileCalls, source.Code)
+	if result, ok := f.compileResultsByCode[source.Code]; ok {
+		return result
+	}
 	program := &executor.CompiledProgram{
 		Dir:      source.Code,
 		Language: source.Language,
 	}
 	return executor.CompileResult{Success: true, Program: program}
+}
+
+func (f *fakeExecutor) setCompileResult(code string, result executor.CompileResult) {
+	f.compileResultsByCode[code] = result
 }
 
 func (f *fakeExecutor) Run(_ context.Context, program executor.CompiledProgram, input string, args []string, _ executor.Limits) executor.ExecutionResult {
@@ -751,6 +987,16 @@ func cleanCallInput(value string) string {
 func hasFinding(report VerifyReport, severity Severity, stage Stage, filename string) bool {
 	_, ok := findFinding(report, severity, stage, filename)
 	return ok
+}
+
+func countCalls(calls []string, prefix string) int {
+	count := 0
+	for _, call := range calls {
+		if strings.HasPrefix(call, prefix) {
+			count++
+		}
+	}
+	return count
 }
 
 func findFinding(report VerifyReport, severity Severity, stage Stage, filename string) (Finding, bool) {

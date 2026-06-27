@@ -82,6 +82,7 @@ type Problem struct {
 	IsSpecialJudge         bool
 	OutputOnly             bool
 	CorrectCodes           []CodeFile
+	RejectedCodes          []CodeFile
 	Generators             []CodeFile
 	Singlegens             []CodeFile
 	Validator              *CodeFile
@@ -373,7 +374,7 @@ func isProblemDir(entries []fs.DirEntry) bool {
 			return true
 		case name == "validator.cpp" || name == "checker.cpp":
 			return true
-		case IsRoleFile(name, "correct"), IsRoleFile(name, "generator"), IsRoleFile(name, "singlegen"):
+		case IsRoleFile(name, "correct"), IsRoleFile(name, "rejected"), IsRoleFile(name, "generator"), IsRoleFile(name, "singlegen"):
 			return true
 		case isTestcaseFile(name):
 			return true
@@ -477,6 +478,12 @@ func (l problemLoader) loadProblem(dirPath string, options Options) (Problem, er
 				return Problem{}, err
 			}
 			problem.CorrectCodes = append(problem.CorrectCodes, CodeFile{Filename: name, Language: lang, Content: string(contentBytes), AuthorName: authorName})
+		case fileRoleRejected:
+			lang, err := InferLanguage(name, meta.Codes)
+			if err != nil {
+				return Problem{}, err
+			}
+			problem.RejectedCodes = append(problem.RejectedCodes, CodeFile{Filename: name, Language: lang, Content: string(contentBytes), AuthorName: authorName})
 		case fileRoleGenerator:
 			lang, err := InferLanguage(name, meta.Codes)
 			if err != nil {
@@ -511,6 +518,7 @@ func (l problemLoader) loadProblem(dirPath string, options Options) (Problem, er
 	}
 
 	slices.SortFunc(problem.CorrectCodes, func(a, b CodeFile) int { return strings.Compare(a.Filename, b.Filename) })
+	slices.SortFunc(problem.RejectedCodes, func(a, b CodeFile) int { return strings.Compare(a.Filename, b.Filename) })
 	slices.SortFunc(problem.Generators, func(a, b CodeFile) int { return strings.Compare(a.Filename, b.Filename) })
 	slices.SortFunc(problem.Singlegens, func(a, b CodeFile) int { return strings.Compare(a.Filename, b.Filename) })
 	slices.SortFunc(problem.Testcases, func(a, b TestcaseFile) int { return strings.Compare(a.Filename, b.Filename) })
@@ -542,6 +550,7 @@ const (
 	fileRoleValidator   fileRole = "validator"
 	fileRoleChecker     fileRole = "checker"
 	fileRoleCorrect     fileRole = "correct"
+	fileRoleRejected    fileRole = "rejected"
 	fileRoleGenerator   fileRole = "generator"
 	fileRoleSinglegen   fileRole = "singlegen"
 	fileRoleTestcase    fileRole = "testcase"
@@ -570,6 +579,8 @@ func classifyProblemFile(name string, answerTargets map[string]string) classifie
 		return classifiedProblemFile{Role: fileRoleChecker}
 	case IsRoleFile(name, "correct"):
 		return classifiedProblemFile{Role: fileRoleCorrect}
+	case IsRoleFile(name, "rejected"):
+		return classifiedProblemFile{Role: fileRoleRejected}
 	case IsRoleFile(name, "generator"):
 		return classifiedProblemFile{Role: fileRoleGenerator}
 	case IsRoleFile(name, "singlegen"):
