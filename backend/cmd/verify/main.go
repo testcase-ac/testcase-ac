@@ -99,16 +99,7 @@ func printTextReport(report verify.VerifyReport) {
 	}
 	fmt.Println("Findings:")
 	for _, finding := range report.Findings {
-		location := finding.Filename
-		if finding.Seed != nil {
-			if location != "" {
-				location += " "
-			}
-			location += fmt.Sprintf("seed=%d", *finding.Seed)
-		}
-		if location == "" {
-			location = "(problem)"
-		}
+		location := findingLocation(finding)
 		fmt.Printf("- [%s] %s %s: %s\n", finding.Severity, finding.Stage, location, finding.Message)
 		if finding.Stderr != "" {
 			fmt.Printf("  stderr: %s\n", oneLine(finding.Stderr))
@@ -117,6 +108,23 @@ func printTextReport(report verify.VerifyReport) {
 			fmt.Printf("  stdout: %s\n", oneLine(finding.Stdout))
 		}
 	}
+}
+
+func findingLocation(finding verify.Finding) string {
+	parts := []string{}
+	if finding.Filename != "" {
+		parts = append(parts, finding.Filename)
+	}
+	if finding.InputFilename != "" {
+		parts = append(parts, "input="+finding.InputFilename)
+	}
+	if finding.Seed != nil {
+		parts = append(parts, fmt.Sprintf("seed=%d", *finding.Seed))
+	}
+	if len(parts) == 0 {
+		return "(problem)"
+	}
+	return strings.Join(parts, " ")
 }
 
 func reportStatus(report verify.VerifyReport) string {

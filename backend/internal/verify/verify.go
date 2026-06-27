@@ -43,13 +43,14 @@ const (
 )
 
 type Finding struct {
-	Severity Severity `json:"severity"`
-	Stage    Stage    `json:"stage"`
-	Filename string   `json:"filename,omitempty"`
-	Seed     *int     `json:"seed,omitempty"`
-	Message  string   `json:"message"`
-	Stdout   string   `json:"stdout,omitempty"`
-	Stderr   string   `json:"stderr,omitempty"`
+	Severity      Severity `json:"severity"`
+	Stage         Stage    `json:"stage"`
+	Filename      string   `json:"filename,omitempty"`
+	InputFilename string   `json:"inputFilename,omitempty"`
+	Seed          *int     `json:"seed,omitempty"`
+	Message       string   `json:"message"`
+	Stdout        string   `json:"stdout,omitempty"`
+	Stderr        string   `json:"stderr,omitempty"`
 }
 
 type VerifyReport struct {
@@ -366,7 +367,7 @@ func (v verifier) verifyInputAgainstAnswerFile(ctx context.Context, report *Veri
 	if checker != nil {
 		result := v.runChecker(ctx, *checker, input.Content, jury, jury, helperLimits())
 		if !result.Success || result.Verdict != contracts.VerdictAccepted {
-			report.addExecution(StageChecker, problem.Checker.Filename, input.Seed, fmt.Sprintf("checker rejected answer file %s against itself", input.Answer.Filename), result)
+			report.addInputExecution(StageChecker, problem.Checker.Filename, input, fmt.Sprintf("checker rejected answer file %s against itself", input.Answer.Filename), result)
 		}
 	}
 
@@ -377,17 +378,17 @@ func (v verifier) verifyInputAgainstAnswerFile(ctx context.Context, report *Veri
 		}
 		result := v.run(ctx, *program, input.Content, nil, limitsFor(problem, correct.Language))
 		if !result.Success {
-			report.addExecution(StageCorrectConsistency, correct.Filename, input.Seed, "correct solution failed on test input", result)
+			report.addInputExecution(StageCorrectConsistency, correct.Filename, input, "correct solution failed on test input", result)
 			continue
 		}
 		output := util.CleanStdout(result.Stdout, "no")
 		if checker != nil {
 			result := v.runChecker(ctx, *checker, input.Content, output, jury, helperLimits())
 			if !result.Success || result.Verdict != contracts.VerdictAccepted {
-				report.addExecution(StageCorrectConsistency, correct.Filename, input.Seed, fmt.Sprintf("correct solution output was rejected by checker against answer file %s", input.Answer.Filename), result)
+				report.addInputExecution(StageCorrectConsistency, correct.Filename, input, fmt.Sprintf("correct solution output was rejected by checker against answer file %s", input.Answer.Filename), result)
 			}
 		} else if !util.CompareOutput(output, jury) {
-			report.AddFinding(SeverityError, StageCorrectConsistency, correct.Filename, input.Seed, fmt.Sprintf("correct solution output differs from answer file %s", input.Answer.Filename), output, jury)
+			report.addFinding(SeverityError, StageCorrectConsistency, correct.Filename, input.Filename, input.Seed, fmt.Sprintf("correct solution output differs from answer file %s", input.Answer.Filename), output, jury)
 		}
 	}
 }
@@ -400,7 +401,7 @@ func (v verifier) verifyInputAgainstPrimaryCorrect(ctx context.Context, report *
 	if primary != nil {
 		primaryRun := v.run(ctx, *primary, input.Content, nil, limitsFor(problem, primaryCode.Language))
 		if !primaryRun.Success {
-			report.addExecution(StageCorrectConsistency, primaryCode.Filename, input.Seed, "correct solution failed on test input", primaryRun)
+			report.addInputExecution(StageCorrectConsistency, primaryCode.Filename, input, "correct solution failed on test input", primaryRun)
 		} else {
 			jury = util.CleanStdout(primaryRun.Stdout, "no")
 			primaryOK = true
@@ -410,7 +411,7 @@ func (v verifier) verifyInputAgainstPrimaryCorrect(ctx context.Context, report *
 	if primaryOK && checker != nil {
 		result := v.runChecker(ctx, *checker, input.Content, jury, jury, helperLimits())
 		if !result.Success || result.Verdict != contracts.VerdictAccepted {
-			report.addExecution(StageChecker, problem.Checker.Filename, input.Seed, "checker rejected identical participant and jury output", result)
+			report.addInputExecution(StageChecker, problem.Checker.Filename, input, "checker rejected identical participant and jury output", result)
 		}
 	}
 
@@ -422,7 +423,7 @@ func (v verifier) verifyInputAgainstPrimaryCorrect(ctx context.Context, report *
 		}
 		result := v.run(ctx, *program, input.Content, nil, limitsFor(problem, correct.Language))
 		if !result.Success {
-			report.addExecution(StageCorrectConsistency, correct.Filename, input.Seed, "correct solution failed on test input", result)
+			report.addInputExecution(StageCorrectConsistency, correct.Filename, input, "correct solution failed on test input", result)
 			continue
 		}
 		if !primaryOK {
@@ -432,10 +433,10 @@ func (v verifier) verifyInputAgainstPrimaryCorrect(ctx context.Context, report *
 		if checker != nil {
 			result := v.runChecker(ctx, *checker, input.Content, output, jury, helperLimits())
 			if !result.Success || result.Verdict != contracts.VerdictAccepted {
-				report.addExecution(StageCorrectConsistency, correct.Filename, input.Seed, "correct solution output was rejected by checker", result)
+				report.addInputExecution(StageCorrectConsistency, correct.Filename, input, "correct solution output was rejected by checker", result)
 			}
 		} else if !util.CompareOutput(output, jury) {
-			report.AddFinding(SeverityError, StageCorrectConsistency, correct.Filename, input.Seed, "correct solution output differs from primary correct solution", output, jury)
+			report.addFinding(SeverityError, StageCorrectConsistency, correct.Filename, input.Filename, input.Seed, "correct solution output differs from primary correct solution", output, jury)
 		}
 	}
 }
@@ -468,19 +469,30 @@ func validGeneratedSize(report *VerifyReport, stage Stage, filename string, seed
 	return true
 }
 
+// addExecution records a failure for an executed artifact without input-provider context.
 func (report *VerifyReport) addExecution(stage Stage, filename string, seed *int, message string, result executor.ExecutionResult) {
 	report.AddFinding(SeverityError, stage, filename, seed, fmt.Sprintf("%s: %s", message, result.Verdict), result.Stdout, result.Stderr)
 }
 
+// addInputExecution records a failure for an executed artifact on a specific case provider.
+func (report *VerifyReport) addInputExecution(stage Stage, filename string, input testInput, message string, result executor.ExecutionResult) {
+	report.addFinding(SeverityError, stage, filename, input.Filename, input.Seed, fmt.Sprintf("%s: %s", message, result.Verdict), result.Stdout, result.Stderr)
+}
+
 func (report *VerifyReport) AddFinding(severity Severity, stage Stage, filename string, seed *int, message, stdout, stderr string) {
+	report.addFinding(severity, stage, filename, "", seed, message, stdout, stderr)
+}
+
+func (report *VerifyReport) addFinding(severity Severity, stage Stage, filename string, inputFilename string, seed *int, message, stdout, stderr string) {
 	report.Findings = append(report.Findings, Finding{
-		Severity: severity,
-		Stage:    stage,
-		Filename: filename,
-		Seed:     cloneInt(seed),
-		Message:  message,
-		Stdout:   excerpt(stdout),
-		Stderr:   excerpt(stderr),
+		Severity:      severity,
+		Stage:         stage,
+		Filename:      filename,
+		InputFilename: inputFilename,
+		Seed:          cloneInt(seed),
+		Message:       message,
+		Stdout:        excerpt(stdout),
+		Stderr:        excerpt(stderr),
 	})
 	if severity == SeverityError {
 		report.HasErrorFinding = true

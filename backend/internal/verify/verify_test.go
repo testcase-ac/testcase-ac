@@ -406,6 +406,64 @@ func TestCorrectConsistencyUsesPrimaryAgainstOthers(t *testing.T) {
 	}
 }
 
+func TestCorrectFailureReportsFixedTestcaseProvider(t *testing.T) {
+	// Given: a fixed testcase that makes the primary correct solution fail.
+	fake := newFakeExecutor()
+	fake.setRunResult("correct_a.py", "1", nil, executor.ExecutionResult{
+		Success:    false,
+		Verdict:    contracts.VerdictRuntimeError,
+		ReturnCode: 1,
+	})
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		[]loader.TestcaseFile{{Filename: "case_1.in", Content: "1\n"}},
+		false,
+	)
+
+	// When: verification runs correct-consistency checks.
+	report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
+
+	// Then: the finding keeps the failing correct file and the input provider.
+	finding, ok := findFinding(report, SeverityError, StageCorrectConsistency, "correct_a.py")
+	if !ok {
+		t.Fatalf("expected correct failure finding, got %+v", report.Findings)
+	}
+	if finding.InputFilename != "case_1.in" {
+		t.Fatalf("InputFilename = %q, want %q", finding.InputFilename, "case_1.in")
+	}
+}
+
+func TestCorrectFailureReportsGeneratorProviderAndSeed(t *testing.T) {
+	// Given: one generated input makes the primary correct solution fail.
+	fake := newFakeExecutor()
+	fake.setSuccessfulRunResult("generator_a.py", "", []string{"7"}, "bad\n")
+	fake.setRunResult("correct_a.py", "bad", nil, executor.ExecutionResult{
+		Success:    false,
+		Verdict:    contracts.VerdictRuntimeError,
+		ReturnCode: 1,
+	})
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		nil,
+		false,
+	)
+	problem.Generators = []loader.CodeFile{{Filename: "generator_a.py", Language: contracts.LanguagePython3, Content: "generator_a.py"}}
+
+	// When: verification runs generator-backed correct-consistency checks.
+	report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
+
+	// Then: the finding keeps the failing correct file, generator provider, and seed.
+	finding, ok := findFindingWithInput(report, SeverityError, StageCorrectConsistency, "correct_a.py", "generator_a.py")
+	if !ok {
+		t.Fatalf("expected generator-backed correct failure finding, got %+v", report.Findings)
+	}
+	if finding.Seed == nil || *finding.Seed != 7 {
+		t.Fatalf("Seed = %v, want 7", finding.Seed)
+	}
+}
+
 func TestAnswerFileMismatchFailsWithoutChecker(t *testing.T) {
 	// Given: a testcase answer file whose expected text differs from the correct output.
 	fake := newFakeExecutor()
@@ -698,6 +756,15 @@ func hasFinding(report VerifyReport, severity Severity, stage Stage, filename st
 func findFinding(report VerifyReport, severity Severity, stage Stage, filename string) (Finding, bool) {
 	for _, finding := range report.Findings {
 		if finding.Severity == severity && finding.Stage == stage && finding.Filename == filename {
+			return finding, true
+		}
+	}
+	return Finding{}, false
+}
+
+func findFindingWithInput(report VerifyReport, severity Severity, stage Stage, filename, inputFilename string) (Finding, bool) {
+	for _, finding := range report.Findings {
+		if finding.Severity == severity && finding.Stage == stage && finding.Filename == filename && finding.InputFilename == inputFilename {
 			return finding, true
 		}
 	}
