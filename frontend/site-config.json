@@ -1,6 +1,6 @@
 {
   "banner": {
-    "enabled": true,
+    "enabled": false,
     "messages": {
       "ko": "testcase.ac가 오픈소스 버전으로 전환되었습니다. 기존 testcase.ac 확인 및 기여 코드 이전하기: [old.testcase.ac](https://old.testcase.ac)",
       "en": "testcase.ac has moved to the open-source version. View the previous testcase.aC: [old.testcase.ac](https://old.testcase.ac)"
