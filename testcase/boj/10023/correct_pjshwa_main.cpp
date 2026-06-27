@@ -28,6 +28,8 @@ int main() {
 
   int tot = 0;
   for (int i = 0; i < n; i++) {
+    // Changed for input additional_2.in: impossible carryover can make local volume negative.
+    if (cfield[i] < 0) return cout << -1 << '\n', 0;
     if (d[cfield[i]] == INF) return cout << -1 << '\n', 0;
     tot += d[cfield[i]];
   }
