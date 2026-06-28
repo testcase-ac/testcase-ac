@@ -23,6 +23,7 @@ fi
 cd "${REPO_ROOT}"
 
 ensure_runtime_image "${REPO_ROOT}" "${IMAGE_NAME}" "${DOCKERFILE_PATH}" "${DOCKERTEST_FORCE_BUILD:-0}"
+RUNTIME_DOCKER_PLATFORM="$(runtime_platform)"
 
 TEST_CMD=(test ./internal/executor)
 if [ "$#" -gt 0 ]; then
@@ -31,6 +32,7 @@ fi
 
 echo "Running Go tests in Linux runtime container..."
 docker run --rm \
+    --platform "${RUNTIME_DOCKER_PLATFORM}" \
     --name "${CONTAINER_NAME}" \
     --memory=1768m \
     --cpus=1 \

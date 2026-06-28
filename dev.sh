@@ -30,6 +30,7 @@ Useful overrides:
   BACKEND_PORT=8000
   STRESSER_PORT=9000
   RUNTIME_IMAGE=testcase-ac-runtime:local
+  RUNTIME_PLATFORM=linux/amd64     Match production instead of native Docker arch
   TESTCASE_LOCAL_PATH=/absolute/path/to/repo-or-fixture
   REMOTE_API_BASE_URL=https://api.testcase.ac
   REBUILD_STRESSER_IMAGE=1       Force rebuild stresser image even if sources are unchanged
@@ -104,6 +105,7 @@ start_stresser() {
   docker rm -f "$STRESSER_NAME" >/dev/null 2>&1 || true
   echo "[dev] starting stresser on :$STRESSER_PORT"
   docker run -d --rm --name "$STRESSER_NAME" \
+    --platform "$(runtime_platform)" \
     -p "$STRESSER_PORT:8080" "$STRESSER_IMAGE" >/dev/null
 }
 

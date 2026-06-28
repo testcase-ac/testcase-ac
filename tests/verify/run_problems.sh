@@ -67,6 +67,7 @@ fi
 cd "${REPO_ROOT}"
 
 ensure_runtime_image "${REPO_ROOT}" "${IMAGE_NAME}" "${DOCKERFILE_PATH}" "${DOCKERTEST_FORCE_BUILD:-0}"
+RUNTIME_DOCKER_PLATFORM="$(runtime_platform)"
 
 echo "Verifying ${#PROBLEM_ARGS[@]} problem directory/directories..."
 VERIFY_CMD=(run ./cmd/verify)
@@ -80,6 +81,7 @@ VERIFY_CMD+=("${PROBLEM_ARGS[@]}")
 
 if [ -n "${VERIFY_REPORT_JSON:-}" ]; then
     docker run --rm \
+        --platform "${RUNTIME_DOCKER_PLATFORM}" \
         --memory=1768m \
         --cpus=1 \
         --volume "${REPO_ROOT}:/workspace" \
@@ -91,6 +93,7 @@ if [ -n "${VERIFY_REPORT_JSON:-}" ]; then
 fi
 
 docker run --rm \
+    --platform "${RUNTIME_DOCKER_PLATFORM}" \
     --memory=1768m \
     --cpus=1 \
     --volume "${REPO_ROOT}:/workspace" \
