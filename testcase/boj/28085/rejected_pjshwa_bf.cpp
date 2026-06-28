@@ -47,7 +47,7 @@ bool trace(int s, int o, int t) {
       T.push_back({s ^ (1 << i), o ^ 1});
       return true;
     }
-    
+
     for (int j = i + 1; j < N; j++) {
       int cj = (s >> j) & 1;
       if (o != cj || A[i] == A[j]) continue;
@@ -70,7 +70,7 @@ void solve() {
   if (ans == INF) ans = -1;
   cout << ans << '\n';
 
-  // return;
+  return;
 
   // Backtracking
   trace(0, 0, 0);
