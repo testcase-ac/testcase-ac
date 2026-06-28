@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
         // direction 2 non-parallel
         int dx2, dy2;
         do { dx2 = rnd.next(-10, 10); dy2 = rnd.next(-10, 10); }
-        while (dx2 == 0 && dy2 == 0 || ll(dx1)*dy2 == ll(dx2)*dy1);
+        while ((dx2 == 0 && dy2 == 0) || ll(dx1)*dy2 == ll(dx2)*dy1);
         int t1a = rnd.next(-20, -1), t1b = rnd.next(1, 20);
         int t2a = rnd.next(-20, -1), t2b = rnd.next(1, 20);
         p1 = { xi + dx1 * t1a, yi + dy1 * t1a };
@@ -129,7 +129,7 @@ int main(int argc, char* argv[]) {
         p2 = { x0 + dx*k, y0 + dy*k };
         // place seg2 entirely before p1
         int t3 = rnd.next(-k-10, -k-1);
-        int t4 = rnd.next(-k-1, -1);
+        int t4 = rnd.next(-k, -1);
         p3 = { x0 + dx*t3, y0 + dy*t3 };
         p4 = { x0 + dx*t4, y0 + dy*t4 };
     }
