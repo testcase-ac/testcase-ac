@@ -20,11 +20,14 @@ import (
 )
 
 const (
-	Python313Command      = "python3.13"
+	Python313Command = "python3.13"
+	// Executor-level compile and run output limits are defined here.
+	// Callers may define lower limits when consuming executor results,
+	// for example in backend/internal/verify/verify.go.
 	MaxCompileStdoutBytes = 256 << 10
 	MaxCompileStderrBytes = 1 << 20
-	// BOJ 25687 validly prints a 2000x2000 matrix; the current reference output is 30,890,896 bytes.
-	MaxRunStdoutBytes     = 64 << 20
+	// BOJ 1616 can validly print 10,000,000 integers; the max reference output is 78,888,890 bytes.
+	MaxRunStdoutBytes     = 80 << 20
 	MaxRunStderrBytes     = 1 << 20
 	OutputLimitReturnCode = -103
 	// Very low BOJ memory limits are below the virtual memory needed to start
@@ -73,6 +76,13 @@ type ExecutionResult struct {
 	Stdout     string
 	Stderr     string
 	Time       float64
+}
+
+type processOutput struct {
+	Stdout         string
+	Stderr         string
+	StdoutExceeded bool
+	StderrExceeded bool
 }
 
 type languageSpec struct {
@@ -212,27 +222,35 @@ func compileCode(ctx context.Context, source Source, workDir string, spec langua
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
 		err := cmd.Run()
-		stdoutText := ShortenPathsToFilenames(stdout.String())
-		stderrText := ShortenPathsToFilenames(stderr.String())
-		if stdout.Exceeded() || stderr.Exceeded() {
-			exitCode := exitCodeOf(err)
-			if stdout.Exceeded() {
-				stdoutText = appendOutputLimitMessage(stdoutText, "compiler stdout", MaxCompileStdoutBytes)
-			}
-			if stderr.Exceeded() {
-				stderrText = appendOutputLimitMessage(stderrText, "compiler stderr", MaxCompileStderrBytes)
-			}
+		if result, failed := classifyCompileStep(i, cmdArgs, err, outputFromBuffers(stdout, stderr)); failed {
+			slog.Warn("compile_step_failed", "step", i, "command", strings.Join(cmdArgs, " "), "exit_code", result.ReturnCode, "stderr", result.Stderr, "stdout", result.Stdout)
 			_ = os.RemoveAll(workDir)
-			return CompileResult{Success: false, Stdout: stdoutText, Stderr: stderrText, ReturnCode: exitCode, Command: append([]string{}, cmdArgs...), StepIndex: i}
-		}
-		if err != nil {
-			exitCode := exitCodeOf(err)
-			slog.Warn("compile_step_failed", "step", i, "command", strings.Join(cmdArgs, " "), "exit_code", exitCode, "stderr", stderrText, "stdout", stdoutText)
-			_ = os.RemoveAll(workDir)
-			return CompileResult{Success: false, Stdout: stdoutText, Stderr: stderrText, ReturnCode: exitCode, Command: append([]string{}, cmdArgs...), StepIndex: i}
+			return result
 		}
 	}
 	return compileSuccess(source, workDir)
+}
+
+func classifyCompileStep(stepIndex int, cmdArgs []string, err error, output processOutput) (CompileResult, bool) {
+	stdoutText := ShortenPathsToFilenames(output.Stdout)
+	stderrText := ShortenPathsToFilenames(output.Stderr)
+	if output.StdoutExceeded {
+		stdoutText = appendOutputLimitMessage(stdoutText, "compiler stdout", MaxCompileStdoutBytes)
+	}
+	if output.StderrExceeded {
+		stderrText = appendOutputLimitMessage(stderrText, "compiler stderr", MaxCompileStderrBytes)
+	}
+	if err == nil {
+		return CompileResult{}, false
+	}
+	return CompileResult{
+		Success:    false,
+		Stdout:     stdoutText,
+		Stderr:     stderrText,
+		ReturnCode: exitCodeOf(err),
+		Command:    append([]string{}, cmdArgs...),
+		StepIndex:  stepIndex,
+	}, true
 }
 
 func compileSuccess(source Source, directory string) CompileResult {
@@ -315,18 +333,20 @@ func Run(ctx context.Context, program CompiledProgram, inputData string, args []
 	err := cmd.Run()
 	timeSpent := util.RoundSeconds(time.Since(start))
 
-	stdoutText := stdout.String()
-	stderrText := ShortenPathsToFilenames(stderr.String())
-	if stdout.Exceeded() || stderr.Exceeded() {
-		if stdout.Exceeded() {
-			stdoutText = appendOutputLimitMessage(stdoutText, "stdout", limits.StdoutBytes)
-		}
-		if stderr.Exceeded() {
-			stderrText = appendOutputLimitMessage(stderrText, "stderr", limits.StderrBytes)
-		}
+	return classifyRunResult(program.Language, err, runCtx.Err() == context.DeadlineExceeded, timeSpent, limits, outputFromBuffers(stdout, stderr))
+}
+
+func classifyRunResult(language contracts.Language, err error, timedOut bool, timeSpent float64, limits Limits, output processOutput) ExecutionResult {
+	stdoutText := output.Stdout
+	stderrText := ShortenPathsToFilenames(output.Stderr)
+	if output.StdoutExceeded {
+		stdoutText = appendOutputLimitMessage(stdoutText, "stdout", limits.StdoutBytes)
 		return ExecutionResult{Success: false, Verdict: contracts.VerdictOutputLimit, ReturnCode: OutputLimitReturnCode, Stdout: stdoutText, Stderr: stderrText, Time: timeSpent}
 	}
-	if runCtx.Err() == context.DeadlineExceeded {
+	if output.StderrExceeded {
+		stderrText = appendOutputLimitMessage(stderrText, "stderr", limits.StderrBytes)
+	}
+	if timedOut {
 		return ExecutionResult{Success: false, Verdict: contracts.VerdictTimeLimit, ReturnCode: -101, Stdout: stdoutText, Stderr: stderrText, Time: timeSpent}
 	}
 	if err != nil {
@@ -338,7 +358,7 @@ func Run(ctx context.Context, program CompiledProgram, inputData string, args []
 			}
 			return ExecutionResult{Success: false, Verdict: verdict, ReturnCode: exitCode, Stdout: stdoutText, Stderr: stderrText, Time: timeSpent}
 		}
-		if isMemoryLimitExceeded(program.Language, stderrText) {
+		if isMemoryLimitExceeded(language, stderrText) {
 			return ExecutionResult{Success: false, Verdict: contracts.VerdictMemoryLimit, ReturnCode: exitCode, Stdout: stdoutText, Stderr: stderrText, Time: timeSpent}
 		}
 		return ExecutionResult{Success: false, Verdict: contracts.VerdictRuntimeError, ReturnCode: exitCode, Stdout: stdoutText, Stderr: stderrText, Time: timeSpent}
@@ -422,6 +442,15 @@ type boundedBuffer struct {
 
 func newBoundedBuffer(limit int) *boundedBuffer {
 	return &boundedBuffer{limit: limit}
+}
+
+func outputFromBuffers(stdout, stderr *boundedBuffer) processOutput {
+	return processOutput{
+		Stdout:         stdout.String(),
+		Stderr:         stderr.String(),
+		StdoutExceeded: stdout.Exceeded(),
+		StderrExceeded: stderr.Exceeded(),
+	}
 }
 
 func (b *boundedBuffer) Write(p []byte) (int, error) {

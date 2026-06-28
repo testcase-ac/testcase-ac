@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -107,6 +108,15 @@ func TestNormalizeLimitsUsesExecutorDefaults(t *testing.T) {
 	}
 }
 
+func TestDefaultRunLimitsAllowLargestKnownReferenceOutput(t *testing.T) {
+	const boj1616MaxOutputBytes = 78_888_890
+
+	got := DefaultRunLimits().StdoutBytes
+	if got < boj1616MaxOutputBytes {
+		t.Fatalf("DefaultRunLimits().StdoutBytes = %d, want at least %d", got, boj1616MaxOutputBytes)
+	}
+}
+
 func truncateText(value string, maxChars, maxLines int) string {
 	lines := strings.Split(value, "\n")
 	if len(lines) > maxLines {
@@ -172,6 +182,36 @@ int main() {
 	}
 	if _, err := os.Stat(cacheDir); !os.IsNotExist(err) {
 		t.Fatalf("failed compilation should not leave cache directory %q behind", cacheDir)
+	}
+}
+
+func TestClassifyCompileStepDoesNotFailSuccessfulCompileWhenDiagnosticsExceeded(t *testing.T) {
+	_, failed := classifyCompileStep(0, []string{"gcc", "Main.c"}, nil, processOutput{
+		Stdout:         "compiler note",
+		Stderr:         "compiler warning",
+		StdoutExceeded: true,
+		StderrExceeded: true,
+	})
+	if failed {
+		t.Fatalf("classifyCompileStep() failed despite successful compiler exit")
+	}
+}
+
+func TestClassifyCompileStepTrimsDiagnosticsOnCompileFailure(t *testing.T) {
+	result, failed := classifyCompileStep(0, []string{"gcc", "Main.c"}, errors.New("compile failed"), processOutput{
+		Stdout:         "compiler note",
+		Stderr:         "compiler warning",
+		StdoutExceeded: true,
+		StderrExceeded: true,
+	})
+	if !failed {
+		t.Fatalf("classifyCompileStep() succeeded despite compiler error")
+	}
+	if !strings.Contains(result.Stdout, "compiler stdout exceeded") {
+		t.Fatalf("classifyCompileStep() stdout did not include output limit message: %q", result.Stdout)
+	}
+	if !strings.Contains(result.Stderr, "compiler stderr exceeded") {
+		t.Fatalf("classifyCompileStep() stderr did not include output limit message: %q", result.Stderr)
 	}
 }
 
@@ -343,16 +383,17 @@ func TestRunCodeTimeoutVerdict(t *testing.T) {
 func TestRunCodeOutputLimitVerdict(t *testing.T) {
 	requireCommands(t, Python313Command)
 
-	pythonCode := fmt.Sprintf(`import sys
-sys.stdout.write("x" * %d)
-`, MaxRunStdoutBytes+1)
+	const stdoutLimit = 16
+	pythonCode := `import sys
+sys.stdout.write("x" * 17)
+`
 
 	compileResult := compileCodeCached(pythonCode, "python3")
 	if !compileResult.Success {
 		t.Fatalf("compileCodeCached() failed: %+v", compileResult)
 	}
 
-	runResult := runCode(compileResult.Program.Dir, "", "python3", 2, 256, nil)
+	runResult := Run(context.Background(), *compileResult.Program, "", nil, Limits{TimeSeconds: 2, MemoryMB: 256, StdoutBytes: stdoutLimit, StderrBytes: MaxRunStderrBytes})
 	if runResult.Success {
 		t.Fatalf("runCode() unexpectedly succeeded: %+v", runResult)
 	}
@@ -362,11 +403,31 @@ sys.stdout.write("x" * %d)
 	if runResult.ReturnCode != OutputLimitReturnCode {
 		t.Fatalf("runCode() return code = %d, want %d", runResult.ReturnCode, OutputLimitReturnCode)
 	}
-	if len(runResult.Stdout) < MaxRunStdoutBytes {
-		t.Fatalf("runCode() stdout length = %d, want at least %d", len(runResult.Stdout), MaxRunStdoutBytes)
+	if len(runResult.Stdout) < stdoutLimit {
+		t.Fatalf("runCode() stdout length = %d, want at least %d", len(runResult.Stdout), stdoutLimit)
 	}
 	if !strings.Contains(runResult.Stdout, "output limit exceeded") {
 		t.Fatalf("runCode() stdout did not include output limit message")
+	}
+}
+
+func TestClassifyRunResultTrimsStderrWithoutFailingAcceptedRun(t *testing.T) {
+	runResult := classifyRunResult(contracts.LanguagePython3, nil, false, 0.01, Limits{TimeSeconds: 2, MemoryMB: 256, StdoutBytes: 16, StderrBytes: 4}, processOutput{
+		Stdout:         "ok",
+		Stderr:         "eeee",
+		StderrExceeded: true,
+	})
+	if !runResult.Success {
+		t.Fatalf("classifyRunResult() failed despite stderr-only output limit: %+v", runResult)
+	}
+	if runResult.Verdict != contracts.VerdictAccepted {
+		t.Fatalf("classifyRunResult() verdict = %q, want %q", runResult.Verdict, contracts.VerdictAccepted)
+	}
+	if got := util.CleanStdout(runResult.Stdout, "no"); got != "ok" {
+		t.Fatalf("classifyRunResult() stdout = %q, want %q", got, "ok")
+	}
+	if !strings.Contains(runResult.Stderr, "output limit exceeded") {
+		t.Fatalf("classifyRunResult() stderr did not include output limit message")
 	}
 }
 
