@@ -23,7 +23,8 @@ const (
 	Python313Command      = "python3.13"
 	MaxCompileStdoutBytes = 256 << 10
 	MaxCompileStderrBytes = 1 << 20
-	MaxRunStdoutBytes     = 8 << 20
+	// BOJ 25687 validly prints a 2000x2000 matrix; the current reference output is 30,890,896 bytes.
+	MaxRunStdoutBytes     = 64 << 20
 	MaxRunStderrBytes     = 1 << 20
 	OutputLimitReturnCode = -103
 	// Very low BOJ memory limits are below the virtual memory needed to start

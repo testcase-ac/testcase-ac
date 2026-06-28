@@ -12,11 +12,11 @@ int main(int argc, char* argv[]) {
     } else if (mode == 2) {
         n = rnd.next(4, 20);
     } else if (mode == 3) {
-        n = rnd.next(21, 200);
+        n = rnd.next(21, 100);
     } else if (mode == 4) {
-        n = rnd.next(1900, 2000);
+        n = rnd.next(101, 300);
     } else {
-        n = 2000;
+        n = 300;
     }
 
     println(n);

@@ -19,8 +19,9 @@ const (
 	MaxFixedTestcaseBytes      = 8 * 1024
 	MaxGeneratedTestcaseBytes  = 16 * bytesPerMiB
 	generatorTimeoutSeconds    = 2
-	helperTimeoutSeconds       = 2
-	helperMemoryMB             = 1024
+	// BOJ 25687's max case checks two 30,890,896-byte outputs and measured about 3s in the Docker runtime.
+	helperTimeoutSeconds = 5
+	helperMemoryMB       = 1024
 )
 
 type Severity string
