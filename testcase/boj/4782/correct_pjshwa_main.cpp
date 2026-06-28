@@ -4,7 +4,7 @@
 using namespace std;
 
 struct RatioComp {
-  bool operator() (const pair<long long int, long long int>& A, const pair<long long int, long long int>& B) {
+  bool operator() (const pair<long long int, long long int>& A, const pair<long long int, long long int>& B) const {
     if (A.first * B.second < A.second * B.first) {
       return true;
     } else if (A.first * B.second == A.second * B.first) {
