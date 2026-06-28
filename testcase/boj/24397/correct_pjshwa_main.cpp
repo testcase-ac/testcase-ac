@@ -9,14 +9,14 @@ void fast_io() {
 
 const int MAX = 3.3e6;
 pii graph[MAX + 1];
-int ssize[MAX + 1], osize[MAX + 1];
+int subtreeSize[MAX + 1], osize[MAX + 1];
 
 void dfs(int v) {
   auto [u1, u2] = graph[v];
 
-  if (u1 == -1 && u2 == -1) return ssize[v] = osize[v], void();
-  if (u1 != -1) dfs(u1), ssize[v] += ssize[u1];
-  if (u2 != -1) dfs(u2), ssize[v] += ssize[u2];
+  if (u1 == -1 && u2 == -1) return subtreeSize[v] = osize[v], void();
+  if (u1 != -1) dfs(u1), subtreeSize[v] += subtreeSize[u1];
+  if (u2 != -1) dfs(u2), subtreeSize[v] += subtreeSize[u2];
 }
 
 void solve() {
@@ -55,14 +55,14 @@ void solve() {
 
       if (x & (1 << b)) {
         if (k & (1 << b)) {
-          if (graph[s].second != -1) ans += ssize[graph[s].second];
+          if (graph[s].second != -1) ans += subtreeSize[graph[s].second];
           s = graph[s].first;
         }
         else s = graph[s].second;
       }
       else {
         if (k & (1 << b)) {
-          if (graph[s].first != -1) ans += ssize[graph[s].first];
+          if (graph[s].first != -1) ans += subtreeSize[graph[s].first];
           s = graph[s].second;
         }
         else s = graph[s].first;
