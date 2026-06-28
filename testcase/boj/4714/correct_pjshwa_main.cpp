@@ -11,9 +11,8 @@ int main() {
   fast_io();
 
   double d;
-  while (1) {
-    cin >> d;
-    if (d == -1) break;
+  while (cin >> d) {
+    if (d < 0) break;
 
     cout << fixed << setprecision(2) <<
       "Objects weighing " << d << " on Earth will weigh " << d * 0.167 << " on the moon.\n";
