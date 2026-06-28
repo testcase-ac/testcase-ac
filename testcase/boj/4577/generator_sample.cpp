@@ -89,7 +89,7 @@ int main(int argc, char* argv[]) {
 
         string moves;
         string alphabet = "UDLR";
-        int moveCount = rnd.next(0, 50);
+        int moveCount = rnd.next(1, 50);
         for (int i = 0; i < moveCount; ++i) {
             moves += alphabet[rnd.next(0, 3)];
         }

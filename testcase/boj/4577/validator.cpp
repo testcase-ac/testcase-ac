@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
         ensuref(boxes == targets, "box count %d does not equal target count %d", boxes, targets);
         ensuref(misplacedBoxes >= 1, "expected at least one box not on a target");
 
-        inf.readLine("[UDLR]{0,50}", "moves");
+        inf.readLine("[UDLR]{1,50}", "moves");
     }
 
     inf.readEof();
