@@ -18,17 +18,17 @@ int from[MAX + 1][MAX + 1];
 pii student[MAX * MAX + 1];
 
 vector<int> graph[MAX * MAX + 1];
-int ssize[MAX * MAX + 1];
+int subtree_size[MAX * MAX + 1];
 bool dvis[MAX * MAX + 1];
 
 void dfs(int v) {
   dvis[v] = true;
-  ssize[v] = 1;
+  subtree_size[v] = 1;
  
   for (int u : graph[v]) {
     if (!dvis[u]) {
       dfs(u);
-      ssize[v] += ssize[u];
+      subtree_size[v] += subtree_size[u];
     }
   }
 }
@@ -82,8 +82,8 @@ void solve() {
   }
 
   dfs(s);
-  if (ssize[s] != k) return cout << "-1\n", void();
-  for (int i = 1; i <= k; i++) cout << ssize[i] << ' ';
+  if (subtree_size[s] != k) return cout << "-1\n", void();
+  for (int i = 1; i <= k; i++) cout << subtree_size[i] << ' ';
   cout << '\n';
 }
 

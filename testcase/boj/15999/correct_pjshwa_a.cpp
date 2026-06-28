@@ -22,7 +22,11 @@ ll mpow(ll go) {
 int main() {
 	ios_base::sync_with_stdio(false); cin.tie(0);
 	cin >> n >> m;
-	for(int i = 1;i <= n;i++) cin >> a[i]+1;
+	for(int i = 1;i <= n;i++) {
+		string row;
+		cin >> row;
+		for(int j = 1;j <= m;j++) a[i][j] = row[j-1];
+	}
 	int dx,dy;
 	for(int i = 1;i <= n;i++) {
 		for(int j = 1;j <= m;j++) {

@@ -10,7 +10,7 @@ const int MAX = 2000, MOD = 1e9 + 7;
 char board[MAX + 1][MAX + 1];
 int d1[MAX + 1][MAX + 1], d2[MAX + 1][MAX + 1];
 
-bool movable(int x1, int y1, int x2, int y2) {
+bool can_move(int x1, int y1, int x2, int y2) {
   bool xmove = x2 == x1 + 1 && y2 == y1, ymove = y2 == y1 + 1 && x2 == x1;
   return xmove || ymove;
 }
@@ -36,8 +36,8 @@ void solve() {
     int x1, y1, x2, y2; cin >> y1 >> x1 >> y2 >> x2;
 
     ll cur = 0;
-    if (!movable(x1, y1, x2, y2)) cur = (cur + (ll)d1[x1][y1] * d2[x2][y2]) % MOD;
-    if (!movable(x2, y2, x1, y1)) cur = (cur + (ll)d1[x2][y2] * d2[x1][y1]) % MOD;
+    if (!can_move(x1, y1, x2, y2)) cur = (cur + (ll)d1[x1][y1] * d2[x2][y2]) % MOD;
+    if (!can_move(x2, y2, x1, y1)) cur = (cur + (ll)d1[x2][y2] * d2[x1][y1]) % MOD;
     ans = (ans + cur) % MOD;
   }
   cout << ans << '\n';

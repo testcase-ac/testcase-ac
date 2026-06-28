@@ -9,17 +9,17 @@ void fast_io() {
 
 const int MAX = 1e6;
 set<pii> graph[MAX + 1];
-int ssize[MAX + 1], osize[MAX + 1];
+int subtree_size[MAX + 1], osize[MAX + 1];
 ll d[10'001];
 
 void dfs(int u, int val) {
   ll addend = 0;
   for (auto [nval, v] : graph[u]) {
     dfs(v, nval);
-    addend += (ll)ssize[u] * ssize[v];
-    ssize[u] += ssize[v];
+    addend += (ll)subtree_size[u] * subtree_size[v];
+    subtree_size[u] += subtree_size[v];
   }
-  ssize[u] += osize[u];
+  subtree_size[u] += osize[u];
   d[val] += addend;
 }
 

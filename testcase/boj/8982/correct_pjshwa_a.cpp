@@ -2,15 +2,15 @@
 #include <algorithm>
 using namespace std;
  
-struct data {
+struct Segment {
     int l, r, d, f; bool h;
-    bool operator== (const data& b) const { return l == b.l; }
-    bool operator< (const data& b) const { return l < b.l; }
+    bool operator== (const Segment& b) const { return l == b.l; }
+    bool operator< (const Segment& b) const { return l < b.l; }
 };
  
 const int inf = 987654321;
 int n, k, w;
-data a[2504], h[2504];
+Segment a[2504], h[2504];
  
 int main()
 {

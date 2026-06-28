@@ -7,13 +7,12 @@ void fast_io() {
   cin.tie(nullptr)->sync_with_stdio(false);
 }
 
-const int MAX = 1000;
-char C[MAX + 10];
+string C;
 
 void solve() {
   int i;
-  cin >> (C + 1) >> i;
-  cout << C[i] << '\n';
+  cin >> C >> i;
+  cout << C[i - 1] << '\n';
 }
 
 int main() {

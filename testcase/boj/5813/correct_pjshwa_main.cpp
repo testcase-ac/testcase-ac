@@ -10,7 +10,7 @@ const int mod = 1e9;
 const int dx[] = {1, -1, 0, 0};
 const int dy[] = {0, 0, 1, -1};
 
-int size[101010];
+int comp_size[101010];
 int  chk[101010];
 int n;
 map<p, int> mp;
@@ -21,10 +21,10 @@ void dfs(int now, int prv, ll &dist){
 		if(nxt ^ prv && !chk[nxt]){
 			chk[nxt] = 1;
 			dfs(nxt, now, dist);
-			size[now] += size[nxt];
+			comp_size[now] += comp_size[nxt];
 		}
 	}
-	ll tmp = (ll)size[now] * (ll)(n - size[now]);
+	ll tmp = (ll)comp_size[now] * (ll)(n - comp_size[now]);
 	tmp %= mod;
 	dist += tmp; dist %= mod;
 }
@@ -38,20 +38,20 @@ ll getDist(){
 
 void makeTree(vector<p> &v){
 	sort(v.begin()+1, v.end());
-	memset(size, 0, sizeof size);
+	memset(comp_size, 0, sizeof comp_size);
 	memset(chk, 0, sizeof chk);
 	for(int i=0; i<=n; i++) g[i].clear();
 	mp.clear();
 
 	int cnt = 1;
 	mp[v[1]] = cnt;
-	size[cnt]++;
+	comp_size[cnt]++;
 	for(int i=2; i<=n; i++){
 		if(v[i-1].x == v[i].x && v[i-1].y+1 == v[i].y){
 			mp[v[i]] = cnt;
 		}
 		else mp[v[i]] = ++cnt;
-		size[cnt]++;
+		comp_size[cnt]++;
 	}
 
 	for(int i=1; i<=n; i++){
@@ -83,4 +83,17 @@ int DistanceSum(int N, int *X, int *Y){
 	ret += getDist() % mod;
 	ret %= mod;
 	return (int)ret;
+}
+
+int main(){
+	ios::sync_with_stdio(false);
+	cin.tie(nullptr);
+
+	int N;
+	cin >> N;
+	vector<int> X(N), Y(N);
+	for(int i=0; i<N; i++){
+		cin >> X[i] >> Y[i];
+	}
+	cout << DistanceSum(N, X.data(), Y.data()) << '\n';
 }

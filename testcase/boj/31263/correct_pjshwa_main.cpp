@@ -9,10 +9,10 @@ void fast_io() {
 
 const int MAXN = 5000;
 int dp[MAXN + 10];
-char S[MAXN + 10];
+string S;
 
 void solve() {
-  int N; cin >> N >> (S + 1);
+  int N; cin >> N >> S;
 
   memset(dp, 0x3f, sizeof(dp)); dp[0] = 0;
   for (int i = 1; i <= N; ++i) {
@@ -20,7 +20,7 @@ void solve() {
       if (i - j < 0) break;
 
       string sub = "";
-      for (int k = i - j + 1; k <= i; ++k) sub += S[k];
+      for (int k = i - j + 1; k <= i; ++k) sub += S[k - 1];
       if (sub[0] == '0') continue;
 
       int subi = stoi(sub);

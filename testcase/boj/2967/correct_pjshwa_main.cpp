@@ -13,7 +13,9 @@ int P[MAX + 1][MAX + 1];
 void solve() {
   int N, M; cin >> N >> M;
   for (int i = 1; i <= N; ++i) {
-    cin >> (board[i] + 1);
+    string row;
+    cin >> row;
+    for (int j = 1; j <= M; ++j) board[i][j] = row[j - 1];
     for (int j = 1; j <= M; ++j) {
       P[i][j] = P[i - 1][j] + P[i][j - 1] - P[i - 1][j - 1] + (board[i][j] == 'x');
     }

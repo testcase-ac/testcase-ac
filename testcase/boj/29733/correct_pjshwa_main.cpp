@@ -1,10 +1,13 @@
 #include <iostream>
+#include <string>
+#include <vector>
 
 int main() {
   int row_count, col_count, lyr_count;
   std::cin >> row_count >> col_count >> lyr_count;
 
-  char board[lyr_count][row_count][col_count + 1];
+  std::vector<std::vector<std::string>> board(
+      lyr_count, std::vector<std::string>(row_count));
   for (int i = 0; i < lyr_count; ++i) {
     for (int j = 0; j < row_count; ++j) std::cin >> board[i][j];
   }

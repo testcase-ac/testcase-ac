@@ -6,7 +6,7 @@ void fast_io() {
 }
 
 const int MAX = 5010;
-bool sleep[MAX + 1], present[MAX + 1];
+bool asleep[MAX + 1], present[MAX + 1];
 int ppf[MAX + 1];
 
 void solve() {
@@ -15,12 +15,12 @@ void solve() {
   n += 2;
   for (int i = 0, x; i < k; i++) {
     cin >> x;
-    sleep[x] = 1;
+    asleep[x] = 1;
   }
   for (int i = 0, x; i < q; i++) {
     cin >> x;
-    if (sleep[x]) continue;
-    for (int j = x; j <= n; j += x) if (!sleep[j]) present[j] = 1;
+    if (asleep[x]) continue;
+    for (int j = x; j <= n; j += x) if (!asleep[j]) present[j] = 1;
   }
   for (int i = 1; i <= MAX; i++) {
     ppf[i] = ppf[i - 1];

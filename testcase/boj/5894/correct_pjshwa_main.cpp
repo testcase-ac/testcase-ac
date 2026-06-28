@@ -11,7 +11,7 @@ pii a[10];
 bool vis[10];
 vector<pair<pii, char>> current;
 
-bool movable(pii src, pii dst, char cd) {
+bool can_move(pii src, pii dst, char cd) {
   auto [sx, sy] = src;
   auto [dx, dy] = dst;
   if (cd == 'N') return sy == dy || (sx == dx && sy > dy);
@@ -38,13 +38,13 @@ void dfs() {
   auto [p, c] = current.back();
 
   if (current.size() == n + 1) {
-    if (movable(p, {0, 0}, c)) ans++;
+    if (can_move(p, {0, 0}, c)) ans++;
     return;
   }
 
   for (int i = 0; i < n; i++) {
     if (vis[i]) continue;
-    if (movable(p, a[i], c)) {
+    if (can_move(p, a[i], c)) {
       vis[i] = true;
       current.push_back({a[i], mdir(p, a[i])});
       dfs();

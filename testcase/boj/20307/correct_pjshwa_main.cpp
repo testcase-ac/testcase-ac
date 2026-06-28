@@ -4,7 +4,7 @@ using namespace std;
 
 using i128 = __int128;
 
-namespace __int128__ {
+namespace int128_helpers {
 	i128 _abs(i128 n) {
 		return n < 0 ? -n : n;
 	}
@@ -29,7 +29,7 @@ namespace __int128__ {
 		return ret;
 	}
 };
-using namespace __int128__;
+using namespace int128_helpers;
 
 struct Fraction {
 	i128 a, b;

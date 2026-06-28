@@ -30,7 +30,7 @@ void solve_Ksmall() {
 }
 
 void solve_Klarge() {
-  char B[N + 1][M + 1];
+  vector<string> B(N);
   for (int i = 0; i < N; ++i) cin >> B[i];
 
   ll ans = 0, L = 2 * K + 1;

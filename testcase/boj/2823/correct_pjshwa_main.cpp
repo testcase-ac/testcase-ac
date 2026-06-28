@@ -10,7 +10,7 @@ const pii dirs[4] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 char board[11][11];
 int R, C;
 
-bool movable(int i, int j) {
+bool is_open(int i, int j) {
   return i >= 0 && i < R && j >= 0 && j < C && board[i][j] == '.';
 }
 
@@ -24,12 +24,12 @@ int main() {
   bool unable = false;
   for (int i = 0; i < R; i++) {
     for (int j = 0; j < C; j++) {
-      if (!movable(i, j)) continue;
+      if (!is_open(i, j)) continue;
 
       int cnt = 0;
       for (int k = 0; k < 4; k++) {
         tie(dx, dy) = dirs[k];
-        if (movable(i + dx, j + dy)) cnt++;
+        if (is_open(i + dx, j + dy)) cnt++;
       }
 
       if (cnt == 1) {

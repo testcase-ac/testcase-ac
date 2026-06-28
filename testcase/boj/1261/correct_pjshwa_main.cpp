@@ -3,6 +3,7 @@
 #include <vector>
 #include <queue>
 #include <tuple>
+#include <string>
 #define MAX 1e9 + 7
 using namespace std;
 
@@ -14,7 +15,7 @@ int main(void){
   int n, m, x, y, z;
   cin >> m >> n;
 
-  char board[n][m + 1];
+  vector<string> board(n);
   for(int i = 0; i < n; i++) {
     cin >> board[i];
 
