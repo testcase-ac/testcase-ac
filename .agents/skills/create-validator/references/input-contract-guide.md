@@ -84,7 +84,7 @@ Apply the local defaults below only when the statement is silent and official sa
 - If an input-size count has no upper bound, add a practical cap from nearby constraints. Example: if `N <= 1000`, cap graph edges at `1000000` because that matches the `N^2` scale.
 - For primarily numeric input, reject inputs that force around `5000000` or more scalar tokens, unless the statement explicitly allows a larger input.
 - For primarily string input, reject inputs around `10000000` or more characters, unless the statement explicitly allows a larger input.
-- If the statement does not specify a maximum number of test cases, assume up to `100000`.
+- If `T` has no explicit upper bound, allow up to `100000` cases, but cap the aggregate workload to one largest testcase unless the statement suggests otherwise. Use the size term that drives complexity: for `N <= 1000000`, cap `sum(N) <= 1000000`; for data plus queries, cap `sum(N + M)` similarly.
 - Add a nearby `// CHECK` comment for practical caps that are not written in the statement.
 
 ### Ambiguous Input Contracts
