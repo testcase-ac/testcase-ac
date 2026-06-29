@@ -21,7 +21,7 @@ def write_range(start, end):
 
 def main():
     out = sys.stdout
-    T = 3
+    T = 1
     out.write(f"{T}\n")
     N = 1_000_000
     M = 1_000_000
