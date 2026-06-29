@@ -17,8 +17,9 @@ const (
 	MinimumDistinctGeneratorIO = 3
 	bytesPerMiB                = 1024 * 1024
 	MaxFixedTestcaseBytes      = 8 * 1024
-	MaxGeneratedTestcaseBytes  = 16 * bytesPerMiB
-	generatorTimeoutSeconds    = 2
+	// BOJ 2170 has a valid max-size generated input of 23,000,008 bytes; keep this limit above that.
+	MaxGeneratedTestcaseBytes = 32 * bytesPerMiB
+	generatorTimeoutSeconds   = 2
 	// BOJ 25687's max case checks two 30,890,896-byte outputs and measured about 3s in the Docker runtime.
 	helperTimeoutSeconds = 5
 	helperMemoryMB       = 1024
