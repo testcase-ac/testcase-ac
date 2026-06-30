@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
             pos = rnd.wnext(sz, biasMode);
         } else {
             // uniform choice
-            pos = rnd.next(sz - 1);
+            pos = rnd.next(sz);
         }
         int idx = validIdx[pos];
         int v = deckList[idx];
@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
 
     // Guarantee at least one draw
     if (draws.empty()) {
-        int idx = rnd.next((int)deckList.size() - 1);
+        int idx = rnd.next((int)deckList.size());
         draws.push_back(deckList[idx]);
     }
 

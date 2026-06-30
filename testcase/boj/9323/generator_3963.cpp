@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
         while (end == start) end = rnd.next(1, n);
 
         // Ticket/fine parameters
-        int s = rnd.wnext(1000, rnd.next(-1, 1)) + 1;
+        int s = rnd.wnext(999, rnd.next(-1, 1)) + 1;
         int p = rnd.wnext(1000, rnd.next(-1, 1)) + 1;
         int y = rnd.next(s + 1, 1000);
 
