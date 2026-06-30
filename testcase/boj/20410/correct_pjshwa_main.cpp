@@ -18,8 +18,9 @@ void fast_io() {
 }
 
 ll modm(ll val, ll m) {
-  if (val < 0) return m - (-val % m);
-  else return val % m;
+  val %= m;
+  if (val < 0) val += m;
+  return val;
 }
 
 int main() {
