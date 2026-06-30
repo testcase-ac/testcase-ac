@@ -2,12 +2,25 @@
 #include "testlib.h"
 using namespace std;
  
+int chooseN() {
+  int mode = rnd.next(0, 2);
+  if (mode == 0) return rnd.next(2, 30);
+  if (mode == 1) return rnd.next(31, 3000);
+  return rnd.next(3001, 30000);
+}
+
+int chooseM() {
+  int mode = rnd.next(0, 2);
+  if (mode == 0) return rnd.next(2, 30);
+  if (mode == 1) return rnd.next(31, 3000);
+  return rnd.next(3001, 200000);
+}
+
 int main(int argc, char* argv[]){
   registerGen(argc, argv, 1);
 
-  int magni = atoi(argv[1]);
-  int N = rnd.next(1, magni);
-  int M = rnd.next(1, magni);
+  int N = chooseN();
+  int M = chooseM();
   printf("%d %d\n", N, M);
 
   // randomly choose the number N times
