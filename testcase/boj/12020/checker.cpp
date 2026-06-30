@@ -1,141 +1,159 @@
 #include "testlib.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
 using namespace std;
 
-const double ZERO_EPS = 1e-7;
-const double ENTRY_EPS = 1e-2;
-const double PRODUCT_EPS = 5e-2;
+const long double ZERO_EPS = 1e-12L;
+const long double ROUND_EPS = 0.0005L + 1e-12L;
+const long double VALUE_LIMIT = 1e100L;
 
 int n;
-vector<vector<double>> a;
+vector<vector<long double> > expectedL;
+vector<vector<long double> > expectedU;
 
-struct Answer {
+struct Claim {
     bool impossible;
-    vector<vector<double>> l;
-    vector<vector<double>> u;
 };
 
-double readMatrixValue(InStream& stream, const string& firstToken, bool useFirstToken,
-                       const char* matrixName, int row, int col) {
-    string token = useFirstToken
-                       ? firstToken
-                       : stream.readToken();
-    try {
-        size_t parsed = 0;
-        double value = stod(token, &parsed);
-        if (parsed != token.size() || !isfinite(value)) {
-            stream.quitf(_wa, "%s[%d][%d] is not a finite real number", matrixName, row + 1, col + 1);
-        }
-        return value;
-    } catch (...) {
-        stream.quitf(_wa, "%s[%d][%d] is not a finite real number", matrixName, row + 1, col + 1);
+long double parseRealToken(InStream& stream, TResult invalidResult, const string& token, const string& name) {
+    char* end = nullptr;
+    long double value = strtold(token.c_str(), &end);
+    if (end == token.c_str() || *end != '\0' || !isfinite(value)) {
+        stream.quitf(invalidResult, "%s is not a finite real number: %s", name.c_str(), token.c_str());
+    }
+    if (fabsl(value) > VALUE_LIMIT) {
+        stream.quitf(invalidResult, "%s is too large: %.17Lg", name.c_str(), value);
+    }
+    return value;
+}
+
+long double roundedToThree(long double value) {
+    return roundl(value * 1000.0L) / 1000.0L;
+}
+
+void requireRoundedEntry(InStream& stream,
+                         TResult invalidResult,
+                         long double actual,
+                         long double expected,
+                         const char* matrixName,
+                         int row,
+                         int col) {
+    long double roundedExpected = roundedToThree(expected);
+    if (fabsl(actual - roundedExpected) > ROUND_EPS) {
+        stream.quitf(invalidResult,
+                     "%s[%d][%d] must round to %.3Lf, found %.10Lg",
+                     matrixName,
+                     row + 1,
+                     col + 1,
+                     roundedExpected,
+                     actual);
     }
 }
 
-Answer readAnswer(InStream& stream) {
+Claim readClaim(InStream& stream, TResult invalidResult, bool decompositionImpossible) {
     string first = stream.readToken();
     if (first == "-1") {
         if (!stream.seekEof()) {
-            stream.quitf(_wa, "extra output after -1");
+            stream.quitf(invalidResult, "extra output after -1");
         }
-        return {true, {}, {}};
+        return {true};
     }
 
-    Answer result;
-    result.impossible = false;
-    result.l.assign(n, vector<double>(n));
-    result.u.assign(n, vector<double>(n));
+    if (decompositionImpossible) {
+        stream.quitf(invalidResult, "LU decomposition is impossible; output must be -1");
+    }
+
+    long double firstValue = parseRealToken(stream, invalidResult, first, "L[1][1]");
+    requireRoundedEntry(stream, invalidResult, firstValue, expectedL[0][0], "L", 0, 0);
 
     for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            result.l[i][j] = readMatrixValue(stream, first, i == 0 && j == 0, "L", i, j);
+        for (int j = (i == 0 ? 1 : 0); j < n; ++j) {
+            string name = format("L[%d][%d]", i + 1, j + 1);
+            long double value = parseRealToken(stream, invalidResult, stream.readToken(), name);
+            requireRoundedEntry(stream, invalidResult, value, expectedL[i][j], "L", i, j);
         }
     }
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
-            result.u[i][j] = readMatrixValue(stream, "", false, "U", i, j);
+            string name = format("U[%d][%d]", i + 1, j + 1);
+            long double value = parseRealToken(stream, invalidResult, stream.readToken(), name);
+            requireRoundedEntry(stream, invalidResult, value, expectedU[i][j], "U", i, j);
         }
     }
     if (!stream.seekEof()) {
-        stream.quitf(_wa, "extra output after matrices");
+        stream.quitf(invalidResult, "extra output after matrices");
     }
+
+    return {false};
+}
+
+bool buildCanonicalLU(const vector<vector<long double> >& a) {
+    expectedL.assign(n, vector<long double>(n, 0.0L));
+    expectedU.assign(n, vector<long double>(n, 0.0L));
 
     for (int i = 0; i < n; ++i) {
-        if (fabs(result.l[i][i] - 1.0) > ENTRY_EPS) {
-            stream.quitf(_wa, "L[%d][%d] must be 1, found %.10f", i + 1, i + 1, result.l[i][i]);
+        expectedL[i][i] = 1.0L;
+    }
+
+    expectedU[0][0] = a[0][0];
+    if (fabsl(expectedU[0][0]) <= ZERO_EPS) {
+        return false;
+    }
+    if (n > 1) {
+        expectedU[0][1] = a[0][1];
+    }
+
+    for (int i = 1; i < n; ++i) {
+        if (fabsl(expectedU[i - 1][i - 1]) <= ZERO_EPS) {
+            return false;
         }
-        if (fabs(result.u[i][i]) <= ZERO_EPS) {
-            stream.quitf(_wa, "U[%d][%d] must be nonzero, found %.10f", i + 1, i + 1, result.u[i][i]);
+        expectedL[i][i - 1] = a[i][i - 1] / expectedU[i - 1][i - 1];
+        expectedU[i][i] = a[i][i] - expectedL[i][i - 1] * expectedU[i - 1][i];
+        if (fabsl(expectedU[i][i]) <= ZERO_EPS) {
+            return false;
         }
-        for (int j = i + 1; j < n; ++j) {
-            if (fabs(result.l[i][j]) > ENTRY_EPS) {
-                stream.quitf(_wa, "L[%d][%d] must be zero, found %.10f", i + 1, j + 1, result.l[i][j]);
-            }
-        }
-        for (int j = 0; j < i; ++j) {
-            if (fabs(result.u[i][j]) > ENTRY_EPS) {
-                stream.quitf(_wa, "U[%d][%d] must be zero, found %.10f", i + 1, j + 1, result.u[i][j]);
-            }
+        if (i + 1 < n) {
+            expectedU[i][i + 1] = a[i][i + 1];
         }
     }
 
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            double got = 0.0;
-            for (int k = 0; k < n; ++k) {
-                got += result.l[i][k] * result.u[k][j];
-            }
-            if (fabs(got - a[i][j]) > PRODUCT_EPS) {
-                stream.quitf(_wa,
-                             "(L*U)[%d][%d] must equal A[%d][%d]=%.10f, found %.10f",
-                             i + 1, j + 1, i + 1, j + 1, a[i][j], got);
-            }
-        }
-    }
-
-    return result;
+    return true;
 }
 
 int main(int argc, char* argv[]) {
     registerTestlibCmd(argc, argv);
 
     n = inf.readInt();
-    a.assign(n, vector<double>(n));
+    vector<vector<long double> > a(n, vector<long double>(n));
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             a[i][j] = inf.readDouble();
         }
     }
 
-    Answer jury = readAnswer(ans);
-    Answer participant = readAnswer(ouf);
+    bool possible = buildCanonicalLU(a);
+    Claim jury = readClaim(ans, _fail, !possible);
+    Claim participant = readClaim(ouf, _wa, !possible);
 
     if (jury.impossible) {
         if (participant.impossible) {
-            quitf(_ok, "both outputs report impossible");
+            if (possible) {
+                quitf(_fail, "jury says impossible but canonical LU decomposition exists");
+            }
+            quitf(_ok, "both outputs claim impossible");
         }
-        quitf(_fail, "participant supplied a valid LU decomposition while jury reports impossible");
+        quitf(_fail, "participant supplied a valid LU decomposition while jury says impossible");
     }
 
     if (participant.impossible) {
-        quitf(_wa, "participant reports impossible while jury provides a decomposition");
-    }
-
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            if (fabs(participant.l[i][j] - jury.l[i][j]) > ENTRY_EPS) {
-                quitf(_wa, "L[%d][%d] differs from jury: expected %.10f, found %.10f",
-                      i + 1, j + 1, jury.l[i][j], participant.l[i][j]);
-            }
-            if (fabs(participant.u[i][j] - jury.u[i][j]) > ENTRY_EPS) {
-                quitf(_wa, "U[%d][%d] differs from jury: expected %.10f, found %.10f",
-                      i + 1, j + 1, jury.u[i][j], participant.u[i][j]);
-            }
+        if (!possible) {
+            quitf(_fail, "jury provides a decomposition while canonical LU decomposition is impossible");
         }
+        quitf(_wa, "participant says impossible but jury provides a valid LU decomposition");
     }
 
     quitf(_ok, "valid LU decomposition");
