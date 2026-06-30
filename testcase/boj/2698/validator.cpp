@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
         setTestCase(tc);
         int n = inf.readInt(1, 100, "n");
         inf.readSpace();
-        int k = inf.readInt(1, 100, "k");
+        int k = inf.readInt(0, 100, "k");
         inf.readEoln();
 
         // Validate the implicit output bound: answer must fit in 32-bit signed
