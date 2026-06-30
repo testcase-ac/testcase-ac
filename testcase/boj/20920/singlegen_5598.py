@@ -13,6 +13,6 @@ while len(words) < N:
     w = ''.join(random.choices(string.ascii_lowercase, k=L))
     words.add(w)
 
-# output them in arbitrary order
-for w in words:
+# output them in deterministic order
+for w in sorted(words):
     print(w)
