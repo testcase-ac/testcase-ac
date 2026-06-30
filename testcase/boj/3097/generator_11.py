@@ -1,10 +1,8 @@
-import random as __otac_random
-import sys as __otac_sys
-if len(__otac_sys.argv) > 1:
-    __otac_random.seed(int(__otac_sys.argv[1]))
-
 import random
-import math
+import sys
+
+if len(sys.argv) > 1:
+    random.seed(int(sys.argv[1]))
 
 # Constants for the problem
 N_LOWER = 2  # Minimum number of segments
@@ -30,9 +28,6 @@ def generate_testcase():
     return segments
 
 def main():
-    # Seed for reproducibility (optional)
-    random.seed()
-    
     # Generate random test cases based on random distribution
     generate_testcase()
 

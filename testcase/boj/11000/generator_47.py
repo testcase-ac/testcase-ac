@@ -1,9 +1,8 @@
-import random as __otac_random
-import sys as __otac_sys
-if len(__otac_sys.argv) > 1:
-    __otac_random.seed(int(__otac_sys.argv[1]))
-
 import random
+import sys
+
+if len(sys.argv) > 1:
+    random.seed(int(sys.argv[1]))
 
 def generate_test_case():
     # Constants for configuration
@@ -13,8 +12,6 @@ def generate_test_case():
     S_MAX = 20     # Maximum start time
     D_MIN = 1       # Minimum duration
     D_MAX = 10      # Maximum duration
-
-    random.seed()
 
     # Generate N, the number of lectures
     N = random.randint(N_MIN, N_MAX)
