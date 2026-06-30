@@ -26,12 +26,12 @@ struct seeded_random_device {
 
 
 vector<int> perfect_numbers = {6, 28, 496, 8128};
-random_device rd;
-mt19937 gen(rd());
 uniform_int_distribution<> dis(1, 100000);
 
 int main(int argc, char* argv[]) {
     initSeed(argc, argv);
+    random_device rd;
+    mt19937 gen(rd());
     uniform_int_distribution<> perfect_dis(0, 5);
 
     while (true) {

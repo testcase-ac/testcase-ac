@@ -28,13 +28,13 @@ struct seeded_random_device {
 
 using ui = unsigned int;
 
-random_device rd;
-mt19937 gen(rd());
 uniform_int_distribution<ui> distN(1, 50);
 uniform_int_distribution<ui> distQ(1, 100);
 
 int main(int argc, char* argv[]) {
     initSeed(argc, argv);
+    random_device rd;
+    mt19937 gen(rd());
     ios_base::sync_with_stdio(false);
 
     ui N = distN(gen), Q = distQ(gen);
