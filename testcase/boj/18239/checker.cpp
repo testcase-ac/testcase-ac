@@ -1,6 +1,8 @@
 #include "testlib.h"
 
 #include <algorithm>
+#include <cctype>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -33,6 +35,7 @@ static Claim readClaim(InStream& stream) {
     if (verdict != "YES") {
         stream.quitf(_wa, "verdict must be YES or NO, found %s", verdict.c_str());
     }
+    stream.readEoln();
 
     vector<int> a(n);
     for (int i = 0; i < k; ++i) {
@@ -43,10 +46,28 @@ static Claim readClaim(InStream& stream) {
     }
 
     for (int opIndex = 1; opIndex <= 5; ++opIndex) {
-        string op = stream.readToken("[a-z]+", format("operation[%d]", opIndex).c_str());
-        int l = stream.readInt(1, n, format("L[%d]", opIndex).c_str());
-        int r = stream.readInt(1, n, format("R[%d]", opIndex).c_str());
+        string line = stream.readLine("[^]*", format("operation[%d]", opIndex).c_str());
+        string normalized;
+        for (size_t i = 0; i < line.size(); ++i) {
+            unsigned char ch = static_cast<unsigned char>(line[i]);
+            if (ch == 0xC2 && i + 1 < line.size() && static_cast<unsigned char>(line[i + 1]) == 0xA0) {
+                normalized.push_back(' ');
+                ++i;
+            } else {
+                normalized.push_back(line[i]);
+            }
+        }
 
+        string op, extra;
+        int l, r;
+        stringstream ss(normalized);
+        if (!(ss >> op >> l >> r) || (ss >> extra)) {
+            stream.quitf(_wa, "operation %d must have form '<swap|reverse> L R'", opIndex);
+        }
+
+        if (l < 1 || l > n || r < 1 || r > n) {
+            stream.quitf(_wa, "operation %d indices out of range: %d %d", opIndex, l, r);
+        }
         if (l >= r) {
             stream.quitf(_wa, "operation %d has L >= R: %d %d", opIndex, l, r);
         }

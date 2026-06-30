@@ -2,6 +2,7 @@
 
 #include <cstdarg>
 #include <cstdio>
+#include <numeric>
 #include <string>
 #include <vector>
 
@@ -13,6 +14,7 @@ struct CaseData {
 };
 
 vector<CaseData> cases;
+vector<int> primes;
 
 void quitInvalid(InStream& stream, const char* fmt, ...) {
     char buffer[1024];
@@ -46,14 +48,18 @@ string addTwo(const string& value) {
 }
 
 void validateApparentPrime(InStream& stream, const string& value, int t, int caseNo, const char* name) {
-    for (int divisor = 2; divisor <= t; ++divisor) {
+    for (int divisor : primes) {
+        if (divisor > t) {
+            break;
+        }
         if (modulo(value, divisor) == 0) {
             quitInvalid(stream, "case %d: %s is divisible by %d", caseNo, name, divisor);
         }
     }
 }
 
-void readAnswer(InStream& stream) {
+vector<string> readAns(InStream& stream) {
+    vector<string> answer;
     for (int caseNo = 1; caseNo <= int(cases.size()); ++caseNo) {
         const CaseData& cd = cases[caseNo - 1];
         string p = stream.readToken("[0-9]+", format("case %d p", caseNo).c_str());
@@ -72,11 +78,29 @@ void readAnswer(InStream& stream) {
 
         validateApparentPrime(stream, p, cd.t, caseNo, "p");
         validateApparentPrime(stream, pPlusTwo, cd.t, caseNo, "p + 2");
+        answer.push_back(p);
     }
 
     if (!stream.seekEof()) {
         quitInvalid(stream, "extra output after the expected %d answer token(s)", int(cases.size()));
     }
+    return answer;
+}
+
+vector<int> sievePrimes(int limit) {
+    vector<int> result;
+    vector<bool> composite(limit + 1, false);
+    for (int i = 2; i <= limit; ++i) {
+        if (!composite[i]) {
+            result.push_back(i);
+            if (1LL * i * i <= limit) {
+                for (long long j = 1LL * i * i; j <= limit; j += i) {
+                    composite[int(j)] = true;
+                }
+            }
+        }
+    }
+    return result;
 }
 
 int main(int argc, char* argv[]) {
@@ -90,12 +114,13 @@ int main(int argc, char* argv[]) {
         }
         cases.push_back({n, t});
     }
+    primes = sievePrimes(8000);
 
     ans.maxTokenLength = 6000;
     ouf.maxTokenLength = 6000;
 
-    readAnswer(ans);
-    readAnswer(ouf);
+    readAns(ans);
+    readAns(ouf);
 
     quitf(_ok, "all %d apparent twin prime witness(es) are valid", int(cases.size()));
 }

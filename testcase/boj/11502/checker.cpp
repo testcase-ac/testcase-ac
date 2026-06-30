@@ -67,25 +67,18 @@ int main(int argc, char *argv[]) {
         // Read jury and participant answers
         vector<int> want = readAns(ans);
         vector<int> got  = readAns(ouf);
-        // Compare
-        if (want.size() != got.size()) {
-            quitf(_wa, "test %d: expected %s, found %s",
-                  tc+1,
-                  want.empty() ? "0" : 
-                    (to_string(want[0]) + " " + to_string(want[1]) + " " + to_string(want[2])).c_str(),
-                  got.empty() ? "0" : 
-                    (to_string(got[0])  + " " + to_string(got[1])  + " " + to_string(got[2])).c_str());
+        if (want.empty() && !got.empty()) {
+            quitf(_fail, "test %d: participant found a valid decomposition but jury printed 0", tc + 1);
         }
-        if (!want.empty()) {
-            // both size==3
-            if (want != got) {
-                quitf(_wa, "test %d: expected \"%d %d %d\", found \"%d %d %d\"",
-                      tc+1,
-                      want[0], want[1], want[2],
-                      got[0],  got[1],  got[2]);
-            }
+        if (!want.empty() && got.empty()) {
+            quitf(_wa, "test %d: expected a valid decomposition, found 0", tc + 1);
         }
-        // else both say impossible – OK
+    }
+    if (!ans.seekEof()) {
+        quitf(_fail, "extra output after jury answer");
+    }
+    if (!ouf.seekEof()) {
+        quitf(_wa, "extra output after participant answer");
     }
 
     quitf(_ok, "All tests passed");

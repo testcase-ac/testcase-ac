@@ -88,7 +88,8 @@ int main(int argc, char* argv[]) {
     registerTestlibCmd(argc, argv);
     // Read input
     N = inf.readInt();
-    pieceType = inf.readChar();
+    string pieceToken = inf.readToken("[RQBNK]", "piece type");
+    pieceType = pieceToken[0];
     initC.assign(N+1, vector<bool>(N+1, false));
     for (int i = 1; i <= N; i++) {
         string row = inf.readToken();

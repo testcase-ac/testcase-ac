@@ -8,6 +8,7 @@ int N;
 int sz;
 vector<int> a;
 vector<bool> used;
+int tokenIndex;
 
 // DFS to compute subtree sums and check the difference condition.
 // i: current node index in array (0-based).
@@ -36,6 +37,20 @@ long long dfs(int i, int level) {
     return sumL + sumR + a[i];
 }
 
+void readPreorder(InStream& stream, int i) {
+    if (i >= sz) {
+        return;
+    }
+    a[i] = stream.readInt(1, sz, format("value[%d]", tokenIndex + 1).c_str());
+    if (used[a[i]]) {
+        stream.quitf(_wa, "value %d is used more than once", a[i]);
+    }
+    used[a[i]] = true;
+    ++tokenIndex;
+    readPreorder(stream, 2 * i + 1);
+    readPreorder(stream, 2 * i + 2);
+}
+
 int main(int argc, char* argv[]) {
     registerTestlibCmd(argc, argv);
     // Read input
@@ -49,16 +64,12 @@ int main(int argc, char* argv[]) {
     a.resize(sz);
     used.assign(sz + 1, false);
 
-    // Read contestant's output: exactly sz integers in [1..sz]
-    for (int i = 0; i < sz; i++) {
-        a[i] = ouf.readInt(1, sz, format("value[%d]", i+1).c_str());
-        if (used[a[i]]) {
-            ouf.quitf(_wa, "value %d is used more than once", a[i]);
-        }
-        used[a[i]] = true;
+    // The output order is preorder; store values by heap index before checking.
+    tokenIndex = 0;
+    readPreorder(ouf, 0);
+    if (!ouf.seekEof()) {
+        ouf.quitf(_wa, "extra output after %d values", sz);
     }
-    // there should be no extra tokens
-    ouf.readEof();
 
     // Check that all values from 1 to sz appear
     for (int v = 1; v <= sz; v++) {

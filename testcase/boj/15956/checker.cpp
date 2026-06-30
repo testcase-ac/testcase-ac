@@ -1,259 +1,281 @@
 #include "testlib.h"
-#include <bits/stdc++.h>
+
+#include <algorithm>
+#include <cctype>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+
 using namespace std;
 
-// Disjoint set union
-struct DSU {
-    vector<int> p, r;
-    DSU(int n): p(n), r(n,0) { iota(p.begin(), p.end(), 0); }
-    int find(int x) { return p[x]==x?x:p[x]=find(p[x]); }
+struct Dsu {
+    vector<int> parent;
+
+    explicit Dsu(int n) : parent(n) {
+        for (int i = 0; i < n; ++i) {
+            parent[i] = i;
+        }
+    }
+
+    int find(int x) {
+        if (parent[x] == x) {
+            return x;
+        }
+        return parent[x] = find(parent[x]);
+    }
+
     void unite(int a, int b) {
-        a = find(a); b = find(b);
-        if (a==b) return;
-        if (r[a]<r[b]) swap(a,b);
-        p[b] = a;
-        if (r[a]==r[b]) r[a]++;
+        a = find(a);
+        b = find(b);
+        if (a != b) {
+            parent[b] = a;
+        }
     }
 };
 
-static bool isLetter(char c) { return (c>='a'&&c<='z')||(c>='A'&&c<='Z'); }
-static bool isDigit(char c) { return c>='0'&&c<='9'; }
+struct Comparison {
+    string left;
+    bool equal;
+    string right;
+};
 
-// Parse a formula string s into eqs and neqs (pairs of terms), collecting terms in seenTerms.
-// On any parse error, calls stream.quitf(_wa,...) (or _fail if stream is ans).
-void parseFormula(const string &s,
-                  vector<pair<string,string>> &eqs,
-                  vector<pair<string,string>> &neqs,
-                  InStream &stream,
-                  const unordered_set<string> &allowedTerms = {},
-                  bool checkAllowed = false)
-{
-    size_t pos = 0, n = s.size();
-    if (n == 0) stream.quitf(_wa, "empty formula");
-    while (pos < n) {
-        // parse left operand
-        size_t start = pos;
-        if (isLetter(s[pos])) {
-            while (pos<n && isLetter(s[pos])) pos++;
-        } else {
-            // integer
-            if (s[pos]=='-') {
-                pos++;
-                if (pos>=n || !isDigit(s[pos]))
-                    stream.quitf(_wa, "invalid integer at position %d", int(start));
-            }
-            if (s[pos]=='0') {
-                pos++;
-            } else {
-                if (!isDigit(s[pos])) stream.quitf(_wa, "invalid integer at position %d", int(start));
-                while (pos<n && isDigit(s[pos])) pos++;
-            }
-        }
-        string left = s.substr(start, pos-start);
-        // operator
-        if (pos+1 >= n) stream.quitf(_wa, "expected operator at position %d", int(pos));
-        bool isEq = false;
-        if (s[pos]=='=' && s[pos+1]=='=') isEq = true;
-        else if (s[pos]=='!' && s[pos+1]=='=') isEq = false;
-        else stream.quitf(_wa, "expected '==' or '!=' at position %d", int(pos));
-        pos += 2;
-        // parse right operand
-        start = pos;
-        if (pos>=n) stream.quitf(_wa, "missing right operand at position %d", int(pos));
-        if (isLetter(s[pos])) {
-            while (pos<n && isLetter(s[pos])) pos++;
-        } else {
-            if (s[pos]=='-') {
-                pos++;
-                if (pos>=n || !isDigit(s[pos]))
-                    stream.quitf(_wa, "invalid integer at position %d", int(start));
-            }
-            if (s[pos]=='0') {
-                pos++;
-            } else {
-                if (!isDigit(s[pos])) stream.quitf(_wa, "invalid integer at position %d", int(start));
-                while (pos<n && isDigit(s[pos])) pos++;
-            }
-        }
-        string right = s.substr(start, pos-start);
-        // record
-        if (isEq) eqs.emplace_back(left, right);
-        else neqs.emplace_back(left, right);
-        // optional &&
-        if (pos == n) break;
-        if (pos+1>=n || s[pos] != '&' || s[pos+1] != '&')
-            stream.quitf(_wa, "expected '&&' at position %d", int(pos));
-        pos += 2;
-    }
-    if (eqs.empty() && neqs.empty()) stream.quitf(_wa, "empty formula");
-    // check allowed terms if needed
-    if (checkAllowed) {
-        for (auto &pr : eqs) {
-            if (!allowedTerms.count(pr.first))
-                stream.quitf(_wa, "unknown term '%s'", pr.first.c_str());
-            if (!allowedTerms.count(pr.second))
-                stream.quitf(_wa, "unknown term '%s'", pr.second.c_str());
-        }
-        for (auto &pr : neqs) {
-            if (!allowedTerms.count(pr.first))
-                stream.quitf(_wa, "unknown term '%s'", pr.first.c_str());
-            if (!allowedTerms.count(pr.second))
-                stream.quitf(_wa, "unknown term '%s'", pr.second.c_str());
-        }
-    }
+struct ParsedExpression {
+    string text;
+    vector<Comparison> comparisons;
+    vector<string> terms;
+};
+
+struct Signature {
+    bool impossible = false;
+    vector<vector<int>> equal;
+    set<pair<int, int>> notEqual;
+};
+
+static bool isVariableStart(char c) {
+    return isalpha(static_cast<unsigned char>(c));
 }
 
-int main(int argc, char *argv[]) {
+static bool isDigitChar(char c) {
+    return isdigit(static_cast<unsigned char>(c));
+}
+
+static bool isIntegerTerm(const string& term) {
+    return isDigitChar(term.back());
+}
+
+static long long integerValue(const string& term) {
+    return stoll(term);
+}
+
+static string readOutputLine(InStream& stream) {
+    string line = stream.readLine();
+    stream.readEof();
+    return line;
+}
+
+static string parseTerm(InStream& stream, TResult invalidResult, const string& text, int& pos) {
+    const int n = static_cast<int>(text.size());
+    if (pos >= n) {
+        stream.quitf(invalidResult, "expected term at position %d", pos + 1);
+    }
+
+    if (isVariableStart(text[pos])) {
+        int start = pos;
+        while (pos < n && isVariableStart(text[pos])) {
+            ++pos;
+        }
+        return text.substr(start, pos - start);
+    }
+
+    int sign = 1;
+    if (text[pos] == '-') {
+        sign = -1;
+        ++pos;
+        if (pos >= n) {
+            stream.quitf(invalidResult, "minus without digits at position %d", pos);
+        }
+        if (text[pos] == '0') {
+            stream.quitf(invalidResult, "invalid integer -0 at position %d", pos + 1);
+        }
+    }
+
+    if (pos >= n || !isDigitChar(text[pos])) {
+        stream.quitf(invalidResult, "expected term at position %d", pos + 1);
+    }
+
+    int start = pos;
+    if (text[pos] == '0') {
+        ++pos;
+    } else {
+        long long value = 0;
+        while (pos < n && isDigitChar(text[pos])) {
+            value = value * 10 + (text[pos] - '0');
+            if (value > 1000000000LL) {
+                stream.quitf(invalidResult, "integer literal exceeds 1e9 at position %d", start + 1);
+            }
+            ++pos;
+        }
+    }
+
+    if (sign == -1) {
+        return text.substr(start - 1, pos - start + 1);
+    }
+    return text.substr(start, pos - start);
+}
+
+static ParsedExpression parseExpression(InStream& stream, TResult invalidResult, const string& text) {
+    if (text.empty()) {
+        stream.quitf(invalidResult, "empty condition");
+    }
+
+    ParsedExpression parsed;
+    parsed.text = text;
+    int pos = 0;
+    const int n = static_cast<int>(text.size());
+    while (pos < n) {
+        string left = parseTerm(stream, invalidResult, text, pos);
+        if (pos + 1 >= n || !((text[pos] == '=' && text[pos + 1] == '=') ||
+                              (text[pos] == '!' && text[pos + 1] == '='))) {
+            stream.quitf(invalidResult, "expected comparison operator at position %d", pos + 1);
+        }
+        bool equal = text[pos] == '=';
+        pos += 2;
+
+        string right = parseTerm(stream, invalidResult, text, pos);
+        parsed.comparisons.push_back({left, equal, right});
+        parsed.terms.push_back(left);
+        parsed.terms.push_back(right);
+
+        if (pos == n) {
+            break;
+        }
+        if (pos + 1 >= n || text[pos] != '&' || text[pos + 1] != '&') {
+            stream.quitf(invalidResult, "expected && at position %d", pos + 1);
+        }
+        pos += 2;
+        if (pos == n) {
+            stream.quitf(invalidResult, "trailing &&");
+        }
+    }
+    return parsed;
+}
+
+static Signature buildSignature(const ParsedExpression& expression,
+                                const map<string, int>& termIndex,
+                                const vector<string>& allTerms) {
+    const int n = static_cast<int>(allTerms.size());
+    Dsu dsu(n);
+    vector<pair<int, int>> inequalities;
+
+    for (const Comparison& comparison : expression.comparisons) {
+        int left = termIndex.at(comparison.left);
+        int right = termIndex.at(comparison.right);
+        if (comparison.equal) {
+            dsu.unite(left, right);
+        } else {
+            inequalities.push_back({left, right});
+        }
+    }
+
+    map<int, long long> classConstant;
+    map<int, int> canonicalRoot;
+    for (int i = 0; i < n; ++i) {
+        int root = dsu.find(i);
+        auto insertedRoot = canonicalRoot.emplace(root, i);
+        if (!insertedRoot.second) {
+            insertedRoot.first->second = min(insertedRoot.first->second, i);
+        }
+        if (!isIntegerTerm(allTerms[i])) {
+            continue;
+        }
+        long long value = integerValue(allTerms[i]);
+        auto inserted = classConstant.emplace(root, value);
+        if (!inserted.second && inserted.first->second != value) {
+            Signature signature;
+            signature.impossible = true;
+            return signature;
+        }
+    }
+
+    Signature signature;
+    signature.equal.assign(n, vector<int>(n, 0));
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            signature.equal[i][j] = dsu.find(i) == dsu.find(j);
+        }
+    }
+
+    for (auto [left, right] : inequalities) {
+        int a = dsu.find(left);
+        int b = dsu.find(right);
+        if (a == b) {
+            Signature signature;
+            signature.impossible = true;
+            return signature;
+        }
+        bool tautology = classConstant.count(a) && classConstant.count(b) &&
+                         classConstant[a] != classConstant[b];
+        if (!tautology) {
+            a = canonicalRoot[a];
+            b = canonicalRoot[b];
+            if (a > b) {
+                swap(a, b);
+            }
+            signature.notEqual.insert({a, b});
+        }
+    }
+    return signature;
+}
+
+static bool sameSignature(const Signature& a, const Signature& b) {
+    if (a.impossible || b.impossible) {
+        return a.impossible == b.impossible;
+    }
+    return a.equal == b.equal && a.notEqual == b.notEqual;
+}
+
+int main(int argc, char* argv[]) {
     registerTestlibCmd(argc, argv);
 
-    // Read original formula
-    string S = inf.readToken();
-    // Parse it to collect allowed terms
-    vector<pair<string,string>> S_eqs, S_neqs;
-    unordered_set<string> allowedTerms;
-    parseFormula(S, S_eqs, S_neqs, inf /* won't actually quit */);
-    // build allowedTerms
-    for (auto &pr : S_eqs) {
-        allowedTerms.insert(pr.first);
-        allowedTerms.insert(pr.second);
-    }
-    for (auto &pr : S_neqs) {
-        allowedTerms.insert(pr.first);
-        allowedTerms.insert(pr.second);
-    }
-    // Map terms to ids
-    unordered_map<string,int> termToId;
-    termToId.reserve(allowedTerms.size());
-    int tid = 0;
-    for (auto &t : allowedTerms)
-        termToId[t] = tid++;
-    int K = tid;
-    // Mark constants
-    vector<bool> isConst(K, false);
-    for (auto &p : termToId) {
-        const string &t = p.first;
-        int id = p.second;
-        if (t[0]=='-' || isDigit(t[0])) isConst[id] = true;
+    ParsedExpression input = parseExpression(inf, _fail, inf.readLine());
+    inf.readEof();
+
+    ParsedExpression jury = parseExpression(ans, _fail, readOutputLine(ans));
+    ParsedExpression participant = parseExpression(ouf, _wa, readOutputLine(ouf));
+
+    vector<string> allTerms;
+    allTerms.insert(allTerms.end(), input.terms.begin(), input.terms.end());
+    allTerms.insert(allTerms.end(), jury.terms.begin(), jury.terms.end());
+    allTerms.insert(allTerms.end(), participant.terms.begin(), participant.terms.end());
+    sort(allTerms.begin(), allTerms.end());
+    allTerms.erase(unique(allTerms.begin(), allTerms.end()), allTerms.end());
+
+    map<string, int> termIndex;
+    for (int i = 0; i < static_cast<int>(allTerms.size()); ++i) {
+        termIndex[allTerms[i]] = i;
     }
 
-    // Read jury answer
-    if (ans.seekEof())
-        ans.quitf(_fail, "jury output missing");
-    string A = ans.readToken();
-    vector<pair<string,string>> A_eqs_s, A_neqs_s;
-    parseFormula(A, A_eqs_s, A_neqs_s, ans, allowedTerms, true);
-    // Read participant answer
-    if (ouf.seekEof())
-        ouf.quitf(_wa, "participant output missing");
-    string P = ouf.readToken();
-    vector<pair<string,string>> P_eqs_s, P_neqs_s;
-    parseFormula(P, P_eqs_s, P_neqs_s, ouf, allowedTerms, true);
+    Signature expected = buildSignature(input, termIndex, allTerms);
+    Signature jurySignature = buildSignature(jury, termIndex, allTerms);
+    Signature participantSignature = buildSignature(participant, termIndex, allTerms);
 
-    // Helper to build closure
-    auto buildClosure = [&](const vector<pair<string,string>> &E_s,
-                            const vector<pair<string,string>> &N_s,
-                            DSU &dsu,
-                            bool &sat,
-                            set<pair<int,int>> &diseqs)
-    {
-        // equality unions
-        for (auto &pr : E_s) {
-            int u = termToId.at(pr.first);
-            int v = termToId.at(pr.second);
-            dsu.unite(u, v);
-        }
-        // constant conflict check
-        sat = true;
-        unordered_map<int,string> rootConst;
-        for (int u = 0; u < K; u++) if (isConst[u]) {
-            int ru = dsu.find(u);
-            auto it = rootConst.find(ru);
-            string sval = "";
-            for (auto &pp : termToId) {
-                if (pp.second == u) { sval = pp.first; break; }
-            }
-            if (it == rootConst.end()) {
-                rootConst[ru] = sval;
-            } else if (it->second != sval) {
-                sat = false;
-                return;
-            }
-        }
-        // inequalities
-        for (auto &pr : N_s) {
-            int u = termToId.at(pr.first);
-            int v = termToId.at(pr.second);
-            int ru = dsu.find(u), rv = dsu.find(v);
-            if (ru == rv) {
-                sat = false;
-                return;
-            }
-            if (ru > rv) swap(ru, rv);
-            diseqs.emplace(ru, rv);
-        }
-    };
+    if (!sameSignature(expected, jurySignature)) {
+        quitf(_fail, "jury output is not equivalent to the input condition");
+    }
+    if (!sameSignature(expected, participantSignature)) {
+        quitf(_wa, "participant output is not equivalent to the input condition");
+    }
 
-    // Build closures
-    DSU dsuA(K), dsuP(K);
-    bool satA=true, satP=true;
-    set<pair<int,int>> deA, deP;
-    buildClosure(A_eqs_s, A_neqs_s, dsuA, satA, deA);
-    buildClosure(P_eqs_s, P_neqs_s, dsuP, satP, deP);
+    if (participant.text.size() < jury.text.size()) {
+        quitf(_fail, "participant output is shorter than jury output: participant=%d jury=%d",
+              static_cast<int>(participant.text.size()), static_cast<int>(jury.text.size()));
+    }
+    if (participant.text.size() > jury.text.size()) {
+        quitf(_wa, "participant output is longer than jury output: participant=%d jury=%d",
+              static_cast<int>(participant.text.size()), static_cast<int>(jury.text.size()));
+    }
 
-    // Compare satisfiability
-    if (!satA) {
-        if (!satP) quitf(_ok, "both unsatisfiable");
-        else ouf.quitf(_wa, "expected unsatisfiable, found satisfiable");
-    } else {
-        if (!satP) ouf.quitf(_wa, "expected satisfiable, found unsatisfiable");
-    }
-    // Both satisfiable: compare partitions
-    // Check partition equality
-    unordered_map<int,int> mapAtoP, mapPtoA;
-    for (int u = 0; u < K; u++) {
-        int a = dsuA.find(u), p = dsuP.find(u);
-        auto it = mapAtoP.find(a);
-        if (it == mapAtoP.end()) mapAtoP[a] = p;
-        else if (it->second != p) ouf.quitf(_wa, "difference in equality closure");
-        auto it2 = mapPtoA.find(p);
-        if (it2 == mapPtoA.end()) mapPtoA[p] = a;
-        else if (it2->second != a) ouf.quitf(_wa, "difference in equality closure");
-    }
-    // Build canonical class ids (minimal term id in class)
-    vector<int> canon(K);
-    {
-        unordered_map<int,int> r2min;
-        for (int u = 0; u < K; u++) {
-            int r = dsuA.find(u);
-            auto it = r2min.find(r);
-            if (it == r2min.end() || u < it->second)
-                r2min[r] = u;
-        }
-        for (int u = 0; u < K; u++)
-            canon[u] = r2min[dsuA.find(u)];
-    }
-    // Canonical disequalities
-    set<pair<int,int>> cdA, cdP;
-    for (auto &pr : deA) {
-        int u = pr.first, v = pr.second;
-        int cu = canon[u], cv = canon[v];
-        if (cu > cv) swap(cu, cv);
-        cdA.emplace(cu, cv);
-    }
-    for (auto &pr : deP) {
-        int u = pr.first, v = pr.second;
-        int cu = canon[mapPtoA[pr.first]], cv = canon[mapPtoA[pr.second]];
-        // Actually, better to use dsuP but we remapped to A labels: easier is to
-        // for each diseq (r1,r2) in dsuP, find minimal member in that class via P DSU
-        // but since partitions identical, we can use canon array on equivalent A DSU
-        cu = canon[dsuP.find(pr.first)];
-        cv = canon[dsuP.find(pr.second)];
-        if (cu > cv) swap(cu, cv);
-        cdP.emplace(cu, cv);
-    }
-    // Compare diseq sets
-    if (cdA != cdP) ouf.quitf(_wa, "difference in inequality closure");
-
-    quitf(_ok, "formulas equivalent");
-    return 0;
+    quitf(_ok, "equivalent shortest condition with length %d",
+          static_cast<int>(participant.text.size()));
 }

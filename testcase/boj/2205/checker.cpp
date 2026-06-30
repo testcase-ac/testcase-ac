@@ -4,40 +4,45 @@
 
 using namespace std;
 
-int n;
+struct Answer {
+    vector<int> tinForLead;
+};
 
 bool isPowerOfTwo(int value) {
     return value > 0 && (value & (value - 1)) == 0;
 }
 
-void readAnswer(InStream& stream) {
+Answer readAnswer(InStream& stream, int n) {
+    Answer result;
+    result.tinForLead.resize(n + 1);
     vector<int> used(n + 1, 0);
 
-    for (int i = 1; i <= n; ++i) {
-        int y = stream.readInt(1, n, format("tin[%d]", i).c_str());
-        stream.readEoln();
-
-        if (used[y]) {
-            stream.quitf(_wa, "tin mass %d is used more than once", y);
+    for (int lead = 1; lead <= n; ++lead) {
+        int tin = stream.readInt(1, n, format("tin mass for lead %d", lead).c_str());
+        if (used[tin]) {
+            stream.quitf(_wa, "tin mass %d is used more than once", tin);
         }
-        used[y] = 1;
-
-        if (!isPowerOfTwo(i + y)) {
-            stream.quitf(_wa, "lead mass %d and tin mass %d sum to %d, not a power of two",
-                         i, y, i + y);
+        if (!isPowerOfTwo(lead + tin)) {
+            stream.quitf(_wa, "lead %d plus tin %d gives %d, which is not a power of two",
+                         lead, tin, lead + tin);
         }
+        used[tin] = 1;
+        result.tinForLead[lead] = tin;
     }
 
-    stream.readEof();
+    if (!stream.seekEof()) {
+        stream.quitf(_wa, "extra output after %d tin masses", n);
+    }
+    return result;
 }
 
 int main(int argc, char* argv[]) {
     registerTestlibCmd(argc, argv);
 
-    n = inf.readInt(1, 10000, "n");
+    int n = inf.readInt(1, 10000, "n");
 
-    readAnswer(ans);
-    readAnswer(ouf);
+    readAnswer(ans, n);
+    readAnswer(ouf, n);
 
-    quitf(_ok, "valid construction for n=%d", n);
+    quitf(_ok, "valid assignment for n=%d", n);
 }

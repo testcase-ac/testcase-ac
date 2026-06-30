@@ -9,29 +9,26 @@ vector<char> broken;
 // Read an answer (bit string) from the given stream, check it, and return the number of bit changes.
 // On participant stream (ouf), errors yield _wa; on jury stream (ans), errors yield _fail.
 int readAns(InStream &stream) {
-    // Read the bit string as one token
-    string s = stream.readToken("bit string");
+    string s = stream.readToken("[01]+", "bit string");
     int len = (int)s.size();
     if (len != n) {
         stream.quitf(_wa, "length of bit string is %d, but expected %d", len, n);
     }
-    // Check characters and broken bits
     for (int i = 0; i < n; i++) {
         char ch = s[i];
-        if (ch != '0' && ch != '1') {
-            stream.quitf(_wa, "character #%d is '%c', but expected '0' or '1'", i+1, ch);
-        }
         if (broken[i] && ch != '0') {
             stream.quitf(_wa, "bit %d is broken and must be '0', but found '%c'", i+1, ch);
         }
     }
-    // Count bit changes
     int cnt = 0;
     for (int i = 0; i+1 < n; i++) {
         if (s[i] != s[i+1]) cnt++;
     }
     if (cnt != c) {
         stream.quitf(_wa, "number of bit changes is %d, but expected %d", cnt, c);
+    }
+    if (!stream.seekEof()) {
+        stream.quitf(_wa, "extra output after bit string");
     }
     return cnt;
 }

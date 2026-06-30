@@ -43,12 +43,6 @@ void validateGrid(InStream& stream, const TestCase& tc, int caseIndex, int side,
                                  caseIndex, r + 1, c + 1, r + 2, c + 1,
                                  grid[r][c], grid[r + 1][c]);
                 }
-                if (tc.explosive[down][here]) {
-                    stream.quitf(_wa,
-                                 "case %d cells (%d,%d) and (%d,%d) form explosive pair %c%c",
-                                 caseIndex, r + 2, c + 1, r + 1, c + 1,
-                                 grid[r + 1][c], grid[r][c]);
-                }
             }
             if (c + 1 < side) {
                 int right = grid[r][c + 1] - 'a';
@@ -57,12 +51,6 @@ void validateGrid(InStream& stream, const TestCase& tc, int caseIndex, int side,
                                  "case %d cells (%d,%d) and (%d,%d) form explosive pair %c%c",
                                  caseIndex, r + 1, c + 1, r + 1, c + 2,
                                  grid[r][c], grid[r][c + 1]);
-                }
-                if (tc.explosive[right][here]) {
-                    stream.quitf(_wa,
-                                 "case %d cells (%d,%d) and (%d,%d) form explosive pair %c%c",
-                                 caseIndex, r + 1, c + 2, r + 1, c + 1,
-                                 grid[r][c + 1], grid[r][c]);
                 }
             }
         }

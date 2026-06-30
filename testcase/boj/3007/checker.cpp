@@ -18,19 +18,20 @@ int main(int argc, char* argv[]) {
         // a[i] must be a positive integer
         a[i] = ouf.readLong(1, (long long)1e18, format("a[%d]", i+1).c_str());
     }
-    // No extra tokens
-    ouf.readEof();
+    if (!ouf.seekEof()) {
+        quitf(_wa, "extra output after %d values", N);
+    }
     
     // Check the circular sum condition:
-    // for each i (0-based), b[i] == a[i-1] + a[i+1], with indices modulo N
+    // for each i (0-based), b[i] == a[i-1] + a[i] + a[i+1], with indices modulo N
     for (int i = 0; i < N; i++) {
         int prev = (i - 1 + N) % N;
         int next = (i + 1) % N;
-        long long sum = a[prev] + a[next];
+        long long sum = a[prev] + a[i] + a[next];
         if (sum != b[i]) {
             quitf(_wa,
-                  "At position %d: expected b[%d] = a[%d] + a[%d] = %lld + %lld = %lld, found %lld",
-                  i+1, i+1, prev+1, next+1, a[prev], a[next], sum, b[i]);
+                  "At position %d: expected b[%d] = a[%d] + a[%d] + a[%d] = %lld + %lld + %lld = %lld, found %lld",
+                  i+1, i+1, prev+1, i+1, next+1, a[prev], a[i], a[next], sum, b[i]);
         }
     }
     

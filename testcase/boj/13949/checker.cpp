@@ -1,48 +1,80 @@
-//GPT 코드
 #include "testlib.h"
+
+#include <boost/multiprecision/cpp_int.hpp>
 #include <set>
 #include <string>
-#include <iostream>
+#include <tuple>
+#include <vector>
 
 using namespace std;
+using boost::multiprecision::cpp_int;
+
+int k, n;
+
+cpp_int parsePositive(InStream& stream, const char* name) {
+    string token = stream.readToken("[0-9]+", name);
+    if (token.size() > 100) {
+        stream.quitf(_wa, "%s has %d digits, expected at most 100", name, int(token.size()));
+    }
+    if (token.size() > 1 && token[0] == '0') {
+        stream.quitf(_wa, "%s has a leading zero", name);
+    }
+    if (token == "0") {
+        stream.quitf(_wa, "%s must be positive", name);
+    }
+
+    cpp_int value = 0;
+    for (char ch : token) {
+        value *= 10;
+        value += ch - '0';
+    }
+    return value;
+}
+
+struct Triple {
+    cpp_int a;
+    cpp_int b;
+    cpp_int c;
+    string key;
+};
+
+vector<Triple> readAns(InStream& stream) {
+    vector<Triple> triples;
+    set<string> seen;
+
+    for (int i = 0; i < n; ++i) {
+        cpp_int a = parsePositive(stream, format("a[%d]", i + 1).c_str());
+        cpp_int b = parsePositive(stream, format("b[%d]", i + 1).c_str());
+        cpp_int c = parsePositive(stream, format("c[%d]", i + 1).c_str());
+
+        cpp_int lhs = a * a + b * b + c * c;
+        cpp_int rhs = cpp_int(k) * (a * b + b * c + c * a) + 1;
+        if (lhs != rhs) {
+            stream.quitf(_wa, "triple %d does not satisfy the equation", i + 1);
+        }
+
+        string key = a.str() + "," + b.str() + "," + c.str();
+        if (seen.count(key)) {
+            stream.quitf(_wa, "duplicate triple at position %d", i + 1);
+        }
+        seen.insert(key);
+        triples.push_back({a, b, c, key});
+    }
+
+    if (!stream.seekEof()) {
+        stream.quitf(_wa, "extra output after %d triples", n);
+    }
+    return triples;
+}
 
 int main(int argc, char* argv[]) {
     registerTestlibCmd(argc, argv);
 
-    int k = inf.readInt();
-    int n = inf.readInt();
+    k = inf.readInt();
+    n = inf.readInt();
 
-    set<string> seen;
+    readAns(ans);
+    readAns(ouf);
 
-    for (int i = 0; i < n; i++) {
-        long long a = ouf.readLong();
-        long long b = ouf.readLong();
-        long long c = ouf.readLong();
-
-        // check positive
-        if (a <= 0 || b <= 0 || c <= 0)
-            quitf(_wa, "Numbers must be positive");
-
-        // check <= 100 digits
-        auto check_len = [](long long x) {
-            string s = to_string(x);
-            return s.length() <= 100;
-        };
-        if (!check_len(a) || !check_len(b) || !check_len(c))
-            quitf(_wa, "Numbers must have at most 100 digits");
-
-        // check uniqueness
-        string key = to_string(a) + "," + to_string(b) + "," + to_string(c);
-        if (seen.count(key))
-            quitf(_wa, "Duplicate triple found");
-        seen.insert(key);
-
-        // check equation
-        long long lhs = a*a + b*b + c*c;
-        long long rhs = k*(a*b + b*c + c*a) + 1;
-        if (lhs != rhs)
-            quitf(_wa, "Equation not satisfied for (%lld,%lld,%lld)", a,b,c);
-    }
-
-    quitf(_ok, "All %d triples are correct", n);
+    quitf(_ok, "all %d triples are valid", n);
 }

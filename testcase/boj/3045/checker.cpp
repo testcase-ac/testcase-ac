@@ -38,7 +38,7 @@ int readAns(InStream &stream) {
     // read K
     int K = stream.readInt(0, N + M, "number of operations");
     for (int i = 1; i <= K; i++) {
-        string tok = stream.readToken("operation");
+        string tok = stream.readToken("[AB]", format("operation #%d type", i).c_str());
         if (tok.size() != 1 || (tok[0] != 'A' && tok[0] != 'B')) {
             stream.quitf(_wa, "operation #%d: expected 'A' or 'B', found '%s'", i, tok.c_str());
         }
@@ -50,6 +50,9 @@ int readAns(InStream &stream) {
         }
         // apply
         apply_op(op, X, Y, prev, next);
+    }
+    if (!stream.seekEof()) {
+        stream.quitf(_wa, "extra output after %d operation(s)", K);
     }
     // After applying all, check we are back to initial list 1..N
     // find head

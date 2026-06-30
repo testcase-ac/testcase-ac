@@ -7,103 +7,109 @@
 using namespace std;
 
 const double EPS = 1e-2;
-const double DOUBLE_LIMIT = 1e100;
+const double NEG_EPS = 1e-9;
 
 int n;
-int x, y;
-vector<int> ga, gb, w;
+double xValue, yValue;
+vector<double> ga, gb, available;
 
-struct Answer {
+struct Claim {
     double value;
-    double a;
-    double b;
-    double computedValue;
+    double amountA;
+    double amountB;
 };
 
-Answer readAnswer(InStream& stream) {
-    double value = stream.readDouble(-DOUBLE_LIMIT, DOUBLE_LIMIT, "value");
-    stream.readEoln();
-    double a = stream.readDouble(-DOUBLE_LIMIT, DOUBLE_LIMIT, "A");
-    stream.readSpace();
-    double b = stream.readDouble(-DOUBLE_LIMIT, DOUBLE_LIMIT, "B");
-    stream.readEoln();
-    stream.readEof();
+bool withinError(double expected, double actual) {
+    return doubleCompare(expected, actual, EPS);
+}
 
-    if (!isfinite(value) || !isfinite(a) || !isfinite(b)) {
-        stream.quitf(_wa, "all output values must be finite");
-    }
-    if (a < -EPS || b < -EPS) {
-        stream.quitf(_wa, "amounts must be non-negative: A=%.12f B=%.12f", a, b);
+double amountTolerance(double amount) {
+    return EPS * max(1.0, fabs(amount));
+}
+
+Claim readClaim(InStream& stream) {
+    Claim claim;
+    claim.value = stream.readDouble(-1e100, 1e100, "value");
+    claim.amountA = stream.readDouble(-1e100, 1e100, "amountA");
+    claim.amountB = stream.readDouble(-1e100, 1e100, "amountB");
+    if (!stream.seekEof()) {
+        stream.quitf(_wa, "extra output after the three required numbers");
     }
 
-    a = max(0.0, a);
-    b = max(0.0, b);
+    if (claim.value < -NEG_EPS) {
+        stream.quitf(_wa, "claimed value %.12f is negative", claim.value);
+    }
+    if (claim.amountA < -NEG_EPS || claim.amountB < -NEG_EPS) {
+        stream.quitf(_wa,
+                     "negative amount: A=%.12f B=%.12f",
+                     claim.amountA,
+                     claim.amountB);
+    }
+
+    claim.amountA = max(0.0, claim.amountA);
+    claim.amountB = max(0.0, claim.amountB);
 
     for (int i = 0; i < n; ++i) {
-        double used = ga[i] * a + gb[i] * b;
-        double slack = (ga[i] + gb[i]) * EPS + 1e-7;
-        if (used > w[i] + slack) {
+        double used = ga[i] * claim.amountA + gb[i] * claim.amountB;
+        double tolerance = ga[i] * amountTolerance(claim.amountA) +
+                           gb[i] * amountTolerance(claim.amountB) +
+                           EPS * max(1.0, available[i]);
+        if (used > available[i] + tolerance) {
             stream.quitf(_wa,
-                         "material %d exceeds supply: used=%.12f limit=%d",
+                         "material %d exceeds availability: used %.12f available %.12f",
                          i + 1,
                          used,
-                         w[i]);
+                         available[i]);
         }
     }
 
-    double computedValue = x * a + y * b;
-    if (!doubleCompare(computedValue, value, EPS)) {
-        stream.quitf(_wa,
-                     "claimed value %.12f does not match A=%.12f B=%.12f objective %.12f",
-                     value,
-                     a,
-                     b,
-                     computedValue);
-    }
-
-    return {value, a, b, computedValue};
+    return claim;
 }
 
 int main(int argc, char* argv[]) {
     registerTestlibCmd(argc, argv);
 
     n = inf.readInt();
-    x = inf.readInt();
-    y = inf.readInt();
+    xValue = inf.readDouble();
+    yValue = inf.readDouble();
 
     ga.resize(n);
     gb.resize(n);
-    w.resize(n);
-    for (int i = 0; i < n; ++i) ga[i] = inf.readInt();
-    for (int i = 0; i < n; ++i) gb[i] = inf.readInt();
-    for (int i = 0; i < n; ++i) w[i] = inf.readInt();
+    available.resize(n);
 
-    Answer jury = readAnswer(ans);
-    Answer participant = readAnswer(ouf);
+    for (int i = 0; i < n; ++i) ga[i] = inf.readDouble();
+    for (int i = 0; i < n; ++i) gb[i] = inf.readDouble();
+    for (int i = 0; i < n; ++i) available[i] = inf.readDouble();
 
-    if (!doubleCompare(jury.value, participant.value, EPS) ||
-        !doubleCompare(jury.a, participant.a, EPS) ||
-        !doubleCompare(jury.b, participant.b, EPS)) {
-        if (participant.computedValue > jury.computedValue &&
-            !doubleCompare(jury.computedValue, participant.computedValue, EPS)) {
-            quitf(_fail,
-                  "participant found better feasible value: jury=%.12f participant=%.12f",
-                  jury.computedValue,
-                  participant.computedValue);
-        }
-        quitf(_wa,
-              "expected value/A/B %.12f %.12f %.12f, found %.12f %.12f %.12f",
+    Claim jury = readClaim(ans);
+    Claim participant = readClaim(ouf);
+
+    if (participant.value > jury.value && !withinError(jury.value, participant.value)) {
+        quitf(_fail,
+              "participant found better feasible value: jury=%.12f participant=%.12f",
               jury.value,
-              jury.a,
-              jury.b,
+              participant.value);
+    }
+    if (!withinError(jury.value, participant.value)) {
+        quitf(_wa,
+              "expected value %.12f, found %.12f, error %.12f",
+              jury.value,
               participant.value,
-              participant.a,
-              participant.b);
+              doubleDelta(jury.value, participant.value));
+    }
+    if (!withinError(jury.amountA, participant.amountA) ||
+        !withinError(jury.amountB, participant.amountB)) {
+        quitf(_wa,
+              "expected amounts A=%.12f B=%.12f, found A=%.12f B=%.12f",
+              jury.amountA,
+              jury.amountB,
+              participant.amountA,
+              participant.amountB);
     }
 
     quitf(_ok,
-          "value/A/B %.12f %.12f %.12f are within tolerance",
+          "value %.12f with A=%.12f B=%.12f",
           participant.value,
-          participant.a,
-          participant.b);
+          participant.amountA,
+          participant.amountB);
 }

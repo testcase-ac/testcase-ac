@@ -6,34 +6,42 @@ using namespace std;
 
 int n;
 
-struct Answer {
-    long long swaps;
-};
-
 long long countSiftSwaps(vector<int> heap) {
     long long swaps = 0;
-    for (int size = n; size >= 2; --size) {
-        swap(heap[1], heap[size]);
+
+    for (int heapSize = n; heapSize >= 2; --heapSize) {
+        swap(heap[1], heap[heapSize]);
+
         int current = 1;
-        int limit = size - 1;
+        int limit = heapSize - 1;
         while (true) {
-            int child = current * 2;
-            if (child > limit) {
+            int left = current * 2;
+            if (left > limit) {
                 break;
             }
-            if (child + 1 <= limit && heap[child + 1] > heap[child]) {
-                ++child;
+
+            int child = left;
+            int right = left + 1;
+            if (right <= limit && heap[right] > heap[left]) {
+                child = right;
             }
+
             if (heap[current] > heap[child]) {
                 break;
             }
+
             swap(heap[current], heap[child]);
             ++swaps;
             current = child;
         }
     }
+
     return swaps;
 }
+
+struct Answer {
+    long long swaps;
+};
 
 Answer readAnswer(InStream& stream) {
     vector<int> heap(n + 1);
@@ -46,6 +54,7 @@ Answer readAnswer(InStream& stream) {
         }
         seen[heap[i]] = 1;
     }
+
     if (!stream.seekEof()) {
         stream.quitf(_wa, "extra output after heap");
     }
@@ -54,12 +63,18 @@ Answer readAnswer(InStream& stream) {
         int left = i * 2;
         int right = left + 1;
         if (left <= n && heap[i] <= heap[left]) {
-            stream.quitf(_wa, "heap[%d]=%d is not greater than left child heap[%d]=%d",
-                         i, heap[i], left, heap[left]);
+            stream.quitf(_wa,
+                         "heap property fails at index %d: parent=%d left child=%d",
+                         i,
+                         heap[i],
+                         heap[left]);
         }
         if (right <= n && heap[i] <= heap[right]) {
-            stream.quitf(_wa, "heap[%d]=%d is not greater than right child heap[%d]=%d",
-                         i, heap[i], right, heap[right]);
+            stream.quitf(_wa,
+                         "heap property fails at index %d: parent=%d right child=%d",
+                         i,
+                         heap[i],
+                         heap[right]);
         }
     }
 
@@ -77,12 +92,17 @@ int main(int argc, char* argv[]) {
     Answer participant = readAnswer(ouf);
 
     if (participant.swaps < jury.swaps) {
-        quitf(_wa, "jury has better answer: jury=%lld participant=%lld",
-              jury.swaps, participant.swaps);
+        quitf(_wa,
+              "participant heap has fewer sift swaps: participant=%lld jury=%lld",
+              participant.swaps,
+              jury.swaps);
     }
     if (participant.swaps > jury.swaps) {
-        quitf(_fail, "participant found better answer: jury=%lld participant=%lld",
-              jury.swaps, participant.swaps);
+        quitf(_fail,
+              "participant heap has more sift swaps than jury: participant=%lld jury=%lld",
+              participant.swaps,
+              jury.swaps);
     }
-    quitf(_ok, "answer uses %lld sift swaps", participant.swaps);
+
+    quitf(_ok, "sift swaps=%lld", participant.swaps);
 }

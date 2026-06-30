@@ -4,6 +4,7 @@ using namespace std;
 
 int N, M;
 vector<int> parent;
+vector<vector<int>> dist;
 
 // DSU functions
 int findRoot(int x) {
@@ -56,37 +57,65 @@ int main(int argc, char *argv[]) {
     N = inf.readInt();
     M = inf.readInt();
     parent.resize(N+1);
+    dist.assign(N + 1, vector<int>(N + 1, 1000000));
     for (int i = 1; i <= N; i++) parent[i] = i;
+    for (int i = 1; i <= N; i++) dist[i][i] = 0;
     for (int i = 0; i < M; i++) {
         int u = inf.readInt(1, N);
         int v = inf.readInt(1, N);
         unite(u, v);
+        dist[u][v] = dist[v][u] = 1;
     }
     // Compress DSU and count components
     for (int i = 1; i <= N; i++) findRoot(i);
     set<int> roots;
     for (int i = 1; i <= N; i++) roots.insert(parent[i]);
     compCount = (int)roots.size();
+    for (int k = 1; k <= N; ++k) {
+        for (int i = 1; i <= N; ++i) {
+            for (int j = 1; j <= N; ++j) {
+                dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]);
+            }
+        }
+    }
 
     // Read jury and participant answers
     vector<int> juryReps = readAns(ans);
     vector<int> partReps = readAns(ouf);
+    if (!ans.seekEof()) {
+        quitf(_fail, "extra output after jury answer");
+    }
+    if (!ouf.seekEof()) {
+        quitf(_wa, "extra output after participant answer");
+    }
 
-    // Compare
-    if (juryReps != partReps) {
-        // build string representations
-        auto vecToStr = [](const vector<int> &v) {
-            string s;
-            for (int x : v) {
-                if (!s.empty()) s += ' ';
-                s += to_string(x);
+    auto eccentricities = [](const vector<int>& reps) {
+        map<int, int> result;
+        for (int rep : reps) {
+            int root = findRoot(rep);
+            int farthest = 0;
+            for (int v = 1; v <= N; ++v) {
+                if (findRoot(v) == root) {
+                    farthest = max(farthest, dist[rep][v]);
+                }
             }
-            return s;
-        };
-        quitf(_wa,
-              "wrong representatives: expected \"%s\", found \"%s\"",
-              vecToStr(juryReps).c_str(),
-              vecToStr(partReps).c_str());
+            result[root] = farthest;
+        }
+        return result;
+    };
+
+    map<int, int> jury = eccentricities(juryReps);
+    map<int, int> part = eccentricities(partReps);
+    for (auto [root, juryCost] : jury) {
+        int partCost = part[root];
+        if (partCost > juryCost) {
+            quitf(_wa, "component root %d: jury representative has cost %d, participant has cost %d",
+                  root, juryCost, partCost);
+        }
+        if (partCost < juryCost) {
+            quitf(_fail, "component root %d: participant found better representative cost %d than jury cost %d",
+                  root, partCost, juryCost);
+        }
     }
 
     quitf(_ok, "committees = %d", compCount);

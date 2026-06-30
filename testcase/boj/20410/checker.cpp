@@ -2,32 +2,61 @@
 
 using namespace std;
 
-struct Answer {
+struct Claim {
     int a;
     int c;
 };
 
-int m, seedValue, x1, x2;
+enum class StreamRole {
+    Jury,
+    Participant,
+};
 
-bool generatesSequence(const Answer& answer) {
-    return (answer.a * seedValue + answer.c) % m == x1 &&
-           (answer.a * x1 + answer.c) % m == x2;
+int m;
+int seedValue;
+int x1;
+int x2;
+
+long long nextValue(const Claim& claim, int value) {
+    return (1LL * claim.a * value + claim.c) % m;
 }
 
-Answer readAnswer(InStream& stream, TResult invalidResult) {
-    int a = stream.readInt(0, m - 1, "a");
-    int c = stream.readInt(0, m - 1, "c");
+void quitInvalid(InStream& stream, StreamRole role, const char* message) {
+    if (role == StreamRole::Jury) {
+        stream.quitf(_fail, "%s", message);
+    }
+    stream.quitf(_wa, "%s", message);
+}
+
+Claim readClaim(InStream& stream, StreamRole role) {
+    Claim claim;
+    claim.a = stream.readInt(0, m - 1, "a");
+    claim.c = stream.readInt(0, m - 1, "c");
     if (!stream.seekEof()) {
-        stream.quitf(invalidResult, "extra output after a and c");
+        quitInvalid(stream, role, "extra output after a and c");
     }
 
-    Answer answer{a, c};
-    if (!generatesSequence(answer)) {
-        stream.quitf(invalidResult,
-                     "a=%d, c=%d does not generate X_1=%d and X_2=%d",
-                     a, c, x1, x2);
+    long long generatedX1 = nextValue(claim, seedValue);
+    if (generatedX1 != x1) {
+        if (role == StreamRole::Jury) {
+            stream.quitf(_fail, "jury a=%d c=%d generates X_1=%lld instead of %d",
+                         claim.a, claim.c, generatedX1, x1);
+        }
+        stream.quitf(_wa, "a=%d c=%d generates X_1=%lld instead of %d",
+                     claim.a, claim.c, generatedX1, x1);
     }
-    return answer;
+
+    long long generatedX2 = nextValue(claim, x1);
+    if (generatedX2 != x2) {
+        if (role == StreamRole::Jury) {
+            stream.quitf(_fail, "jury a=%d c=%d generates X_2=%lld instead of %d",
+                         claim.a, claim.c, generatedX2, x2);
+        }
+        stream.quitf(_wa, "a=%d c=%d generates X_2=%lld instead of %d",
+                     claim.a, claim.c, generatedX2, x2);
+    }
+
+    return claim;
 }
 
 int main(int argc, char* argv[]) {
@@ -38,8 +67,8 @@ int main(int argc, char* argv[]) {
     x1 = inf.readInt();
     x2 = inf.readInt();
 
-    readAnswer(ans, _fail);
-    Answer participant = readAnswer(ouf, _wa);
+    readClaim(ans, StreamRole::Jury);
+    Claim participant = readClaim(ouf, StreamRole::Participant);
 
-    quitf(_ok, "valid parameters: a=%d, c=%d", participant.a, participant.c);
+    quitf(_ok, "valid a=%d c=%d", participant.a, participant.c);
 }

@@ -11,14 +11,12 @@ vector< vector<char> > adj;
 // On failure, quits with _wa for contestant stream or _fail for jury stream.
 int readAns(InStream &stream) {
     int need = gn / 3;
-    // Read count
-    int k = stream.readInt(need, need, "number of invited friends");
-    vector<int> v(k);
-    for (int i = 0; i < k; i++) {
+    vector<int> v(need);
+    for (int i = 0; i < need; i++) {
         v[i] = stream.readInt(1, gn, ("friend[" + to_string(i+1) + "]").c_str());
     }
     // Check strictly increasing
-    for (int i = 1; i < k; i++) {
+    for (int i = 1; i < need; i++) {
         if (v[i] <= v[i-1]) {
             stream.quitf(_wa,
                 "list is not strictly increasing: friend[%d]=%d after friend[%d]=%d",
@@ -26,8 +24,8 @@ int readAns(InStream &stream) {
         }
     }
     // Check clique: every pair must know each other
-    for (int i = 0; i < k; i++) {
-        for (int j = i+1; j < k; j++) {
+    for (int i = 0; i < need; i++) {
+        for (int j = i+1; j < need; j++) {
             if (!adj[v[i]-1][v[j]-1]) {
                 stream.quitf(_wa,
                     "friends %d and %d do not know each other",
