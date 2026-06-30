@@ -14,8 +14,6 @@ void solve() {
 
     ld r = sqrt(x * x + y * y);
     ld theta = atan2(y, x);
-    if (r == 0) theta = 0;
-    else if (theta < 0) theta += 2 * acosl(-1.0L);
 
     cout << fixed << setprecision(16) << r << ' ' << theta << '\n';
   }

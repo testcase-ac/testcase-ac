@@ -83,6 +83,7 @@ void solve() {
 
   if (ans.size() > m) cout << "0\n";
   else {
+    cout << "1\n";
     int rem = m - ans.size();
     for (int i = 1; i <= n; i++) {
       for (int j = i + 1; j <= n; j++) {
@@ -90,8 +91,7 @@ void solve() {
         if (rem) ans.push_back({i, j, 500}), rem--;
       }
     }
-    while (rem--) ans.push_back({1, 2, 500});
-    cout << "1\n";
+    if (ans.size() < m) return cout << "0\n", void();
     for (auto& [u, v, wgt] : ans) cout << u << ' ' << v << ' ' << wgt << '\n';
   }
 }
