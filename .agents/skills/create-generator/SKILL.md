@@ -44,7 +44,7 @@ If the problem path is missing, ask before editing.
 4. Run the quick generator check:
 
    ```bash
-   .agents/skills/create-generator/scripts/check-generator.sh testcase/<type>/<id> generator_name.cpp 100
+   .agents/skills/create-generator/scripts/check-generator.sh testcase/<type>/<id> generator_name.cpp
    ```
 
    The script builds the stresser Docker runtime when needed, compiles the generator inside that runtime, runs it once per seed, and fails if any run emits empty output. If `validator.cpp` exists, it also compiles the validator and validates every generated case. The generator filename may be omitted only when the problem directory has exactly one `generator*.cpp` candidate.

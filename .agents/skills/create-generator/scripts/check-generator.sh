@@ -23,7 +23,7 @@ esac
 shift
 
 generator_file="${1:-}"
-runs="${2:-100}"
+runs="${2:-1000}"
 generator_timeout_seconds="${GENERATOR_RUN_TIMEOUT_SECONDS:-5}"
 validator_timeout_seconds="${VALIDATOR_RUN_TIMEOUT_SECONDS:-5}"
 
