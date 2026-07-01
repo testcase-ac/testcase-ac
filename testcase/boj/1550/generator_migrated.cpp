@@ -36,7 +36,11 @@ string random_hex() {
 	string res = "";
 	
 	for (int i = 0; i < len; i++) {
-		res += hex_chars[dist(gen)];
+		if (i == 0 && len > 1) {
+			res += hex_chars[uniform_int_distribution<>(1, 15)(gen)];
+		} else {
+			res += hex_chars[dist(gen)];
+		}
 	}
 	return res;
 }

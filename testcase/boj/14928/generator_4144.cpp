@@ -21,13 +21,18 @@ int main(int argc, char* argv[]) {
                 s += char('0' + rnd.next(0, 9));
             break;
         case 1:
-            // Random digits, allow leading zeros
-            for (int i = 0; i < L; i++)
+            // Random canonical decimal digits.
+            if (L == 1) {
                 s += char('0' + rnd.next(0, 9));
+            } else {
+                s += char('1' + rnd.next(0, 8));
+                for (int i = 1; i < L; i++)
+                    s += char('0' + rnd.next(0, 9));
+            }
             break;
         case 2:
-            // All zeros
-            s = string(L, '0');
+            // Canonical zero.
+            s = "0";
             break;
         case 3:
             // Repeating the pattern "20000303"
