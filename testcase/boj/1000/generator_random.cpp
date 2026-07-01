@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
     }
     std::uint64_t seed = std::strtoull(argv[1], nullptr, 10);
     std::mt19937_64 rng(seed);
-    std::uniform_int_distribution<int> dist(1, 10000);
+    std::uniform_int_distribution<int> dist(1, 9);
     std::printf("%d %d\n", dist(rng), dist(rng));
     return 0;
 }

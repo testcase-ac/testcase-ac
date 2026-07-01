@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
 	mt19937 rng(seedRng());
 	uniform_int_distribution<int> xd(-1000,1000);
 	uniform_int_distribution<int> yd(1,1000);
-	int T=rand()%10;
+	int T=rand()%10+1;
 	cout<<T<<'\n';
 	for(int i=0;i<T;i++) {
 		int x1=xd(rng),y1=yd(rng);

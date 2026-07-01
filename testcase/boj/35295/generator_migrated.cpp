@@ -11,13 +11,16 @@ int main(int argc,char*argv[]) {
 	    cout<<"2\n";
 	    if(rnd.next(0,1)) cout<<"1 "<<p[rnd.next(0,167)];
 	    else cout<<p[rnd.next(0,167)]<<" 1";
+	    cout<<'\n';
+	    return 0;
 	} cout<<n<<'\n';
 	while(n--) {
-        int t;
-        while(1) {
-            t=rnd.next(1,1000);
-            if(!b[t]) {b[t]=1;break;}
-        } cout<<t;
+	    int t;
+	    while(1) {
+	        t=rnd.next(1,1000);
+	        if(!b[t]) {b[t]=1;break;}
+	    } cout<<t;
 	    if(n) cout<<' ';
 	}
+	cout<<'\n';
 }

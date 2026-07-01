@@ -7,7 +7,7 @@ int main(int argc, char* argv[]) {
     int n = rnd.next(1, 10);             // number of minutes
     int maxEntry = rnd.next(0, 20);      // upper bound for entries per minute
     int maxExit = rnd.next(0, 20);       // upper bound for exits per minute
-    int m = rnd.next(0, 20);             // initial cars in tunnel
+    int m = rnd.next(1, 20);             // initial cars in tunnel
     bool enforceNoNeg = rnd.next(0, 1) == 0;
     int weightEntry = rnd.next(-2, 2);   // weighting for entry distribution
     int weightExit = rnd.next(-2, 2);    // weighting for exit distribution

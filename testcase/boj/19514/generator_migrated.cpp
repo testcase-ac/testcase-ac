@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
     initSeed(argc, argv);
 	random_device rd;
 	mt19937 g(rd());
-	int t=rand()%10;
+	int t=uniform_int_distribution<int>(1,10)(g);
 	cout<<t<<'\n';
 	for(int i=0;i<t;i++) {
 		int n=uniform_int_distribution<int>(1,100000)(g);

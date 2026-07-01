@@ -4,8 +4,8 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
     registerGen(argc, argv, 1);
-    // Number of test cases between 1 and 10
-    int T = rnd.next(1, 10);
+    // The Large input format fixes the number of test cases at 10.
+    int T = 10;
     println(T);
     for (int tc = 0; tc < T; tc++) {
         // Ensure at least one smallest and one largest case if possible
