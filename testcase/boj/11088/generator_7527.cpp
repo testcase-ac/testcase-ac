@@ -74,6 +74,7 @@ int main(int argc, char* argv[]) {
         // Remove duplicates in understands[i]
         sort(understands[i].begin(), understands[i].end());
         understands[i].erase(unique(understands[i].begin(), understands[i].end()), understands[i].end());
+        understands[i].erase(remove(understands[i].begin(), understands[i].end(), speaks[i]), understands[i].end());
         for (auto &u : understands[i]) fields.push_back(u);
         println(fields);
     }

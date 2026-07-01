@@ -3,6 +3,7 @@
 #include <random>
 #include <cstdlib>
 #include <chrono>
+#include <vector>
 using namespace std;
 
 static std::mt19937_64 seedRng;
@@ -30,6 +31,7 @@ int main(int argc, char* argv[]) {
     mt19937 gen(rd());
     uniform_int_distribution<int> distn(1,8);
     int n=distn(gen);
+    int N=n;
     uniform_int_distribution<int> distm(1,n);
     cout<<n<<' '<<distm(gen)<<'\n';
     uniform_int_distribution<int> dist(1,10000);
@@ -42,6 +44,10 @@ int main(int argc, char* argv[]) {
                 break;
             }
         }
-    } for(int i=0;i<v.size()-1;i++) cout<<v[i]<<' ';
-    cout<<v[n-1];
+    }
+    for(int i=0;i<N;i++) {
+        if(i) cout<<' ';
+        cout<<v[i];
+    }
+    cout<<'\n';
 }
