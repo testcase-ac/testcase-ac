@@ -3,6 +3,7 @@ package verify
 import (
 	"context"
 	"fmt"
+	"hash/maphash"
 	"strings"
 	"time"
 
@@ -82,6 +83,11 @@ type testInput struct {
 	Filename string
 	Seed     *int
 	Answer   *loader.AnswerFile
+}
+
+type outputFingerprint struct {
+	hash uint64
+	size int
 }
 
 type compiledFiles map[string]*executor.CompiledProgram
@@ -279,7 +285,8 @@ func (v verifier) verifyInputs(ctx context.Context, report *VerifyReport, proble
 		if program == nil {
 			continue
 		}
-		seen := map[string]struct{}{}
+		fingerprintSeed := maphash.MakeSeed()
+		seen := make(map[outputFingerprint]struct{}, GeneratorRuns)
 		var firstSeedOutput string
 		for seed := 0; seed < GeneratorRuns; seed++ {
 			output, ok := v.runGenerator(ctx, report, generator.Filename, *program, seed)
@@ -293,7 +300,7 @@ func (v verifier) verifyInputs(ctx context.Context, report *VerifyReport, proble
 					report.AddFinding(SeverityError, StageGenerator, generator.Filename, &seed, "generator output changed for the same seed", firstSeedOutput, repeat)
 				}
 			}
-			seen[output] = struct{}{}
+			seen[fingerprintOutput(fingerprintSeed, output)] = struct{}{}
 			s := seed
 			inputs.verify(ctx, testInput{Content: output, Filename: generator.Filename, Seed: &s})
 		}
@@ -314,6 +321,10 @@ func (v verifier) runGenerator(ctx context.Context, report *VerifyReport, filena
 		return "", false
 	}
 	return output, true
+}
+
+func fingerprintOutput(seed maphash.Seed, output string) outputFingerprint {
+	return outputFingerprint{hash: maphash.String(seed, output), size: len(output)}
 }
 
 func limitsFor(problem loader.Problem, language contracts.Language) executor.Limits {
