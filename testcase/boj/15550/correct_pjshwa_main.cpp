@@ -2,14 +2,9 @@
 
 using namespace std;
 int main() {
-    long long a = 9007199254740992;
-    double b = 9007199254740992.0;
-    long long c = 9007199254740993;
-    if (a == b && b == c && c != a) {
-        cout << "true" << '\n';
-    } else {
-        cout << "false" << '\n';
-    }
+    cout << "long long 9007199254740992\n";
+    cout << "double 9007199254740992.0\n";
+    cout << "long long 9007199254740993\n";
     return 0;
 }
 
