@@ -36,12 +36,13 @@ Only the provided statement and repo-local policy define validity. Existing solu
 
 ### Answer-Related Guarantees
 
-Validate answer-related properties only when the statement presents them as guarantees about every valid input.
+When the statement guarantees or assumes a property of the computed answer for every valid input, treat it as an input constraint; validate it by computing or soundly bounding the derived quantity when practical.
 
 Examples:
 
 - If the statement says an answer always exists, validate existence.
 - If the statement says the answer is at most `X`, compute enough to validate that bound.
+- If the statement says the answer fits in a fixed numeric type, validate the derived answer range when it is practical to do so exactly or by a sound bound.
 - If the statement asks contestants to decide whether an answer exists, accept both existence and non-existence cases that satisfy the rest of the input contract.
 
 ### What Validators Must Not Do
