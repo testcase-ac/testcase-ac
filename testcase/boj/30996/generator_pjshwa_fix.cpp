@@ -3,12 +3,26 @@
 using namespace std;
 using ll = long long;
 
+int chooseN() {
+  int mode = rnd.next(0, 2);
+  if (mode == 0) return rnd.next(1, 5);
+  if (mode == 1) return rnd.next(6, 30);
+  return rnd.next(31, 100);
+}
+
+int chooseMQ() {
+  int mode = rnd.next(0, 2);
+  if (mode == 0) return rnd.next(1, 30);
+  if (mode == 1) return rnd.next(31, 500);
+  return rnd.next(501, 5000);
+}
+
 int main(int argc, char* argv[]){
   registerGen(argc, argv, 1);
 
-  int N = atoi(argv[1]);
-  int M = atoi(argv[2]);
-  int Q = atoi(argv[3]);
+  int N = chooseN();
+  int M = chooseMQ();
+  int Q = chooseMQ();
 
   cout << N << ' ' << M << ' ' << Q << '\n';
 

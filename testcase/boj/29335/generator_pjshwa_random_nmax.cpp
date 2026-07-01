@@ -5,8 +5,8 @@ using namespace std;
 int main(int argc, char* argv[]){
   registerGen(argc, argv, 1);
 
-  int method_X = atoi(argv[1]);
-  int method_Y = atoi(argv[2]);
+  int method_X = rnd.next(0, 2);
+  int method_Y = rnd.next(0, 2);
 
   int N = 3e5, MAX = 1e9;
   printf("%d\n", N);
