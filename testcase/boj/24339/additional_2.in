@@ -1,0 +1,8 @@
+1 6
+1 ROOT
+ADD 1 1 => 1
+ADD 2 1 -> 1
+M
+REMOVE 1
+ADD 1 1 -> 1
+m

@@ -1,0 +1,14 @@
+2 11
+5 ROOT
+1 -
+MADE 6 ROOT
+MADE 2 -
+ADD 1 5 -> 2
+MADE 3 -
+ADD 2 5 => 3
+MADE 4 -
+ADD 4 2 => 4
+ADD 3 3 -> 4
+ADD 10 1 => 6
+m
+M

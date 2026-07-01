@@ -1,0 +1,11 @@
+2 8
+1 ROOT
+2 -
+ADD 1 1 => 2
+ADD 2 1 => 2
+ADD 3 1 -> 2
+M
+REMOVE 1
+M
+REMOVE 2
+M

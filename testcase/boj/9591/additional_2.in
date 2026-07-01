@@ -1,0 +1,13 @@
+4 4
+0 0 0
+1 0 0
+2 0 0
+2 3 4
+0 1 lift
+1 2 stairs
+2 3 walking
+3 1 escalator
+3
+0 3
+3 0
+2 2
