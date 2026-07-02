@@ -182,30 +182,7 @@ int main(int argc, char* argv[]) {
 - Use `long long` or wider arithmetic for computed scores, sums, products, and path costs.
 - Write diagnostic messages that include the failing field, index, and values.
 
-## Targeted Cases
+## Checker Efficiency
 
-Before reporting success, run a few scratch cases against the checker. Keep these cases small and purpose-built; do not add them to the problem directory unless the user explicitly asks for persistent evidence.
-
-Use expected verdicts:
-
-- `accepted`: checker should return accepted.
-- `rejected`: checker should reject participant output with wrong-answer or presentation-error.
-- `wrong-answer`: checker should return wrong-answer specifically.
-- `presentation-error`: checker should return presentation-error specifically.
-- `fail`: checker should return checker failure.
-
-Use `rejected` for most bad participant-output cases so the check is not fragile to whether testlib reports malformed output as wrong-answer or presentation-error.
-
-For tolerance, tie, witness, or multiple-answer problems, include an accepted case where participant output differs from jury output but is still valid under the statement. For floating tolerance, include one value close to the tolerance boundary and one outside it. For tie or multiple-witness output, include a different valid tie/witness when a small case can provide one.
-
-## Narrow Gate
-
-Run:
-
-```bash
-.agents/skills/create-checker/scripts/check-checker-case.sh testcase/<type>/<id> <expected> <input-file> <participant-file> <jury-file>
-```
-
-This compiles `checker.cpp` in the same Docker runtime used by testcase.ac checks and runs one explicit `(input, participant output, jury output, expected verdict)` case. Repeat it for each targeted case.
-
-Do not use full `./tests/verify/run_problems.sh testcase/<type>/<id>` as the checker completion criterion. Full verification is a broad integration pass that can fail for unrelated providers, validators, answer files, or correct solutions, and a permissive checker can still pass it.
+- Design for the maximum valid output size, and aim for worst-case checker runtime under a few seconds.
+- Avoid per-node traversals, all-pairs checks, or repeated scans unless the statement bounds make the total work safe.

@@ -44,7 +44,7 @@ If the problem path is missing, ask before editing.
    - Include at least one rejected participant-output case.
    - Include an accepted case whose participant output differs from jury output when the statement permits multiple valid outputs, tolerance, or flexible coordinates.
    - Include one fail case when the checker validates a jury certificate, feasibility decision, or optimization value.
-7. Run the narrow checker gate:
+7. Run the narrow checker gate for every targeted case. It compiles `checker.cpp` in the Docker runtime and runs one explicit `(input, participant output, jury output, expected verdict)` case:
 
    ```bash
    .agents/skills/create-checker/scripts/check-checker-case.sh testcase/<type>/<id> <expected> <input-file> <participant-file> <jury-file>
