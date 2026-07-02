@@ -136,6 +136,8 @@ For floating-output problems, compare participant output to jury output using th
 
 This applies to high-precision decimal and rational-style scalar outputs too. Parse `ans` and `ouf` with enough precision for the statement tolerance, then compare the participant value to the jury value.
 
+Do not hard-bound `ouf` by the guaranteed answer range before tolerance. Example: if the true answer is guaranteed `<= M`, `ans = M`, and relative error is allowed, `ouf > M` may still be accepted if it is within tolerance.
+
 Use `doubleCompare` when the statement allows absolute-or-relative error. If the statement defines only absolute error, only relative error, percentage error, or another custom tolerance, implement that rule directly.
 
 This runnable example checks one floating value where the statement allows absolute or relative error at most `1e-2`:
