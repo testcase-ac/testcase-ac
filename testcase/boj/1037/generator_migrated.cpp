@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     initSeed(argc, argv);
 	random_device r;
 	mt19937_64 g(r());
-	uniform_int_distribution<int> d(4,2147483647);
+	uniform_int_distribution<int> d(4,1000000);
 	int k=0;
 	while(1) {
 		int n=d(g);
@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
 				} v.push_back(i);
 				if(i!=n/i) v.push_back(n/i);
 			}
-		} if(ok&&v.size()&&(k>10||v.size()>2)) {
+		} if(ok&&v.size()<=50&&(k>10||v.size()>2)) {
 			cout<<v.size()<<'\n';
 			random_shuffle(v.begin(),v.end());
 			for(int i=0;i<v.size()-1;i++) cout<<v[i]<<' ';
