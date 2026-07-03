@@ -47,3 +47,7 @@ __pycache__/
 .scripts/
 
 tmp/*
+
+.cph
+*.bin
+*.bin.dSYM
