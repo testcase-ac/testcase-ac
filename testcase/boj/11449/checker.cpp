@@ -72,6 +72,15 @@ bool canCompleteTrip(const TestCase& tc, int station) {
     return true;
 }
 
+bool hasValidStart(const TestCase& tc) {
+    long long balance = 0;
+    for (int i = 0; i < tc.n; ++i) {
+        balance += tc.gas[i];
+        balance -= tc.dist[i];
+    }
+    return balance >= 0;
+}
+
 vector<Claim> readOutput(InStream& stream, bool juryStream) {
     vector<Claim> result;
     result.reserve(cases.size());
@@ -108,18 +117,21 @@ int main(int argc, char* argv[]) {
         const TestCase& current = cases[tc - 1];
         const Claim& expected = jury[tc - 1];
         const Claim& actual = participant[tc - 1];
+        bool possible = hasValidStart(current);
 
         if (!expected.impossible && !canCompleteTrip(current, expected.station)) {
             quitf(_fail, "test case %d: jury station %d cannot complete the trip",
                   tc, expected.station);
         }
+        if (expected.impossible && possible) {
+            quitf(_fail, "test case %d: jury says IMPOSSIBLE, but a trip is possible", tc);
+        }
 
         if (actual.impossible) {
-            if (expected.impossible) {
+            if (!possible) {
                 continue;
             }
-            quitf(_wa, "test case %d: participant says IMPOSSIBLE, but jury gives station %d",
-                  tc, expected.station);
+            quitf(_wa, "test case %d: participant says IMPOSSIBLE, but a trip is possible", tc);
         }
 
         if (!canCompleteTrip(current, actual.station)) {
