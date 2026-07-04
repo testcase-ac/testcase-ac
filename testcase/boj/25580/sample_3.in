@@ -1,0 +1,15 @@
+4
+ABAD
+DDDD
+BBBB
+CCCC
+1 1 2 1
+1 1 2 1
+3 3 3 3
+1 1 1 4
+0 0 0 1 dp greedy 0 0 0 0 0 0
+0 0 0 1 dp sort 1 graph dfs 1 sort 0
+0 0 0 1 greedy sort 0 0 0 1 sort dp
+0 0 0 0 0 0 0 0 0 1 bfs graph
+1
+dp

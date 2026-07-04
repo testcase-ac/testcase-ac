@@ -1,0 +1,11 @@
+2 1
+6 6
+(0,1) (0,2) (0,3) (1,3) (1,2) (0,2)
+(1,1) (1,2) (1,3) (1,4) (1,5) (1,6)
+400 L1 FIRST
+5
+0.001 BALLOON Camo Red Balloon 1 1
+0.002 BALLOON Camo Red Balloon 2 1
+0.003 BALLOON Camo Red Balloon 4 1
+0.005 BALLOON Camo Red Balloon 7 1
+0.015 BALLOON Red Balloon 3 1

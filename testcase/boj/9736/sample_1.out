@@ -1,0 +1,5 @@
+ProblemID C1: a3b1 * a2b1 = a1b0
+ProblemID C1: a5b1 * a3b1 = a2b0
+ProblemID C1: a2b1 * a4b1 = a5b0
+ProblemID C2: a3b1 * a2b1 = a1b2
+ProblemID C2: a4b1 * a3b1 = a1b2
