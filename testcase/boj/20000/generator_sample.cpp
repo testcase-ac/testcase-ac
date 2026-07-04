@@ -1,0 +1,9 @@
+#include "testlib.h"
+
+int main(int argc, char* argv[]) {
+    registerGen(argc, argv, 1);
+
+    println(rnd.next(0, 9));
+
+    return 0;
+}

@@ -1,0 +1,24 @@
+4 3
+22
+New A
+New B
+New azAZ09_
+SetProperty A POSITION -1 0
+SetProperty B POSITION 2 1
+New AA
+New AB
+SetProperty AA ANCHOR_POINT 1 1
+SetProperty AA POSITION 1 1
+SetProperty AA SIZE 2 2
+SetProperty AB SIZE 2 2
+SetProperty AB COLOR 2
+Add Window A
+Add Window B
+GetProperty AB COLOR
+Add A AA
+Add A AB
+Add A AA
+Add A AB
+Add A AA
+GetProperty AB SCREEN_POSITION
+Add B A

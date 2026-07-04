@@ -1,0 +1,22 @@
+5 6
+20
+New A
+Add Window A
+SetProperty A SIZE 2 3
+SetProperty A POSITION 1 2
+SetProperty A COLOR 2
+New B
+Add A B
+SetProperty B SIZE 5 4
+SetProperty B POSITION 6 -2
+SetProperty B COLOR 3
+GetProperty B SCREEN_POSITION
+SetProperty A ANCHOR_POINT 1 0
+GetProperty B SCREEN_POSITION
+SetProperty B PARENT_ORIGIN 0 1
+GetProperty B SCREEN_POSITION
+SetProperty B ANCHOR_POINT 1 1
+GetProperty B SCREEN_POSITION
+SetProperty A PARENT_ORIGIN 1 1
+GetProperty B SCREEN_POSITION
+SetProperty A PARENT_ORIGIN 0 0

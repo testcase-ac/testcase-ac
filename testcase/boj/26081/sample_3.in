@@ -1,0 +1,14 @@
+3 3
+12
+New New
+New Add
+New SIZE
+New POSITION
+Add Window Add
+SetProperty POSITION SIZE 100000 100000
+SetProperty SIZE POSITION -100000 -100000
+GetProperty SIZE POSITION
+GetProperty POSITION SIZE
+GetProperty POSITION POSITION
+Add Add POSITION
+Add New Add

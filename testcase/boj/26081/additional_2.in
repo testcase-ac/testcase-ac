@@ -1,0 +1,13 @@
+50 50
+11
+New A
+New B
+SetProperty A POSITION -100000 100000
+SetProperty A SIZE 100000 0
+SetProperty A COLOR 9
+SetProperty A PARENT_ORIGIN 1 0
+SetProperty A ANCHOR_POINT 0 1
+Add A B
+Remove Window B
+Unparent B
+GetProperty A SCREEN_POSITION

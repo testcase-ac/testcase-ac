@@ -1,0 +1,41 @@
+4 6
+39
+New A1
+New A2
+New B3
+New B4
+SetProperty A1 SIZE 2 2
+SetProperty A2 SIZE 2 2
+SetProperty B3 SIZE 2 2
+SetProperty B4 SIZE 2 2
+SetProperty A1 COLOR 1
+SetProperty A2 COLOR 2
+SetProperty B3 COLOR 3
+SetProperty B4 COLOR 4
+SetProperty A1 POSITION 1 0
+SetProperty A2 POSITION -1 1
+SetProperty B3 POSITION 1 2
+SetProperty B4 POSITION 1 1
+Add A1 A2
+Add B3 B4
+Add Window A1
+Add Window B3
+GetProperty A1 SCREEN_POSITION
+GetProperty A2 SCREEN_POSITION
+GetProperty B3 SCREEN_POSITION
+GetProperty B4 SCREEN_POSITION
+Remove Window B4
+GetProperty B4 SCREEN_POSITION
+Remove Window B3
+GetProperty B3 SCREEN_POSITION
+GetProperty B4 SCREEN_POSITION
+Unparent B4
+Unparent B4
+Add Window B3
+GetProperty B3 SCREEN_POSITION
+GetProperty B4 SCREEN_POSITION
+Add A2 B4
+GetProperty B4 SCREEN_POSITION
+Add Window B4
+GetProperty B4 SCREEN_POSITION
+Add B3 B4
