@@ -99,20 +99,19 @@ void validateSequence(InStream& stream, const vector<int>& sequence, TResult ver
 Output readOutput(InStream& stream, TResult verdict) {
     string first = stream.readToken();
     if (first == "-1") {
-        if (!stream.seekEof()) {
-            stream.quitf(verdict, "extra output after -1");
-        }
+        stream.readEoln();
+        stream.readEof();
         return {true, {}};
     }
 
     vector<int> sequence(n);
     sequence[0] = parseIntToken(stream, first, 1, verdict);
     for (int i = 1; i < n; ++i) {
-        sequence[i] = stream.readInt(1, n, format("sequence[%d]", i + 1).c_str());
+        stream.readSpace();
+        sequence[i] = parseIntToken(stream, stream.readToken(), i + 1, verdict);
     }
-    if (!stream.seekEof()) {
-        stream.quitf(verdict, "extra output after sequence");
-    }
+    stream.readEoln();
+    stream.readEof();
 
     validateSequence(stream, sequence, verdict);
     return {false, sequence};

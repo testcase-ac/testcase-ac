@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <unistd.h>
-#include <sys/syscall.h>
 #include <algorithm>
 using namespace std;
 
@@ -11,7 +9,7 @@ namespace FIO {
 
     inline char readByte() {
         if (ptr == buffer + BUFFER_SIZE) {
-            syscall(0x00, 0, buffer, BUFFER_SIZE);
+            fread(buffer, 1, BUFFER_SIZE, stdin);
             ptr = buffer;
         }
         return *(ptr++);
@@ -54,14 +52,15 @@ namespace FIO {
         if (end < outbuf + BUFFER_SIZE) outp = end;
         else
         {
-            syscall(0x01, 1, outbuf, end - outbuf);
+            fwrite(outbuf, 1, end - outbuf, stdout);
             outp = outbuf;
         }
     }
 
     void flush()
     {
-        syscall(0x01, 1, outbuf, outp - outbuf);
+        fwrite(outbuf, 1, outp - outbuf, stdout);
+        fflush(stdout);
     }
 };
 

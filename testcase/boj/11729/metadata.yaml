@@ -3,3 +3,5 @@ externalLink: "https://www.acmicpc.net/problem/11729"
 timeLimitMs: 1000
 memoryLimitMb: 256
 isSpecialJudge: false
+codes:
+  correct_pjshwa_main.py: pypy3

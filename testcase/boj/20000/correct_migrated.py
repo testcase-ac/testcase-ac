@@ -220,7 +220,7 @@ def o7():
 
 def o8():
     bits=[0]*4782969
-    sys.setrecursionlimit(1000000)
+    sys.setrecursionlimit(10000)
     def n81(s,n):
         if n==1:
             bits[s]=1
