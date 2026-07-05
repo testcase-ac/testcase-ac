@@ -5,5 +5,5 @@ memoryLimitMb: 128
 isSpecialJudge: false
 
 authors:
-  correct_migrated.cpp: "PKEarth"
+  rejected_migrated.cpp: "PKEarth"
   generator_migrated.cpp: "PKEarth"

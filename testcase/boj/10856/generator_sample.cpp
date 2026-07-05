@@ -100,7 +100,26 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    bool hasCallers = false;
+    for (const Method& method : methods) {
+        if (!method.callers.empty()) {
+            hasCallers = true;
+            break;
+        }
+    }
+    if (!hasCallers) {
+        methods[0].callers.push_back(0);
+    }
+
     shuffle(methods.begin(), methods.end());
+    if (methods.back().callers.empty()) {
+        for (int i = 0; i + 1 < n; ++i) {
+            if (!methods[i].callers.empty()) {
+                swap(methods[i], methods.back());
+                break;
+            }
+        }
+    }
     println(n);
     for (Method& method : methods) {
         shuffle(method.callers.begin(), method.callers.end());

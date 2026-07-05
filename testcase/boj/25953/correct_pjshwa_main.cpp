@@ -16,7 +16,7 @@ void solve() {
 
   for (int i = 1; i <= t; ++i) {
     int ndist[n + 1];
-    for (int j = 1; j <= n; ++j) ndist[j] = cdist[j];
+    for (int j = 0; j < n; ++j) ndist[j] = cdist[j];
 
     for (int j = 0; j < m; ++j) {
       int u, v, w; cin >> u >> v >> w;
@@ -24,7 +24,7 @@ void solve() {
       ndist[u] = min(ndist[u], cdist[v] + w);
     }
 
-    for (int j = 1; j <= n; ++j) cdist[j] = ndist[j];
+    for (int j = 0; j < n; ++j) cdist[j] = ndist[j];
   }
 
   if (cdist[e] == INF) cout << "-1\n";

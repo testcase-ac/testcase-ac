@@ -12,9 +12,15 @@ int main(int argc, char* argv[]) {
     int m = inf.readInt(n + 1, 999, "M");
     inf.readEoln();
 
-    vector<int> h = inf.readInts(n, 1, 99, "H_i");
-    (void)h;
-    inf.readEoln();
+    if (n == 0) {
+        if (!inf.eof()) {
+            inf.readEoln();
+        }
+    } else {
+        vector<int> h = inf.readInts(n, 1, 99, "H_i");
+        (void)h;
+        inf.readEoln();
+    }
 
     inf.readEof();
 }

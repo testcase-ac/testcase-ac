@@ -47,8 +47,8 @@ void solve() {
   int n_even = max_prefix_match(S, S_even);
   int n_odd  = max_prefix_match(S, S_odd);
 
-  int ans = max(2 * n_even, 2 * n_odd + 1);
-  cout << "Result: " << ans << endl;
+  int ans = min(static_cast<int>(S.size()), max(2 * n_even, 2 * n_odd + 1));
+  cout << ans << endl;
 }
 
 int main() {

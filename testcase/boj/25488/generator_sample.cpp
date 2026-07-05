@@ -90,8 +90,6 @@ int main(int argc, char* argv[]) {
 
     int p;
     if (rnd.next(0, 9) == 0) {
-        p = 0;
-    } else if (rnd.next(0, 9) == 0) {
         p = n;
     } else {
         p = rnd.next(1, n);

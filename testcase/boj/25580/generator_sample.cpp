@@ -115,7 +115,13 @@ int main(int argc, char* argv[]) {
     if (initial.empty()) {
         println("");
     } else {
-        println(initial);
+        for (int i = 0; i < (int)initial.size(); ++i) {
+            if (i > 0) {
+                cout << ' ';
+            }
+            cout << initial[i];
+        }
+        cout << '\n';
     }
 
     return 0;

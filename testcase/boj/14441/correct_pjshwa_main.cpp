@@ -33,6 +33,7 @@ matrix operator * (const matrix &a, const matrix &b) {
 
 matrix id;
 matrix exp_sum(const matrix &a, ll K) {
+  if (K == 0) return matrix(a.size(), vector<ll>(a.size()));
   if (K == 1) return a;
 
   ll h = K / 2;

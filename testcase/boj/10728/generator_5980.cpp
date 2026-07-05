@@ -10,19 +10,13 @@ int main(int argc, char* argv[]) {
     int T = rnd.next(3, 7);
     vector<int> Ns;
 
-    // Always include edge cases 1 and 100
+    // Always include edge cases for the first subproblem.
     Ns.push_back(1);
-    Ns.push_back(100);
+    Ns.push_back(20);
 
-    // Fill remaining cases with a mix of small and medium/large N
+    // Fill remaining cases within the 10728 limit.
     for (int i = 2; i < T; i++) {
-        if (rnd.next() < 0.5) {
-            // small N for subtask1
-            Ns.push_back(rnd.next(2, 20));
-        } else {
-            // medium to large N for full task
-            Ns.push_back(rnd.next(21, 100));
-        }
+        Ns.push_back(rnd.next(2, 20));
     }
 
     // Shuffle to randomize order

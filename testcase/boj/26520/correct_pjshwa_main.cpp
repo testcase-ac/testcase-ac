@@ -84,11 +84,6 @@ ll calc_area6(int i) {
   return (rhs - lhs);
 }
 
-void print_func(int i) {
-  auto [a, b, c] = func[i];
-  cout << a << "x^2 + " << b << "x + " << c << '\n';
-}
-
 void solve() {
   int N;
   cin >> N;
@@ -98,8 +93,6 @@ void solve() {
   for (int i = 0; i < N; i++) {
     calc_func(i);
     area6.update(i, calc_area6(i));
-    cout << "i = " << i << ", P[i] = " << P[i] << ", area6 = " << calc_area6(i) << '\n';
-    print_func(i);
   }
 
   int Q;
@@ -109,13 +102,11 @@ void solve() {
     cin >> op >> x >> y;
     if (op == 1) {
       A[x] = y;
-      for (int i = x - 1; i <= N; i++) {
+      for (int i = x - 1; i < N; i++) {
         if (i < 0) continue;
 
         calc_func(i);
         area6.update(i, calc_area6(i));
-        cout << "i = " << i << ", P[i] = " << P[i] << ", area6 = " << calc_area6(i) << '\n';
-        print_func(i);
       }
     }
     if (op == 2) {

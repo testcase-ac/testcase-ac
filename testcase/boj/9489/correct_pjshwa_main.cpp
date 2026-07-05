@@ -20,7 +20,7 @@ void solve() {
   tq.push(0);
   parent[0] = -1;
 
-  int last = a[1] - 1, target;
+  int last = a[1] - 1, target = 0;
   for (int i = 1; i < n; i++) {
     if (last + 1 < a[i]) tq.pop();
 

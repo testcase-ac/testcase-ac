@@ -11,18 +11,14 @@ vector<int> a;
 
 struct Output {
     int claimedLength;
-    bool hasWitness;
 };
 
-Output readOutput(InStream& stream, bool requireWitness) {
+Output readOutput(InStream& stream) {
     int r = stream.readInt(1, n, "R");
 
     vector<int> indices;
     if (stream.seekEof()) {
-        if (requireWitness) {
-            stream.quitf(_wa, "missing sequence of selected indices");
-        }
-        return {r, false};
+        stream.quitf(_wa, "missing sequence of selected indices");
     }
 
     indices.reserve(r);
@@ -49,7 +45,7 @@ Output readOutput(InStream& stream, bool requireWitness) {
     if (!stream.seekEof()) {
         stream.quitf(_wa, "extra output after selected indices");
     }
-    return {static_cast<int>(indices.size()), true};
+    return {static_cast<int>(indices.size())};
 }
 
 int main(int argc, char* argv[]) {
@@ -61,8 +57,8 @@ int main(int argc, char* argv[]) {
         a[i] = inf.readInt(1, 100000000, format("A[%d]", i).c_str());
     }
 
-    Output jury = readOutput(ans, false);
-    Output participant = readOutput(ouf, true);
+    Output jury = readOutput(ans);
+    Output participant = readOutput(ouf);
 
     if (participant.claimedLength < jury.claimedLength) {
         quitf(_wa,

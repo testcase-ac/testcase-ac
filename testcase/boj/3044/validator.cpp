@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
         inf.readSpace();
         int B = inf.readInt(1, N, "B_i");
         inf.readEoln();
-        // Self-loops are allowed by problem statement
+        ensuref(A != B, "road endpoints must be different");
         // Multiple edges are allowed by problem statement
     }
 

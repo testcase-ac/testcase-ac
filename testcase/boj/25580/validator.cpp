@@ -1,7 +1,6 @@
 #include "testlib.h"
 
 #include <set>
-#include <sstream>
 #include <string>
 #include <vector>
 using namespace std;
@@ -25,16 +24,6 @@ static void addAlgorithm(const string& s, set<string>& algorithms, const char* f
     ensuref(isAlgorithmName(s), "%s must be 0 or a lowercase algorithm name of length 1..20: %s",
             field, s.c_str());
     algorithms.insert(s);
-}
-
-static vector<string> splitWords(const string& line) {
-    vector<string> words;
-    stringstream ss(line);
-    string word;
-    while (ss >> word) {
-        words.push_back(word);
-    }
-    return words;
 }
 
 int main(int argc, char* argv[]) {
@@ -83,18 +72,20 @@ int main(int argc, char* argv[]) {
     int a = inf.readInt(0, 4, "a");
     inf.readEoln();
 
-    string initialLine = inf.readLine("[a-z\\ ]{0,83}", "initial_algorithms");
-    vector<string> initialAlgorithms = splitWords(initialLine);
-    ensuref((int)initialAlgorithms.size() == a,
-            "initial algorithm count mismatch: expected %d, found %d", a, (int)initialAlgorithms.size());
+    vector<string> initialAlgorithms;
     if (a == 0) {
-        ensuref(initialLine.empty(), "a is 0, so the initial algorithm line must be empty");
+        if (!inf.seekEof()) {
+            inf.readEoln();
+        }
     } else {
-        ensuref(!initialLine.empty(), "a is positive, so the initial algorithm line must not be empty");
-        ensuref(initialLine.front() != ' ' && initialLine.back() != ' ',
-                "initial algorithm line must not have leading or trailing spaces");
-        ensuref(initialLine.find("  ") == string::npos,
-                "initial algorithm line must separate algorithms with single spaces");
+        for (int i = 0; i < a; ++i) {
+            initialAlgorithms.push_back(inf.readToken("[a-z]{1,20}", "initial_algorithm"));
+            if (i + 1 < a) {
+                inf.readSpace();
+            } else {
+                inf.readEoln();
+            }
+        }
     }
 
     set<string> initialSet;

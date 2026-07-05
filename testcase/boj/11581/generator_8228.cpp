@@ -1,6 +1,7 @@
 #include "testlib.h"
 #include <vector>
 #include <algorithm>
+#include <iostream>
 using namespace std;
 
 int main(int argc, char* argv[]) {
@@ -66,15 +67,20 @@ int main(int argc, char* argv[]) {
                 adj[i].push_back(cand[k]);
         }
     }
+    if (N >= 2 && adj[N - 1].empty()) {
+        adj[N - 1].push_back(N);
+    }
 
     // Output
     println(N);
     for (int i = 1; i <= N-1; i++) {
         int Mi = adj[i].size();
         println(Mi);
-        if (Mi > 0) {
-            println(adj[i]);
+        for (int j = 0; j < Mi; j++) {
+            if (j) cout << ' ';
+            cout << adj[i][j];
         }
+        cout << '\n';
     }
     return 0;
 }

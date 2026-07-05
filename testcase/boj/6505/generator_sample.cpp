@@ -85,6 +85,12 @@ string randomEncodedString(int n) {
             s += pool[rnd.next((int)pool.size())];
         }
     }
+    if (!s.empty() && s.front() == ' ') {
+        s.front() = alphabets[rnd.next((int)alphabets.size())];
+    }
+    if (!s.empty() && s.back() == ' ') {
+        s.back() = alphabets[rnd.next((int)alphabets.size())];
+    }
     return s;
 }
 

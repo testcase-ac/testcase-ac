@@ -27,9 +27,9 @@ int N;
 void solve() {
   for (int i = 0; i < N; ++i) adj[i].clear();
   for (int i = 0; i < N; ++i) {
-    string Js, Ks; cin >> Js >> Ks;
-    int J = stoi(Js.substr(0, Js.size() - 1));
-    int K = stoi(Ks.substr(1, Ks.size() - 2));
+    int J, K;
+    char colon, open, close;
+    cin >> J >> colon >> open >> K >> close;
     while (K--) {
       int x; cin >> x;
       adj[J].push_back(x - N);

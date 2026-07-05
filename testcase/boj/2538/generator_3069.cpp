@@ -9,8 +9,8 @@ int main(int argc, char* argv[]) {
     int W = rnd.next(3, 10);
     int H = rnd.next(3, 10);
 
-    // Decide whether to make one indent
-    bool make_indent = rnd.next() < 0.7;
+    // The cut-out polygon must leave at least one paper piece behind.
+    bool make_indent = true;
     int side = -1, a = 0, b = 0, d = 0;
     if (make_indent) {
         side = rnd.next(0, 3);

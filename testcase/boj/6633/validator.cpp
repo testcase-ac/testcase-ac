@@ -49,9 +49,9 @@ bool isAllowedDisplayChar(char ch) {
     return ch == '+' || ch == '-' || ch == '|' || ch == 'o' || ch == '.' || ch == ' ';
 }
 
-void ensureDisplayLine(const string& line, int displayIndex, int rowIndex) {
-    ensuref(line.size() == 29, "display %d row %d has length %d", displayIndex, rowIndex, int(line.size()));
-    for (int col = 0; col < 29; ++col) {
+string normalizeDisplayLine(const string& line, int displayIndex, int rowIndex) {
+    ensuref(line.size() <= 29, "display %d row %d has length %d", displayIndex, rowIndex, int(line.size()));
+    for (int col = 0; col < int(line.size()); ++col) {
         ensuref(isAllowedDisplayChar(line[col]),
                 "display %d row %d column %d has invalid character code %d",
                 displayIndex,
@@ -59,6 +59,7 @@ void ensureDisplayLine(const string& line, int displayIndex, int rowIndex) {
                 col + 1,
                 int(static_cast<unsigned char>(line[col])));
     }
+    return line + string(29 - line.size(), ' ');
 }
 
 void renderDigit(array<string, 7>& expected, int colOffset, int digit) {
@@ -129,11 +130,9 @@ int main(int argc, char* argv[]) {
         ensuref(displayCount <= 100000, "too many displays: %d", displayCount);
 
         array<string, 7> display;
-        display[0] = firstLine;
-        ensureDisplayLine(display[0], displayCount, 1);
+        display[0] = normalizeDisplayLine(firstLine, displayCount, 1);
         for (int row = 1; row < 7; ++row) {
-            display[row] = inf.readLine();
-            ensureDisplayLine(display[row], displayCount, row + 1);
+            display[row] = normalizeDisplayLine(inf.readLine(), displayCount, row + 1);
         }
 
         ensuref(hasPossibleTime(display), "display %d does not match any valid time", displayCount);

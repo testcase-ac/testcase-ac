@@ -33,6 +33,17 @@ int32_t main() {
 	for(int i=0; i<m; i++) {
 		cin >> b[i].x >> b[i].y;
 	}
+	if(n == 1) {
+		int ans = 0;
+		point cur = a[0];
+		for(int i=0; i<m; i++) {
+			ans += b[i].dist(cur);
+			cur = b[i];
+		}
+		ans += a[0].dist(cur);
+		cout << ans;
+		return 0;
+	}
 	memset(dp, -1, sizeof dp);
 	cout << f(1, 0, 0);
 }

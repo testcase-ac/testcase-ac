@@ -1,1 +1,1 @@
-print '12'[input()%4==3]
+print('12'[int(input()) % 4 == 3])

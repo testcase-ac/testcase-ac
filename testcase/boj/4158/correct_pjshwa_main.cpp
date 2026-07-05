@@ -17,7 +17,7 @@ void solve() {
   int p1 = 0, ans = 0;
   for (int p2 = 0; p2 < M; p2++) {
     while (p1 < N && v1[p1] < v2[p2]) p1++;
-    if (v1[p1] == v2[p2]) ans++;
+    if (p1 < N && v1[p1] == v2[p2]) ans++;
   }
 
   cout << ans << '\n';

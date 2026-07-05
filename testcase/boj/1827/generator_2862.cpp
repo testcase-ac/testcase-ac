@@ -9,8 +9,10 @@ int main(int argc, char* argv[]) {
 
     // Number of people
     int N = rnd.next(1, 8);
-    // Guide speed
-    double V = rnd.next(1.0, 100.0);
+    // Guide speed, kept two-decimal-exact so printed guest speeds can be
+    // generated strictly below the printed guide speed.
+    int guideSpeedCents = rnd.next(101, 10000);
+    double V = guideSpeedCents / 100.0;
 
     // Output N and guide speed
     println(N);
@@ -26,7 +28,7 @@ int main(int argc, char* argv[]) {
         double yi = dist * sin(alphaPos);
 
         // Person speed
-        double vi = rnd.next(1.0, 100.0);
+        double vi = rnd.next(100, guideSpeedCents - 1) / 100.0;
 
         // Movement direction ai in [1, 2π], cluster at cardinal angles or uniform
         double ai;

@@ -17,11 +17,8 @@ int main()
     {
         god=1;
         scanf("%lld %lld",&a,&p);
-        if(a<0)
-        {
-            a+=(p*(a/p)+p);
-        }
         a%=p;
+        if(a<0) a+=p;
         if(!a) god=0;
         else god=po((p-1)/2);
         if(god>1) god-=p;

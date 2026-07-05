@@ -12,15 +12,14 @@ int main() {
 	ios::sync_with_stdio(false);cin.tie(NULL);
 	int n;
 	cin >> n;
-	double a[n];
-	rep(i,n) cin >> a[i];
-	double ans = 0;
-	for(int i=0; i<n; i++) {
-		double temp = 1;
-		for(int j=i; j<n; j++) {
-			temp *= a[j];
-			ans = max(ans, temp);
-		}
+	long double ans = 0;
+	long double running = 1;
+	rep(i,n) {
+		double x;
+		cin >> x;
+		running *= x;
+		ans = max(ans, running);
+		if(running < 1) running = 1;
 	}
 	cout << fixed << setprecision(3) << ans;
 }

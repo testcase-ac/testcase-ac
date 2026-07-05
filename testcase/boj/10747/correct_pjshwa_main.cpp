@@ -22,7 +22,7 @@ int main() {
   }
 
   string res = "";
-  vector<int> pi(ssz, 0);
+  vector<int> pi(ssz + 1, 0);
   for (int i = 0, j = 0; i < ssz; i++) {
     while (j > 0 && s[i] != t[j]) j = fail[j - 1];
     res += s[i];

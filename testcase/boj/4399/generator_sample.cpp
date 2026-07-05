@@ -97,6 +97,10 @@ int main(int argc, char* argv[]) {
         addCase(a, b);
     }
 
+    if (cases.back().second.empty()) {
+        cases.back().second = randomString(rnd.next(1, 8), "ab");
+    }
+
     ensure(!cases.empty());
     for (const auto& tc : cases) {
         cout << tc.first << '\n' << tc.second << '\n';

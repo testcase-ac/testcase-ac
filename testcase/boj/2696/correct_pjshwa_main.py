@@ -34,4 +34,5 @@ for _ in range(R):
         if tenth_check == 10: #열번 출력했다면
             print()
             tenth_check = 0
-    print()
+    if tenth_check != 0:
+        print()

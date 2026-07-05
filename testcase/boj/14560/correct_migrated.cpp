@@ -1,7 +1,6 @@
 #include <iostream>
 #include <array>
 #include <vector>
-#include <algorithm>
 
 using namespace std;
 using i64 = long long;
@@ -16,16 +15,27 @@ vector<i64> comb_sorted(int l, int r) {
     poss = { 0 };
     for (int i = l; i <= r; i++) {
         int sz = poss.size();
-        array<int, 3> ptr = { 0, 0, 0 };
-        while (ptr[0] < sz || ptr[1] < sz || ptr[2] < sz) {
-            array<i64, 3> val = { INF, INF, INF };
-            if (ptr[0] < sz) { val[0] = poss[ptr[0]] - arr[i]; }
-            if (ptr[1] < sz) { val[1] = poss[ptr[1]]         ; }
-            if (ptr[2] < sz) { val[2] = poss[ptr[2]] + arr[i]; }
-            
-            int idx = min_element(val.begin(), val.end()) - val.begin();
-            nposs.push_back(val[idx]);
-            ptr[idx]++;
+        int nsz = sz * 3;
+        i64 ai = arr[i];
+        const i64* src = poss.data();
+        int p0 = 0, p1 = 0, p2 = 0;
+        nposs.resize(nsz);
+        i64* dst = nposs.data();
+        for (int j = 0; j < nsz; j++) {
+            i64 v0 = p0 < sz ? src[p0] - ai : INF;
+            i64 v1 = p1 < sz ? src[p1]      : INF;
+            i64 v2 = p2 < sz ? src[p2] + ai : INF;
+
+            if (v0 <= v1 && v0 <= v2) {
+                dst[j] = v0;
+                p0++;
+            } else if (v1 <= v2) {
+                dst[j] = v1;
+                p1++;
+            } else {
+                dst[j] = v2;
+                p2++;
+            }
         }
         poss.swap(nposs);
         nposs.clear();

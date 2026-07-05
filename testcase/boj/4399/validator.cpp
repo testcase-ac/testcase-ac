@@ -4,6 +4,16 @@
 
 using namespace std;
 
+void validateString(const string& s, const char* name) {
+    ensuref(s.size() <= 1000, "%s length must not exceed 1000, got %d",
+            name, static_cast<int>(s.size()));
+    for (int i = 0; i < static_cast<int>(s.size()); ++i) {
+        ensuref('a' <= s[i] && s[i] <= 'z',
+                "%s[%d] must be a lowercase letter, got '%c'",
+                name, i, s[i]);
+    }
+}
+
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
@@ -13,8 +23,10 @@ int main(int argc, char* argv[]) {
     while (!inf.eof()) {
         setTestCase(caseCount + 1);
 
-        string a = inf.readLine("[a-z]{0,1000}", "a");
-        string b = inf.readLine("[a-z]{0,1000}", "b");
+        string a = inf.readLine();
+        string b = inf.readLine();
+        validateString(a, "a");
+        validateString(b, "b");
 
         ++caseCount;
         totalLength += static_cast<int>(a.size() + b.size());

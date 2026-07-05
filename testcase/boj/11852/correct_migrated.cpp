@@ -2,11 +2,14 @@
 #include <bitset>
 #undef private
 #include <bits/stdc++.h>
-#include <x86intrin.h>
 using namespace std;
 void sub(bitset<2000>& a,bitset<2000>& b) {
-    int c=0;
-    for(int i=0;i<32;i++) c=_subborrow_u64(c,a._M_w[i],b._M_w[i],(unsigned long long*)&a._M_w[i]);
+    unsigned long long borrow=0;
+    for(int i=0;i<32;i++) {
+        unsigned long long before=a._M_w[i];
+        a._M_w[i]=before-b._M_w[i]-borrow;
+        borrow=before<b._M_w[i] || (borrow && before==b._M_w[i]);
+    }
 }
 int main() {
     int m=0;

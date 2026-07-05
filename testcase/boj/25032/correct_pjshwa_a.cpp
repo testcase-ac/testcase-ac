@@ -8,7 +8,7 @@ int N,M;
 char pane[403][403];
 char pane2[1203][1203];
 int parent[1440003];
-int size[1440003];
+int componentSize[1440003];
 int calcId(int i, int j){
     return i*3*M + j;
 }
@@ -20,14 +20,14 @@ void merge(int a, int b){
     a = find(a), b = find(b);
     if(a==b) return;
     parent[a] = b;
-    size[b] += size[a];
+    componentSize[b] += componentSize[a];
 }
 bool inRange(int i, int j){
     return 0 <= i && i < 3*N && 0 <= j && j < 3*M;
 }
  
 int main() {
-    for(int i = 0 ; i < 1440003; i++) parent[i] = i, size[i] = 1;
+    for(int i = 0 ; i < 1440003; i++) parent[i] = i, componentSize[i] = 1;
     scanf("%d%d", &N, &M);
     for(int i = 0 ; i < N ; i++){
         scanf("%s",pane[i]);
@@ -54,18 +54,17 @@ int main() {
             for(int k = 0 ; k < 8; k++){
                 int ni = i+("12010202"[k]-'1')*N;
                 int nj = j+("21100022"[k]-'1')*M;
-                if(find( calcId(i, j) ) == find( calcId(ni, nj) )) size[find(calcId(i, j))] = -1; 
+                if(find( calcId(i, j) ) == find( calcId(ni, nj) )) componentSize[find(calcId(i, j))] = -1; 
             }
         }
     }
  
     for(int i = N; i < 2*N; i++){
         for(int j = M; j < 2*M; j++){
-            printf("%d ",size[find(calcId(i, j))]);
+            printf("%d ",componentSize[find(calcId(i, j))]);
         }
         printf("\n");
     }
     return 0;
 }
  
-

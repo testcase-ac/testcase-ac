@@ -1,15 +1,17 @@
 #include <stdio.h>
+#include <string.h>
 long long a, b, r;
-char tmp1[21], tmp2[21];
+char tmp1[22], tmp2[22];
 
 bool compare(char s[]) {
-	if (s[20]) return true;
-	else if (!s[19]) return false;
-	else return s > "9223372036854775807";
+	int len = strlen(s);
+	if (len > 19) return true;
+	else if (len < 19) return false;
+	else return strcmp(s, "9223372036854775807") > 0;
 }
 int main() {
-	scanf("%s", &tmp1);
-	scanf("%s", &tmp2);
+	scanf("%21s", tmp1);
+	scanf("%21s", tmp2);
 	scanf("%lld", &r);
 
 	if (tmp1[0] == '0' || tmp2[0] == '0') printf("0");
@@ -29,4 +31,3 @@ int main() {
 
 	return 0;
 }
-

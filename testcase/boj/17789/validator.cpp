@@ -21,6 +21,16 @@ int main(int argc, char* argv[]) {
                 i + 1, a, b);
     }
 
+    if (v == 0) {
+        if (inf.seekEof()) {
+            inf.readEof();
+            return 0;
+        }
+        inf.readEoln();
+        inf.readEof();
+        return 0;
+    }
+
     for (int i = 0; i < v; ++i) {
         if (i > 0) {
             inf.readSpace();

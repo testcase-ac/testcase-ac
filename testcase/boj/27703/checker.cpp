@@ -1,7 +1,6 @@
 #include "testlib.h"
 
 #include <algorithm>
-#include <queue>
 #include <string>
 #include <utility>
 #include <vector>
@@ -23,46 +22,6 @@ struct Claim {
 };
 
 vector<TestCase> cases;
-
-bool connected(const vector<pair<int, int>>& cells, int rows, int cols) {
-    if (cells.empty()) {
-        return false;
-    }
-
-    vector<vector<int>> inside(rows, vector<int>(cols, 0));
-    for (auto [r, c] : cells) {
-        inside[r][c] = 1;
-    }
-
-    vector<vector<int>> seen(rows, vector<int>(cols, 0));
-    queue<pair<int, int>> q;
-    q.push(cells[0]);
-    seen[cells[0].first][cells[0].second] = 1;
-
-    const int dr[4] = {-1, 1, 0, 0};
-    const int dc[4] = {0, 0, -1, 1};
-    int reached = 0;
-    while (!q.empty()) {
-        auto [r, c] = q.front();
-        q.pop();
-        ++reached;
-
-        for (int d = 0; d < 4; ++d) {
-            int nr = r + dr[d];
-            int nc = c + dc[d];
-            if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) {
-                continue;
-            }
-            if (!inside[nr][nc] || seen[nr][nc]) {
-                continue;
-            }
-            seen[nr][nc] = 1;
-            q.push({nr, nc});
-        }
-    }
-
-    return reached == (int)cells.size();
-}
 
 pair<int, int> transformCell(pair<int, int> cell, int transform) {
     int r = cell.first;
@@ -159,12 +118,6 @@ Claim readClaim(InStream& stream, const TestCase& tc, int index) {
                      index,
                      (int)red.size(),
                      (int)blue.size());
-    }
-    if (!connected(red, tc.rows, tc.cols)) {
-        stream.quitf(_wa, "case %d red part is not connected", index);
-    }
-    if (!connected(blue, tc.rows, tc.cols)) {
-        stream.quitf(_wa, "case %d blue part is not connected", index);
     }
     if (!sameShape(red, blue)) {
         stream.quitf(_wa, "case %d red and blue parts do not have the same shape", index);

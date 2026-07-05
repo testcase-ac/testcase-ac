@@ -27,8 +27,7 @@ void solve() {
     }
 
     double avg = sum / (N - K - 2);
-    avg = round(avg * 100) / 100;
-    if (avg != T) continue;
+    if (llround(avg * 100 + 1e-9) != llround(T * 100 + 1e-9)) continue;
 
     k = 0;
     cout << fixed << setprecision(2);

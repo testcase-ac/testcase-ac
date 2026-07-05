@@ -129,8 +129,21 @@ int main(int argc, char* argv[]) {
     println(k);
     println((int)circuits.size());
     for (auto &P : circuits) {
-        printf("%d", (int)P.size());
-        for (auto &p : P) {
+        vector<pair<int, int>> key;
+        key.push_back(P[0]);
+        for (int i = 1; i + 1 < (int)P.size(); i++) {
+            int dr1 = P[i].first - P[i - 1].first;
+            int dc1 = P[i].second - P[i - 1].second;
+            int dr2 = P[i + 1].first - P[i].first;
+            int dc2 = P[i + 1].second - P[i].second;
+            if (dr1 != dr2 || dc1 != dc2) {
+                key.push_back(P[i]);
+            }
+        }
+        key.push_back(P.back());
+
+        printf("%d", (int)key.size());
+        for (auto &p : key) {
             printf(" %d %d", p.first, p.second);
         }
         printf("\n");

@@ -4,7 +4,6 @@ typedef long long ll;
 const int MX = 5e5+2;
 int shuf[MX];
 bool seen[MX];
-ll cdiv(ll a, ll b) {return (a+b-1)/b;}
 int main() {
 	ios::sync_with_stdio(0);cin.tie(0);
 	int n, c, d;
@@ -27,5 +26,9 @@ int main() {
 		period = period / g * sz;
 		if(period >= 2e12) break;
 	}
-	cout << cdiv(b-1, period) - cdiv(a-1, period);
+	auto countUntil = [&](ll row) -> ll {
+		if(row <= 0) return 0;
+		return (row-1) / period + 1;
+	};
+	cout << countUntil(b) - countUntil(a-1);
 }

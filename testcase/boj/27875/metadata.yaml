@@ -4,6 +4,9 @@ timeLimitMs: 3141
 memoryLimitMb: 592
 isSpecialJudge: false
 
+codes:
+  correct_pjshwa_main.py: pypy3
+
 authors:
   correct_migrated.cpp: "PKEarth"
   generator_migrated.cpp: "PKEarth"

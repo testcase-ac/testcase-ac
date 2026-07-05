@@ -94,8 +94,8 @@ int main(int argc, char* argv[]) {
         println(e.first, e.second);
     }
     println(A, B, K);
-    for (int x : C_list) {
-        println(x);
+    if (K > 0) {
+        println(C_list);
     }
 
     return 0;

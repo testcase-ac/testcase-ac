@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <algorithm>
 #include <unistd.h>
-#include <sys/syscall.h>
 
 namespace FIO {
 	const size_t BUFFER_SIZE = 1 << 18;
@@ -10,7 +9,7 @@ namespace FIO {
 
 	inline char readByte() {
 		if (ptr == buffer + BUFFER_SIZE) {
-			syscall(0x00, 0, buffer, BUFFER_SIZE);
+			read(0, buffer, BUFFER_SIZE);
 			ptr = buffer;
 		}
 		return *ptr++;
@@ -47,13 +46,13 @@ namespace FIO {
 		*end++ = ' ';
 		if (end < outbuf + BUFFER_SIZE) outp = end;
 		else {
-			syscall(0x01, 1, outbuf, end - outbuf);
+			write(1, outbuf, end - outbuf);
 			outp = outbuf;
 		}
 	}
 
 	void flush() {
-		syscall(0x01, 1, outbuf, outp - outbuf);
+		write(1, outbuf, outp - outbuf);
 	}
 };
 

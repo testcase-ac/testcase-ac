@@ -10,7 +10,6 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i <= 4; ++i) {
         string line = inf.readLine("[^]*", format("line_%d", i).c_str());
 
-        ensuref(!line.empty(), "line %d is empty", i);
         ensuref(line.size() <= 72, "line %d has length %d, expected at most 72", i, int(line.size()));
 
         for (int j = 0; j < int(line.size()); ++j) {

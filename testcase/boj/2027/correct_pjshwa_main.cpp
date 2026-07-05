@@ -14,7 +14,10 @@ int U[MAX + 5][MAX + 5][MAX + 5], D[MAX + 5][MAX + 5][MAX + 5];
 
 void solve() {
   int n, m; cin >> n >> m;
-  for (int i = 1; i <= n; ++i) cin >> (board[i] + 1);
+  for (int i = 1; i <= n; ++i) {
+    string row; cin >> row;
+    for (int j = 1; j <= m; ++j) board[i][j] = row[j - 1];
+  }
   for (int i = 1; i <= n; ++i) for (int j = 1; j <= m; ++j) {
     P[i][j] = P[i - 1][j] + P[i][j - 1] - P[i - 1][j - 1] + (board[i][j] == '1');
   }

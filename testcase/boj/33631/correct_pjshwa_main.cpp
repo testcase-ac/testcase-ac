@@ -20,7 +20,7 @@ void solve() {
         acc += x;
         cout << acc << '\n';
       } else {
-        cout << "NO\n";
+        cout << "Hello, siumii\n";
       }
 
     } else if (op == 2) {

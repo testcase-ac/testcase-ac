@@ -45,6 +45,7 @@ long long gcd(long long a, long long b) {
 int main() {
     long long a,b;
     cin>>a>>b;
-    if(a==1||b==1) cout<<1;
-    else cout<<fibonacci(gcd(a,b)-1);
+    long long g=gcd(a,b);
+    if(g==1) cout<<1;
+    else cout<<fibonacci(g-1);
 }

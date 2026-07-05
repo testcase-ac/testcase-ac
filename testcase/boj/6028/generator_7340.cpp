@@ -54,24 +54,11 @@ int main(int argc, char* argv[]) {
     }
     shuffle(edges.begin(), edges.end());
 
-    // Prepare queries
+    // Prepare queries with distinct bull and cow pastures.
     vector<pair<int,int>> qs;
+    shuffle(nodes.begin(), nodes.end());
     for (int i = 0; i < B; i++) {
-        int P, Q;
-        if (i == 0) {
-            P = 1;
-            Q = rnd.next(1, N);
-        } else if (i == 1) {
-            P = rnd.next(2, N);
-            Q = 1;
-        } else if (i == 2) {
-            P = rnd.next(1, N);
-            Q = P;
-        } else {
-            P = rnd.next(1, N);
-            Q = rnd.next(1, N);
-        }
-        qs.emplace_back(P, Q);
+        qs.emplace_back(nodes[2 * i], nodes[2 * i + 1]);
     }
 
     // Output

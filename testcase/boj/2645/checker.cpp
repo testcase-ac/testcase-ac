@@ -109,6 +109,7 @@ int main(int argc, char *argv[]) {
     // read and check participant answer
     int pans = readAns(ouf);
     // ensure no extra output
+    ouf.skipBlanks();
     ouf.readEof();
     // compare
     if (pans > jans) {

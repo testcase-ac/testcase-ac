@@ -11,7 +11,7 @@ for i, j in zip(geminis, gullivers):
 	if score_1 > score_2:
 		overthrow = True
 		break
-  score_2 += j
+	score_2 += j
 
 if overthrow: print('Yes')
 else: print('No')

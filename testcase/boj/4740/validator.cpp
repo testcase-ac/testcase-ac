@@ -10,12 +10,15 @@ int main(int argc, char* argv[]) {
 
     int lineCount = 0;
     while (true) {
-        string line = inf.readLine("[^]{1,80}", "line");
+        string line = inf.readLine();
         if (line == "***") {
             break;
         }
 
         ++lineCount;
+        ensuref(!line.empty(), "line %d must contain at least one character", lineCount);
+        ensuref((int)line.size() <= 80,
+                "line %d is too long: %d > 80", lineCount, (int)line.size());
         ensuref(lineCount <= MAX_LINES,
                 "too many input lines: %d > %d", lineCount, MAX_LINES);
 

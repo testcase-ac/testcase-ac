@@ -2,12 +2,15 @@
 using namespace std;
 int arr[100001], i;
 void f(int t) {
-	if(2*t > i) {
+	if(t == i) {
 		arr[i+1] = arr[t];
 		return;
 	}
-	f(2*t);
-	arr[2*t] = arr[t];
+	int child = i;
+	while(child/2 != t)
+		child /= 2;
+	f(child);
+	arr[child] = arr[t];
 }
 int main() {
 	int n;

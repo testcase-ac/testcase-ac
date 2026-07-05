@@ -12,6 +12,10 @@ int main(int argc, char* argv[]) {
 
     vector<int> a = inf.readInts(n, 1, n, "a_i");
     inf.readEoln();
+    vector<int> seen(n + 1, 0);
+    for (int x : a) {
+        ensuref(++seen[x] == 1, "disk radius %d appears more than once", x);
+    }
 
     inf.readEof();
 }

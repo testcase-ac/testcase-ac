@@ -56,7 +56,7 @@ int main() {
     scanf("%d %d %d",&n,&m,&k);
     vector<long long> a(n);
     int h = (int)ceil(log2(n));
-    int tree_size = (1 << (h+1)) - 1;
+    int tree_size = (1 << (h+1));
     vector<long long> tree(tree_size);
     vector<long long> lazy(tree_size);
     m += k;

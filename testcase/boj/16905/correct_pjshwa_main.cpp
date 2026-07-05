@@ -73,8 +73,8 @@ void solve() {
   }
 
   int ans = 0;
-  ans = max(ans, *max_element(VE.begin(), VE.end()));
-  ans = max(ans, *max_element(UE.begin(), UE.end()));
+  if (!VE.empty()) ans = max(ans, *max_element(VE.begin(), VE.end()));
+  if (!UE.empty()) ans = max(ans, *max_element(UE.begin(), UE.end()));
 
   BitTrie* t = new BitTrie();
   for (int o : VO) t->add(o);

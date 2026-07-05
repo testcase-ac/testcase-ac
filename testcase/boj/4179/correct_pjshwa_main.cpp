@@ -9,7 +9,7 @@ void fast_io() {
   ios_base::sync_with_stdio(false);
 }
 
-char maze[1001][1000];
+char maze[1001][1001];
 bool jvis[1001][1000];
 int main() {
   fast_io();

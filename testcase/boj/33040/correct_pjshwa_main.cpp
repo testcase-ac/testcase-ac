@@ -8,7 +8,9 @@ void fast_io() {
 }
 
 void solve() {
-  int H, W, C, D; cin >> H >> W >> C >> D;
+  int H, W;
+  ll C, D;
+  cin >> H >> W >> C >> D;
 
   vector<int> V(H);
   iota(V.begin(), V.end(), 0);

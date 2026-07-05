@@ -10,7 +10,7 @@ int main() {
   else if (n == 0) cout << 1;
   else {
     int pow = 1;
-    while (n >= (1 << pow)) pow++;
+    while (n >= (1LL << pow)) pow++;
     cout << pow;
   }
   cout << '\n';

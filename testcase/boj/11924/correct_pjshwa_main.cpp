@@ -8,6 +8,7 @@ void fast_io() {
 }
 
 const int MAXN = 1e6;
+const ll MAXK = 2000000000LL;
 int A[MAXN], Kc[MAXN];
 
 void solve() {
@@ -26,11 +27,13 @@ void solve() {
     } else {
       ll target = A[i] - A[0];
       if (target % Kc[i]) continue;
-      ++acnt[target / Kc[i]];
+      ll candidate = target / Kc[i];
+      if (candidate < 0 || candidate > MAXK) continue;
+      ++acnt[candidate];
     }
   }
 
-  ll madd = 0, maddi = -1;
+  ll madd = 0, maddi = 0;
   for (auto& [v, c] : acnt) {
     if (madd < c) madd = c, maddi = v;
   }

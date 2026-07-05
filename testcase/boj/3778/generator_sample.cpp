@@ -97,6 +97,9 @@ int main(int argc, char* argv[]) {
     println(n);
     for (int i = 0; i < n; ++i) {
         auto [a, b] = makeCase();
+        if (i + 1 == n && b.empty()) {
+            b = "a";
+        }
         println(a);
         println(b);
     }

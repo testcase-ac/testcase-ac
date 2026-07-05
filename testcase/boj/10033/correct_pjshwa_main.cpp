@@ -34,6 +34,7 @@ void solve() {
       t[dt] = i + 1;
     }
 
+    if (t.empty()) continue;
     int fk = t.rbegin()->first, prv = 0;
     while (fk >= -MAX) {
       t[fk] = max(t[fk], prv);

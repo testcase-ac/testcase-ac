@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
         long long sum = accumulate(w.begin(), w.end(), 0LL);
         W = rnd.next(mx, (int)sum);
     } else {
-        // one heavy weight plus small others, W somewhere between heavy and heavy+rest
+        // one designated heavy weight plus small others, W between max weight and total sum
         int heavyIdx = rnd.next(0, n - 1);
         for (int i = 0; i < n; i++) {
             if (i == heavyIdx) continue;
@@ -33,9 +33,9 @@ int main(int argc, char* argv[]) {
         }
         int bigVal = rnd.next(1, 100);
         w[heavyIdx] = bigVal;
-        long long rest = accumulate(w.begin(), w.end(), 0LL) - bigVal;
-        if (rest < 0) rest = 0;
-        W = rnd.next(bigVal, (int)(bigVal + rest));
+        int mx = *max_element(w.begin(), w.end());
+        long long sum = accumulate(w.begin(), w.end(), 0LL);
+        W = rnd.next(mx, (int)sum);
     }
     // maybe sort or reverse or leave as is
     int ord = rnd.next(0, 2);

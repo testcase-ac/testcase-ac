@@ -11,18 +11,24 @@ ll pw(ll a,ll n) {
     } return r;
 }
 int main() {
-    vector<ll> phi(1000001),f(1000001);
-    for(int i=1;i<1000001;i++) {phi[i]=i;f[i]=0;}
-    for(int i=2;i<1000001;i++) {
-        if(phi[i]==i) for(int j=i;j<1000001;j+=i) phi[j]-=phi[j]/i;
-    } ll n,k,r=1;
+    ll n,k,r=1;
     cin>>n>>k;
-    for(ll i=1;i<1000001;i++) for(ll j=i;j<1000001;j+=i) f[j]=(f[j]+phi[i]*pw(k,j/i))%M;
+    vector<ll> phi(n+1),f(n+1);
+    vector<ll> p(n+2),inv(2*n+2);
+    p[0]=1;
+    for(int i=1;i<=n+1;i++) p[i]=p[i-1]*k%M;
+    inv[1]=1;
+    for(int i=2;i<=2*n;i++) inv[i]=(M-M/i*inv[M%i]%M)%M;
+    for(int i=1;i<=n;i++) {phi[i]=i;f[i]=0;}
+    for(int i=2;i<=n;i++) {
+        if(phi[i]==i) for(int j=i;j<=n;j+=i) phi[j]-=phi[j]/i;
+    }
+    for(ll i=1;i<=n;i++) for(ll j=i;j<=n;j+=i) f[j]=(f[j]+phi[i]*p[j/i])%M;
     for(ll i=1;i<=n;i++) {
         ll t=f[i];
-        if(i%2) t+=i*pw(k,(i+1)/2);
-        else t+=(i/2)*(pw(k,i/2+1)+pw(k,i/2));
+        if(i%2) t+=i*p[(i+1)/2];
+        else t+=(i/2)*(p[i/2+1]+p[i/2]);
         t%=M;
-        r=(r+t*pw(i*2,M-2))%M;
+        r=(r+t*inv[i*2])%M;
     } cout<<r;
 }

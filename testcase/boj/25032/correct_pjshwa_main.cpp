@@ -58,11 +58,6 @@ void solve() {
     dfs2(i, j, sz, 3);
   }
 
-  for (int i = 0; i < 3 * n; i++) {
-    for (int j = 0; j < 3 * m; j++) cout << b3z[i][j] << " ";
-    cout << endl;
-  }
-
   for (int i = 0; i < 3 * n; i++) for (int j = 0; j < 3 * m; j++) {
     b2r[i % n][j % m] = max(b2r[i % n][j % m], b3z[i][j]);
   }

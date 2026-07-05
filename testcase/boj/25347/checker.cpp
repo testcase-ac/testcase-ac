@@ -6,21 +6,14 @@ using namespace std;
 const long double EPS = 1e-6L;
 
 struct Claim {
-    long double blueError;
-    long double redError;
+    long double blueBagWrong;
+    long double redBagWrong;
 };
 
 int n;
 long double qLimit;
 vector<long double> redProb;
 vector<long double> blueProb;
-
-long double conditionalError(long double wrong, long double total) {
-    if (total == 0.0L) {
-        return 0.0L;
-    }
-    return wrong / total;
-}
 
 bool withinTolerance(long double expected, long double actual) {
     long double diff = fabsl(expected - actual);
@@ -29,34 +22,29 @@ bool withinTolerance(long double expected, long double actual) {
 }
 
 Claim readClaim(InStream& stream) {
-    long double blueWrong = 0.0L;
-    long double blueTotal = 0.0L;
-    long double redWrong = 0.0L;
-    long double redTotal = 0.0L;
+    long double blueBagWrong = 0.0L;
+    long double redBagWrong = 0.0L;
 
     for (int i = 0; i < n; ++i) {
         double value = stream.readDouble(0.0, 1.0, format("p_%d", i + 1).c_str());
         long double p = value;
 
-        blueWrong += redProb[i] * (1.0L - p);
-        blueTotal += (redProb[i] + blueProb[i]) * (1.0L - p);
-        redWrong += blueProb[i] * p;
-        redTotal += (redProb[i] + blueProb[i]) * p;
+        blueBagWrong += blueProb[i] * p;
+        redBagWrong += redProb[i] * (1.0L - p);
     }
+
     if (!stream.seekEof()) {
         stream.quitf(_wa, "extra output after p_%d", n);
     }
 
-    Claim claim{
-        conditionalError(blueWrong, blueTotal),
-        conditionalError(redWrong, redTotal),
-    };
-
-    if (claim.blueError > qLimit + EPS) {
-        stream.quitf(_wa, "blue-answer error %.12Lf exceeds limit %.12Lf", claim.blueError, qLimit + EPS);
+    if (blueBagWrong > qLimit + EPS) {
+        stream.quitf(_wa,
+                     "blue-bag wrong probability %.12Lf exceeds limit %.12Lf",
+                     blueBagWrong,
+                     qLimit + EPS);
     }
 
-    return claim;
+    return {blueBagWrong, redBagWrong};
 }
 
 int main(int argc, char* argv[]) {
@@ -89,23 +77,23 @@ int main(int argc, char* argv[]) {
     Claim jury = readClaim(ans);
     Claim participant = readClaim(ouf);
 
-    if (participant.redError + EPS < jury.redError &&
-        !withinTolerance(jury.redError, participant.redError)) {
+    if (participant.redBagWrong + EPS < jury.redBagWrong &&
+        !withinTolerance(jury.redBagWrong, participant.redBagWrong)) {
         quitf(_fail,
-              "participant red-answer error %.12Lf is better than jury %.12Lf",
-              participant.redError,
-              jury.redError);
+              "participant red-bag wrong probability %.12Lf is better than jury %.12Lf",
+              participant.redBagWrong,
+              jury.redBagWrong);
     }
 
-    if (!withinTolerance(jury.redError, participant.redError)) {
+    if (!withinTolerance(jury.redBagWrong, participant.redBagWrong)) {
         quitf(_wa,
-              "red-answer error %.12Lf differs from jury %.12Lf",
-              participant.redError,
-              jury.redError);
+              "red-bag wrong probability %.12Lf differs from jury %.12Lf",
+              participant.redBagWrong,
+              jury.redBagWrong);
     }
 
     quitf(_ok,
-          "blue-answer error %.12Lf, red-answer error %.12Lf",
-          participant.blueError,
-          participant.redError);
+          "blue-bag wrong probability %.12Lf, red-bag wrong probability %.12Lf",
+          participant.blueBagWrong,
+          participant.redBagWrong);
 }

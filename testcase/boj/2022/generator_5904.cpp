@@ -33,23 +33,23 @@ int main(int argc, char* argv[]) {
     if (rnd.next(0,1) == 0) {
         swap(x, y);
     }
-    // choose crossing height c such that 0 < c < min(x,y)
-    double minxy = min(x, y);
-    double eps = 1e-6;
+    // choose crossing height c such that a positive street width exists
+    double maxCrossingHeight = x * y / (x + y);
+    double eps = 1e-4;
     double c;
     // occasionally very small c
     if (rnd.next(0, 5) == 0) {
-        double hi = min(0.1, minxy - eps);
+        double hi = min(0.1, maxCrossingHeight - eps);
         c = rnd.next(eps, hi);
     }
-    // occasionally c very close to min(x,y)
+    // occasionally c very close to the maximum attainable crossing height
     else if (rnd.next(0, 5) == 0) {
-        double hi = min(1.0, minxy - eps);
-        c = minxy - rnd.next(eps, hi);
+        double hi = min(1.0, maxCrossingHeight - eps);
+        c = maxCrossingHeight - rnd.next(eps, hi);
     }
     // general case
     else {
-        c = rnd.next(eps, minxy - eps);
+        c = rnd.next(eps, maxCrossingHeight - eps);
     }
     // output with six decimal places
     printf("%.6f %.6f %.6f\n", x, y, c);

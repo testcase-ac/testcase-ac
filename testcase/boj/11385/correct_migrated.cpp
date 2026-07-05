@@ -1,10 +1,7 @@
 // #define BENCH(...) __VA_ARGS__
 #define BENCH(...) (void*)(0);
 
-#pragma GCC optimize("O3,unroll-loops")
-#pragma GCC target("avx,avx2,bmi2")
 
-#pragma clang attribute push(__attribute__((target("avx,avx2,bmi2"))), apply_to=function)
 
 #include <unistd.h>
 #include <cstring>
@@ -732,4 +729,3 @@ int main() {
     return 0;
 }
 
-#pragma clang attribute pop

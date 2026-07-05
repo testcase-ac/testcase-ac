@@ -11,7 +11,7 @@ const int dx[4] = {0, 0, 1, -1}, dy[4] = {1, -1, 0, 0};
 int ans = 0, cur = 0;
 int cc;
 int N, M;
-int board[8][8], rs[3][8][8];
+int board[8][8], rs[4][8][8];
 
 void dfs(int i, int j, int v) {
   cc++;

@@ -17,7 +17,10 @@ void solve() {
   int N; cin >> N;
   for (int i = 0; i < N; ++i) cin >> A[i];
 
-  for (int i = 0; i < N; ++i) E[A[i]] = i;
+  for (int i = 0; i < N; ++i) {
+    E[A[i]] = i;
+    if (A[i] != 0) C[A[i]] = 1;
+  }
   for (int i = N - 1; i >= 0; --i) S[A[i]] = i;
 
   stack<int> st;
@@ -32,7 +35,7 @@ void solve() {
       st.push(x);
     }
 
-    if (st.top() != x) {
+    if (st.empty() || st.top() != x) {
       cout << "-1\n";
       return;
     }
@@ -49,7 +52,7 @@ void solve() {
 
   queue<pii> q;
   for (int i = 1; i <= N; ++i) {
-    if (indegree[i] == 0) q.emplace(i, 1);
+    if (C[i] && indegree[i] == 0) q.emplace(i, 1);
   }
 
   int ans = 0;

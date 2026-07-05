@@ -13,6 +13,11 @@ int main(int argc, char* argv[]) {
     inf.readEoln();
 
     if (n == 0) {
+        if (inf.eof()) {
+            ensuref(m == 0, "missing second line for n = 0 while m > 0");
+            inf.readEof();
+            return 0;
+        }
         inf.readEoln();
     } else {
         vector<int> a = inf.readInts(n, 1, 1000, "a_i");
@@ -20,7 +25,9 @@ int main(int argc, char* argv[]) {
     }
 
     if (m == 0) {
-        inf.readEoln();
+        if (!inf.eof()) {
+            inf.readEoln();
+        }
     } else {
         vector<int> b = inf.readInts(m, 1, 1000, "b_i");
         inf.readEoln();

@@ -16,6 +16,11 @@ void solve() {
     pq.push(x);
   }
 
+  if (pq.size() == 1) {
+    cout << 0 << '\n';
+    return;
+  }
+
   ll ans = 0;
   while (1) {
     ll a = pq.top(); pq.pop();

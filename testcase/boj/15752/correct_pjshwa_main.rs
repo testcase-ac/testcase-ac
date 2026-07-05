@@ -49,6 +49,11 @@ fn solve(scan: &mut UnsafeScanner<io::StdinLock>, out: &mut io::BufWriter<io::St
   let mut a = (0..n).map(|_| scan.token::<usize>()).collect::<Vec<_>>();
   a.sort();
 
+  if n == 1 {
+    writeln!(out, "1").ok();
+    return;
+  }
+
   let mut graph = vec![Vec::new(); n];
   let mut indegree = vec![0; n];
   let mut vis = vec![false; n];

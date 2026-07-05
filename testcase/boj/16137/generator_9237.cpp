@@ -108,6 +108,31 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    auto isCliff = [&](int x, int y) {
+        return (a[x][y] == 0 || a[x][y] >= 2);
+    };
+
+    auto isCliffIntersection = [&](int i, int j) {
+        bool verticalCliff =
+            ((i > 0) && isCliff(i - 1, j)) ||
+            ((i + 1 < N) && isCliff(i + 1, j));
+        bool horizontalCliff =
+            ((j > 0) && isCliff(i, j - 1)) ||
+            ((j + 1 < N) && isCliff(i, j + 1));
+        return verticalCliff && horizontalCliff;
+    };
+
+    auto existingBridgesAreValid = [&]() {
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < N; ++j) {
+                if (a[i][j] >= 2 && isCliffIntersection(i, j)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
     // Existing periodic bridges (values >= 2), not on backbone, not at candidate,
     // not adjacent to candidate, and not at cliff intersections
     int bPlaced = 0;
@@ -119,19 +144,7 @@ int main(int argc, char* argv[]) {
         if (onPath[i][j]) continue;
         if (i == cr && j == cc) continue;
         if (nearCand(i, j)) continue;
-
-        // Check if placing a bridge here would be at a cliff intersection
-        auto isCliff = [&](int x, int y) {
-            return (a[x][y] == 0 || a[x][y] >= 2);
-        };
-
-        bool upCliff = (i > 0) && isCliff(i - 1, j);
-        bool downCliff = (i + 1 < N) && isCliff(i + 1, j);
-        bool leftCliff = (j > 0) && isCliff(i, j - 1);
-        bool rightCliff = (j + 1 < N) && isCliff(i, j + 1);
-
-        if (upCliff && downCliff && leftCliff && rightCliff)
-            continue; // can't place bridge at intersection
+        if (isCliffIntersection(i, j)) continue;
 
         int rangeType = rnd.next(0, 2);
         int T;
@@ -140,6 +153,10 @@ int main(int argc, char* argv[]) {
         else T = rnd.next(11, 20);
 
         a[i][j] = T;
+        if (!existingBridgesAreValid()) {
+            a[i][j] = 1;
+            continue;
+        }
         bPlaced++;
     }
 

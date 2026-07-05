@@ -18,7 +18,7 @@ int main(){
         if(a[2] <= 0) a[2] = 0;
         scanf("%d", &temp);
         a[3] += temp;
-        printf("%d", a[0] + 5 * a[1] + 2 * (a[2] + a[3]));
+        printf("%d\n", a[0] + 5 * a[1] + 2 * (a[2] + a[3]));
     }
     return 0;
 }

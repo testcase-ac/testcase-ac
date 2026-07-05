@@ -17,8 +17,23 @@ int main(int argc, char* argv[]) {
     int m = inf.readInt(0, n - 2, "M");
     inf.readEoln();
 
-    vector<int> obstacles = inf.readInts(m, 1, n, "obstacle");
-    inf.readEoln();
+    vector<int> obstacles;
+    if (m == 0) {
+        if (inf.eoln()) {
+            // The verifier normalizes trailing blank lines from testcase streams.
+        }
+        inf.readEof();
+        return 0;
+    }
+
+    for (int i = 0; i < m; ++i) {
+        obstacles.push_back(inf.readInt(1, n, "obstacle"));
+        if (i + 1 < m) {
+            inf.readSpace();
+        } else {
+            inf.readEoln();
+        }
+    }
 
     set<int> seen;
     for (int i = 0; i < m; ++i) {

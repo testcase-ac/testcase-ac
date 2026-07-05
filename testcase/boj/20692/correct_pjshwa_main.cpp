@@ -15,11 +15,6 @@ void transform() {
   for (int i = 1; i <= N; i++) P[i] = Q[i];
 }
 
-void print() {
-  for (int i = 1; i <= N; i++) cout << P[i] << ' ';
-  cout << '\n';
-}
-
 void solve() {
   cin >> N;
   P.resize(N + 1); Q.resize(N + 1);
@@ -28,7 +23,6 @@ void solve() {
   set<vector<int>> S; S.insert(P);
   for (int k = 0;; k++) {
     transform();
-    print();
     if (S.count(P)) break;
     S.insert(P);
   }

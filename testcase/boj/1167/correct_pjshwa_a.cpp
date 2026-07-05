@@ -2,7 +2,7 @@
 #include <vector>
 #include <utility>
 #include <unistd.h>
-#define f(x) {x=0;if(ptr==buf+sz)syscall(0,0,ptr=buf,sz);if(*ptr=='-'){ptr++;while(1){if(ptr==buf+sz)syscall(0,0,ptr=buf,sz);if(*ptr<48)break;x=x*10-*ptr+++48;}}else{while(1){if(ptr==buf+sz)syscall(0,0,ptr=buf,sz);if(*ptr<48)break;x=x*10+*ptr++-48;}}ptr++;}
+#define f(x) {x=0;if(ptr==buf+sz)read(0,ptr=buf,sz);if(*ptr=='-'){ptr++;while(1){if(ptr==buf+sz)read(0,ptr=buf,sz);if(*ptr<48)break;x=x*10-*ptr+++48;}}else{while(1){if(ptr==buf+sz)read(0,ptr=buf,sz);if(*ptr<48)break;x=x*10+*ptr++-48;}}ptr++;}
 #define sz (1<<16)
 
 long m;

@@ -14,11 +14,19 @@ static vector<int> uniqueSorted(vector<int> values) {
 static vector<int> randomIndices(int n, int lo, int hi) {
     vector<int> pool;
     for (int k = lo; k <= hi; ++k) {
-        pool.push_back(k);
+        if (k != 3 && k != 4) {
+            pool.push_back(k);
+        }
     }
     shuffle(pool.begin(), pool.end());
     pool.resize(n);
     return uniqueSorted(pool);
+}
+
+static vector<int> withTriangularSquareAnchors(vector<int> extra) {
+    extra.push_back(3);
+    extra.push_back(4);
+    return uniqueSorted(extra);
 }
 
 static vector<int> buildIndices(int mode) {
@@ -27,33 +35,36 @@ static vector<int> buildIndices(int mode) {
         int n = rnd.next(2, min(8, 1001 - start));
         vector<int> indices;
         for (int i = 0; i < n; ++i) {
-            indices.push_back(start + i);
+            int k = start + i;
+            if (k != 3 && k != 4) {
+                indices.push_back(k);
+            }
         }
-        return indices;
+        return withTriangularSquareAnchors(indices);
     }
 
     if (mode == 1) {
-        vector<int> base = {3, 4, 5, 6, 8, 10, 13, 36, 124};
+        vector<int> base = {5, 6, 8, 10, 13, 36, 124};
         shuffle(base.begin(), base.end());
-        int n = rnd.next(2, min<int>(6, base.size()));
+        int n = rnd.next(0, min<int>(4, base.size()));
         base.resize(n);
-        return uniqueSorted(base);
+        return withTriangularSquareAnchors(base);
     }
 
     if (mode == 2) {
-        int n = rnd.next(2, 7);
-        return randomIndices(n, 3, 60);
+        int n = rnd.next(0, 5);
+        return withTriangularSquareAnchors(randomIndices(n, 3, 60));
     }
 
     if (mode == 3) {
-        int n = rnd.next(2, 6);
-        return randomIndices(n, 80, 1000);
+        int n = rnd.next(0, 4);
+        return withTriangularSquareAnchors(randomIndices(n, 80, 1000));
     }
 
-    int n = rnd.next(2, 10);
-    vector<int> indices = randomIndices(n - 1, 3, 120);
+    int n = rnd.next(0, 7);
+    vector<int> indices = randomIndices(n, 3, 120);
     indices.push_back(rnd.next(500, 1000));
-    return uniqueSorted(indices);
+    return withTriangularSquareAnchors(indices);
 }
 
 int main(int argc, char* argv[]) {

@@ -10,6 +10,7 @@ int indegree[26];
 bool vis[26], ban[26];
 
 void dfs(int v) {
+  if (vis[v]) return;
   vis[v] = true;
   for (int d : graph[v]) if (!ban[d]) dfs(d);
 }

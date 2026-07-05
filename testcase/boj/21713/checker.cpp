@@ -90,6 +90,24 @@ Claim readClaim(InStream& stream) {
         stream.quitf(_wa, "wrong number of removed scores");
     }
 
+    int minKept = *min_element(kept.begin(), kept.end());
+    int maxKept = *max_element(kept.begin(), kept.end());
+
+    bool hasErasedExtremes = false;
+    for (int low = 0; low < int(claim.removed.size()); ++low) {
+        if (claim.removed[low] > minKept) {
+            continue;
+        }
+        for (int high = 0; high < int(claim.removed.size()); ++high) {
+            if (low != high && claim.removed[high] >= maxKept) {
+                hasErasedExtremes = true;
+            }
+        }
+    }
+    if (!hasErasedExtremes) {
+        stream.quitf(_wa, "no two claimed scores can be the erased minimum and maximum");
+    }
+
     long long sum = 0;
     for (int score : kept) {
         sum += score;

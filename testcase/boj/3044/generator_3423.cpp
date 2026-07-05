@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
 
     // Add a reachable cycle for infinite cases
     if (infinite) {
-        int cycleLen = rnd.next(1, N);
+        int cycleLen = rnd.next(2, N);
         vector<int> nodes(N);
         iota(nodes.begin(), nodes.end(), 1);
         shuffle(nodes.begin(), nodes.end());
@@ -49,8 +49,12 @@ int main(int argc, char* argv[]) {
             edges.emplace_back(a, b);
         }
         int x = nodes[0];
-        edges.emplace_back(1, x);
-        edges.emplace_back(x, 2);
+        if (x == 1 || x == 2) {
+            edges.emplace_back(1, 2);
+        } else {
+            edges.emplace_back(1, x);
+            edges.emplace_back(x, 2);
+        }
     }
 
     // Random extra edges (could include duplicates/self-loops)
@@ -59,12 +63,20 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < extra; i++) {
         int a = rnd.next(1, N);
         int b = rnd.next(1, N);
+        while (b == a) {
+            b = rnd.next(1, N);
+        }
         edges.emplace_back(a, b);
     }
 
     // Ensure at least one edge
     if (edges.empty()) {
-        edges.emplace_back(rnd.next(1, N), rnd.next(1, N));
+        int a = rnd.next(1, N);
+        int b = rnd.next(1, N);
+        while (b == a) {
+            b = rnd.next(1, N);
+        }
+        edges.emplace_back(a, b);
     }
 
     // Shuffle for randomness

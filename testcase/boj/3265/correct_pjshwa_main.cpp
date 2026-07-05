@@ -15,6 +15,7 @@ void solve() {
   int n, m;
   cin >> n >> m;
   for (int i = 0; i < n; i++) cin >> b[i];
+  if (b[n - 1] == 0) return cout << "-1\n", void();
 
   memset(a, -1, sizeof(a));
   for (int i = 0; i < m; i++) {

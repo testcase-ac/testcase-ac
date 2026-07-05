@@ -7,4 +7,3 @@ isSpecialJudge: true
 authors:
   checker.cpp: "PKEarth"
   correct_migrated.cpp: "PKEarth"
-  generator_migrated.cpp: "PKEarth"

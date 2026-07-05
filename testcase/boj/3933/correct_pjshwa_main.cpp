@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-int d[32769][200][5];
+int16_t d[32769][200][5];
 int nc(int n, int cv, int k) {
   if (n == 0) return 1;
   if (k == 0 || cv == 0) return 0;

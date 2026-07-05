@@ -27,7 +27,10 @@ void g(int l) {
   for (char c : S) {
     ll x = d[l][c - 'A'];
     x += P.back();
-    if (x > LIM) return;
+    if (x > LIM) {
+      P.push_back(LIM + 1);
+      return;
+    }
     P.push_back(x);
   }
 }
@@ -63,11 +66,11 @@ void solve() {
       if (preL != L) g(L);
     }
     if (op == 2) {
-      auto it = upper_bound(P.begin(), P.end(), x);
-      int i = it - P.begin() - 1;
+      auto it = lower_bound(P.begin(), P.end(), x);
+      int i = it - P.begin();
 
       if (L == 0) cout << S[i - 1];
-      else cout << f(L - 1, S[i] - 'A', x - P[i]);
+      else cout << f(L, S[i - 1] - 'A', x - P[i - 1]);
     }
   }
   cout << '\n';

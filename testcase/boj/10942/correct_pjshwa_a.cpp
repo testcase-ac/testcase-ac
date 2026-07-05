@@ -1,6 +1,5 @@
 #include <bits/stdc++.h>
 #include <unistd.h>
-#include <sys/syscall.h>
 using namespace std;
 
 namespace fio {
@@ -9,7 +8,7 @@ namespace fio {
 	auto p = buffer + BSIZE;
 	inline char readChar() {
 		if (p == buffer + BSIZE) {
-			syscall(0x00, 0, buffer, BSIZE);
+			read(0, buffer, BSIZE);
 			p = buffer;
 		}
 		return *p++;
@@ -38,7 +37,7 @@ namespace fio {
 
 	void flush()
 	{
-		syscall(0x01, 1, outbuf, outp - outbuf);
+		write(1, outbuf, outp - outbuf);
 	}
 }
 

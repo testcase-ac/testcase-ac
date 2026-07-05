@@ -21,6 +21,16 @@ bool is_prime(ll n) {
 }
 
 void solvek2(int N) {
+  if (N & 1) {
+    if (is_prime(N - 2)) {
+      ans.push_back(2);
+      ans.push_back(N - 2);
+      return;
+    }
+    able = 0;
+    return;
+  }
+
   if (N >= 4) {
     for (int a = N / 2; a >= 2; a--) {
       if (is_prime(a) && is_prime(N - a)) {

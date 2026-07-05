@@ -40,7 +40,7 @@ int main() {
       it++;
       if (it == stations.end()) it = stations.begin();
       cout << *it << '\n';
-      stations.insert(it, b);
+      id_to_idx[b] = stations.insert(it, b);
     }
     if (op == "BP") {
       cin >> a >> b;
@@ -48,7 +48,7 @@ int main() {
       if (it == stations.begin()) it = stations.end();
       it--;
       cout << *it << '\n';
-      stations.insert(id_to_idx[a], b);
+      id_to_idx[b] = stations.insert(id_to_idx[a], b);
     }
     if (op == "CN") {
       cin >> a;

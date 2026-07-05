@@ -29,7 +29,7 @@ int main() {
 	}
 	v.push_back(maxi);
 	sort(v.begin(), v.end());
-	int low = 0, high = maxi, mid, result;
+	int low = 1, high = maxi, mid, result;
 	while (low<=high) {
 		mid = low + (high - low) / 2;
 		if (start(mid)) {

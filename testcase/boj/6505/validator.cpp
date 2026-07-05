@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
             seen[p] = true;
         }
 
-        string encoded = inf.readLine(format("[^]{%d,%d}", n, n), "encoded");
+        string encoded = inf.readLine();
         ensuref((int)encoded.size() == n, "encoded string length is %d, expected %d",
                 (int)encoded.size(), n);
     }

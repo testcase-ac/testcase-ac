@@ -53,11 +53,9 @@ void solve() {
   for (int i = 2 * n; i >= 1; i--) {
     if (px <= a[i]) continue;
 
-    ll dx = px - a[i], dy = py - b[i];
-    double m = dy / (double)dx;
-
-    double cy = m * (-px) + py;
-    ans = max(ans, (ll)ceil(cy));
+    ll numer = 1LL * px * b[i] - 1LL * py * a[i];
+    ll denom = px - a[i];
+    if (numer > 0) ans = max(ans, (numer + denom - 1) / denom);
   }
 
   cout << ans << '\n';

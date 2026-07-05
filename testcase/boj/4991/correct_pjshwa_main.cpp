@@ -55,6 +55,11 @@ void solve() {
   int sz = ims.size();
   for (int i = 0; i < sz; i++) bfs(i + 1, ims[i].first, ims[i].second);
 
+  if (sz == 0) {
+    cout << "0\n";
+    return;
+  }
+
   ll ans = INF;
   int p[10];
   for (int i = 0; i < sz; i++) p[i] = i;

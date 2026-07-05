@@ -1,5 +1,4 @@
 #pragma GCC optimize("O3")
-#pragma GCC target("avx,avx2")
 
 #include <unistd.h>
 #include <array>

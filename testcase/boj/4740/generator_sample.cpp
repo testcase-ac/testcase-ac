@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
         string line;
         do {
             line = makeLine(rnd.next(0, 4));
-        } while (line == "***" || line.empty() || int(line.size()) > 80);
+        } while (line == "***" || line.empty() || line.find_first_not_of(' ') == string::npos || int(line.size()) > 80);
         println(line);
     }
     println("***");

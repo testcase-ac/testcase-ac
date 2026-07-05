@@ -22,7 +22,7 @@ void solve() {
   for (int i = 0; i < N; i++) for (int j = 0; j < M; j++) cin >> A[i][j];
 
   vector<vector<int>> T;
-  for (int i = 0; i < N; i++) {
+  for (int i = 0; i < M; i++) {
     vector<int> v;
     for (int j = 0; j < M - i; j++) v.push_back(1);
     while (v.size() < M) v.push_back(-1);

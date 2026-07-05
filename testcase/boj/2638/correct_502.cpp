@@ -27,12 +27,9 @@ int main() {
 	ios::sync_with_stdio(false);cin.tie(NULL);
 	cin >> n >> m;
 	int arr[n][m];
-    int sum = 0;
 	rep(i,n) rep(j,m) {
         cin >> arr[i][j];
-        sum += arr[i][j];
     }
-    assert(sum > 0);
 	queue<pair<int,int>> que, cque;
 	int visitcnt[n][m];
 	set0(visitcnt);

@@ -49,14 +49,10 @@ int main(int argc, char* argv[]) {
         }
         shuffle(outE.begin(), outE.end());
 
-        // Pick query nodes (allow same occasionally)
-        int u0, v0;
-        if (rnd.next() < 0.2) {
-            u0 = v0 = rnd.next(1, N);
-        } else {
-            u0 = rnd.next(1, N);
-            do { v0 = rnd.next(1, N); } while (v0 == u0);
-        }
+        // Pick two distinct query nodes, as required by the statement.
+        int u0 = rnd.next(1, N);
+        int v0;
+        do { v0 = rnd.next(1, N); } while (v0 == u0);
         int u = perm[u0], v = perm[v0];
 
         // Output this test
