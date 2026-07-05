@@ -168,6 +168,23 @@ func TestOutputOnlyValidateInputsModeSkipsRuntime(t *testing.T) {
 	}
 }
 
+func TestLimitsForAppliesBojLanguagePolicy(t *testing.T) {
+	problem := loader.Problem{
+		ProblemType:   "boj",
+		TimeLimitMS:   2000,
+		MemoryLimitMB: 4,
+	}
+
+	got := limitsFor(problem, contracts.LanguagePython3)
+
+	if got.TimeSeconds != 8 {
+		t.Fatalf("TimeSeconds = %.3f, want 8", got.TimeSeconds)
+	}
+	if got.MemoryMB != 40 {
+		t.Fatalf("MemoryMB = %d, want 40", got.MemoryMB)
+	}
+}
+
 func TestInputPipelineIsSerial(t *testing.T) {
 	fake := newFakeExecutor()
 	problem := fakeProblem(

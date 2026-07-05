@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
+	"github.com/testcase-ac/testcase-ac/backend/internal/executionlimits"
 )
 
 var errorTypeToStatus = map[contracts.ErrorType]StressStatus{
@@ -38,40 +39,9 @@ func isRequestContextCanceled(ctx context.Context, err error) bool {
 	return errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled)
 }
 
-type executionLimitPolicy struct {
-	timeMultiplier   int
-	timeAdditionMS   int
-	memoryMultiplier int
-	memoryAdditionMB int
-}
-
 type caseProviderPlan struct {
 	Providers  []contracts.CaseProvider
 	Iterations int
-}
-
-var bojExecutionLimitPolicies = map[contracts.Language]executionLimitPolicy{
-	contracts.LanguagePython3:  {timeMultiplier: 3, timeAdditionMS: 2000, memoryMultiplier: 2, memoryAdditionMB: 32},
-	contracts.LanguagePyPy3:    {timeMultiplier: 3, timeAdditionMS: 2000, memoryMultiplier: 2, memoryAdditionMB: 128},
-	contracts.LanguageJava:     {timeMultiplier: 2, timeAdditionMS: 1000, memoryMultiplier: 2, memoryAdditionMB: 16},
-	contracts.LanguageKotlin:   {timeMultiplier: 2, timeAdditionMS: 1000, memoryMultiplier: 2, memoryAdditionMB: 16},
-	contracts.LanguageCSharp:   {timeMultiplier: 2, timeAdditionMS: 1000, memoryMultiplier: 2, memoryAdditionMB: 16},
-	contracts.LanguageNodeJS:   {timeMultiplier: 3, timeAdditionMS: 2000, memoryMultiplier: 2, memoryAdditionMB: 0},
-	contracts.LanguageGolang:   {timeMultiplier: 1, timeAdditionMS: 2000, memoryMultiplier: 1, memoryAdditionMB: 512},
-	contracts.LanguageRust2021: {timeMultiplier: 1, timeAdditionMS: 0, memoryMultiplier: 1, memoryAdditionMB: 16},
-}
-
-func adjustedExecutionLimits(problemType string, language contracts.Language, timeLimitMS, memoryLimitMB int) (float64, int) {
-	if problemType != "boj" {
-		return float64(timeLimitMS) / 1000.0, memoryLimitMB
-	}
-	policy, ok := bojExecutionLimitPolicies[language]
-	if !ok {
-		return float64(timeLimitMS) / 1000.0, memoryLimitMB
-	}
-	adjustedTimeMS := timeLimitMS*policy.timeMultiplier + policy.timeAdditionMS
-	adjustedMemoryMB := memoryLimitMB*policy.memoryMultiplier + policy.memoryAdditionMB
-	return float64(adjustedTimeMS) / 1000.0, adjustedMemoryMB
 }
 
 func BuildStresserEvent(problem Problem, request StressRequest, requestID string) (contracts.StressEvent, int, string, bool) {
@@ -96,8 +66,8 @@ func BuildStresserEvent(problem Problem, request StressRequest, requestID string
 	}
 
 	targetLang := request.targetLangValue()
-	targetTimeLimitS, targetMemoryLimitMB := adjustedExecutionLimits(problem.ProblemType, targetLang, problem.TimeLimitMS, problem.MemoryLimitMB)
-	correctTimeLimitS, correctMemoryLimitMB := adjustedExecutionLimits(problem.ProblemType, referenceLang, problem.TimeLimitMS, problem.MemoryLimitMB)
+	targetTimeLimitS, targetMemoryLimitMB := executionlimits.Adjusted(problem.ProblemType, targetLang, problem.TimeLimitMS, problem.MemoryLimitMB)
+	correctTimeLimitS, correctMemoryLimitMB := executionlimits.Adjusted(problem.ProblemType, referenceLang, problem.TimeLimitMS, problem.MemoryLimitMB)
 	return contracts.StressEvent{
 		Operation:                contracts.OperationStress,
 		RequestID:                requestID,

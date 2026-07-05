@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
+	"github.com/testcase-ac/testcase-ac/backend/internal/executionlimits"
 	"github.com/testcase-ac/testcase-ac/backend/internal/executor"
 	"github.com/testcase-ac/testcase-ac/backend/internal/loader"
 	"github.com/testcase-ac/testcase-ac/backend/internal/util"
@@ -328,14 +329,15 @@ func fingerprintOutput(seed maphash.Seed, output string) outputFingerprint {
 }
 
 func limitsFor(problem loader.Problem, language contracts.Language) executor.Limits {
-	timeSeconds := float64(problem.TimeLimitMS) / 1000.0
-	if timeSeconds <= 0 {
-		timeSeconds = 2
+	timeLimitMS := problem.TimeLimitMS
+	if timeLimitMS <= 0 {
+		timeLimitMS = 2000
 	}
 	memoryMB := problem.MemoryLimitMB
 	if memoryMB <= 0 {
 		memoryMB = 256
 	}
+	timeSeconds, memoryMB := executionlimits.Adjusted(problem.ProblemType, language, timeLimitMS, memoryMB)
 	return executor.Limits{TimeSeconds: timeSeconds, MemoryMB: memoryMB}
 }
 
