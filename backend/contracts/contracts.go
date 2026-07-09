@@ -77,6 +77,7 @@ const (
 	MinTotalRuntimeLimitSeconds     = 1
 	DefaultTotalRuntimeLimitSeconds = 90
 	MaxTotalRuntimeLimitSeconds     = 90
+	MaxSubmittedCodeBytes           = 512 * 1024
 )
 
 type CaseProviderType string

@@ -224,6 +224,32 @@ func TestHandleStressAcceptsSupportedTargetLanguages(t *testing.T) {
 	}
 }
 
+func TestHandleStressRejectsOversizedTargetCode(t *testing.T) {
+	app := newTestApp(
+		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
+		map[[2]string]Problem{{"boj", "1000"}: basicStressProblem()},
+		okStresserClient{},
+	)
+	body, err := json.Marshal(StressRequest{
+		TargetCode:     strings.Repeat("x", contracts.MaxSubmittedCodeBytes+1),
+		TargetCodeLang: contracts.LanguageCpp23,
+	})
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/problems/boj/1000/stress", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	app.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "targetCode must be at most 524288 bytes") {
+		t.Fatalf("body = %s, want targetCode size limit error", rec.Body.String())
+	}
+}
+
 func TestHandleStressReportsClientClosedWhenRequestContextCanceled(t *testing.T) {
 	// Given: a valid stress request whose stresser invoke returns context.Canceled.
 	problem := basicStressProblem()

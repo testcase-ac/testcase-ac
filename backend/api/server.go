@@ -244,6 +244,10 @@ func (a *App) decodeStressRequest(w http.ResponseWriter, r *http.Request) (Stres
 		writeError(w, http.StatusUnprocessableEntity, validationDetail(err))
 		return StressRequest{}, false
 	}
+	if len(payload.TargetCode) > contracts.MaxSubmittedCodeBytes {
+		writeError(w, http.StatusUnprocessableEntity, fmt.Sprintf("targetCode must be at most %d bytes", contracts.MaxSubmittedCodeBytes))
+		return StressRequest{}, false
+	}
 	if err := decoder.Decode(&struct{}{}); err != io.EOF {
 		if isRequestBodyTooLarge(err) {
 			writeError(w, http.StatusRequestEntityTooLarge, maxStressRequestBodyBytesMsg)
