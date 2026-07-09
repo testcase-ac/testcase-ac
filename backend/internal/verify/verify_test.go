@@ -822,11 +822,11 @@ func TestDuplicateAnswerFilesForProviderFailsStatically(t *testing.T) {
 }
 
 func TestLargeFixedTestcaseFileFailsStatically(t *testing.T) {
-	// Given: a committed fixed testcase file larger than 8 KiB.
+	// Given: a committed fixed testcase file larger than 2 MiB.
 	problem := fakeProblem(
 		[]string{"correct_a.py"},
 		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
-		[]loader.TestcaseFile{{Filename: "testcase_large.txt", Content: strings.Repeat("1", 8*1024+1)}},
+		[]loader.TestcaseFile{{Filename: "testcase_large.txt", Content: strings.Repeat("1", 2*1024*1024+1)}},
 		false,
 	)
 
@@ -838,10 +838,67 @@ func TestLargeFixedTestcaseFileFailsStatically(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected fixed testcase size finding, got %+v", report.Findings)
 	}
-	for _, want := range []string{"8192 bytes", "generator_*", "singlegen_*"} {
+	for _, want := range []string{"2097152 bytes", "generator_*", "singlegen_*"} {
 		if !strings.Contains(finding.Message, want) {
 			t.Fatalf("finding message = %q, want to contain %q", finding.Message, want)
 		}
+	}
+}
+
+func TestStressPayloadEstimateFailsWhenDefaultDispatchWouldExceedLimit(t *testing.T) {
+	// Given: default-selected provider material that fits the fixed testcase cap
+	// but would make the API-to-stresser event too large.
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		[]loader.TestcaseFile{{Filename: "testcase_large.in", Content: strings.Repeat("1", 2*1024*1024)}},
+		false,
+	)
+	problem.Generators = []loader.CodeFile{{
+		Filename: "generator_large.py",
+		Content:  strings.Repeat("g", 2*1024*1024),
+		Language: contracts.LanguagePython3,
+	}}
+	problem.Singlegens = []loader.CodeFile{{
+		Filename: "singlegen_large.py",
+		Content:  strings.Repeat("s", 2*1024*1024),
+		Language: contracts.LanguagePython3,
+	}}
+
+	// When: full verification performs static checks.
+	report := fakeVerifier(newFakeExecutor()).verifyProblem(context.Background(), problem)
+
+	// Then: verification reports that the default stress dispatch would be too large.
+	finding, ok := findFinding(report, SeverityError, StageStatic, "")
+	if !ok {
+		t.Fatalf("expected stress payload size finding, got %+v", report.Findings)
+	}
+	for _, want := range []string{
+		"stress event payload estimate exceeds",
+		"5242880 bytes",
+		"524288 bytes reserved for submitted code",
+	} {
+		if !strings.Contains(finding.Message, want) {
+			t.Fatalf("finding message = %q, want to contain %q", finding.Message, want)
+		}
+	}
+}
+
+func TestFixedTestcaseUnderRaisedLimitDoesNotFailSizeCheck(t *testing.T) {
+	// Given: a fixed testcase larger than the old 8 KiB cap but under 2 MiB.
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		[]loader.TestcaseFile{{Filename: "testcase_data_5.in", Content: strings.Repeat("1", 755125)}},
+		false,
+	)
+
+	// When: verification performs static checks.
+	report := fakeVerifier(newFakeExecutor()).verifyProblem(context.Background(), problem)
+
+	// Then: the fixed testcase size rule does not reject the official-data-sized input.
+	if finding, ok := findFinding(report, SeverityError, StageStatic, "testcase_data_5.in"); ok {
+		t.Fatalf("unexpected fixed testcase size finding: %+v", finding)
 	}
 }
 

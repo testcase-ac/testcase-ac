@@ -18,10 +18,11 @@ const (
 	GeneratorRuns              = 100
 	MinimumDistinctGeneratorIO = 3
 	bytesPerMiB                = 1024 * 1024
-	MaxFixedTestcaseBytes      = 8 * 1024
+	MaxFixedTestcaseBytes      = 2 * bytesPerMiB
 	// BOJ 2170 has a valid max-size generated input of 23,000,008 bytes; keep this limit above that.
-	MaxGeneratedTestcaseBytes = 32 * bytesPerMiB
-	generatorTimeoutSeconds   = 2
+	MaxGeneratedTestcaseBytes  = 32 * bytesPerMiB
+	MaxStressEventPayloadBytes = 5 * bytesPerMiB
+	generatorTimeoutSeconds    = 2
 	// BOJ 25687's max case checks two 30,890,896-byte outputs and measured about 3s in the Docker runtime.
 	helperTimeoutSeconds = 5
 	helperMemoryMB       = 1024
@@ -165,6 +166,7 @@ func addStaticFindings(report *VerifyReport, problem loader.Problem, options Ver
 	}
 	if options.Mode != VerifyModeValidateInputs {
 		verifyAnswerFiles(report, problem.AnswerFiles)
+		verifyStressPayloadSize(report, problem)
 	}
 	for _, name := range problem.UnknownFiles {
 		if isLocalValidatorInspectionArtifact(name) {

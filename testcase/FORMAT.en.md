@@ -122,7 +122,7 @@ Plaintext fixed testcases. A file is recognized as a fixed testcase when:
 Statement samples should use `sample_{i}.in` and, when the official output is
 available, `sample_{i}.out`.
 
-Fixed testcases must be at most 8 KiB (8192 bytes). Add larger inputs as
+Fixed testcases must be at most 2 MiB (2097152 bytes). Add larger inputs as
 `generator_*` or `singlegen_*` files.
 
 ### Fixed Answer Files (optional)
