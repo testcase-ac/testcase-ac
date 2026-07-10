@@ -366,7 +366,7 @@ func (a *App) corsMiddleware(next http.Handler) http.Handler {
 		if OriginAllowed(a.settings, origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, "+requestIDHeader)
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 			w.Header().Set("Access-Control-Expose-Headers", requestIDHeader)
 			w.Header().Set("Vary", "Origin")
 		}
@@ -380,10 +380,7 @@ func (a *App) corsMiddleware(next http.Handler) http.Handler {
 
 func (a *App) requestIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestID := r.Header.Get(requestIDHeader)
-		if requestID == "" {
-			requestID = generateRequestID()
-		}
+		requestID := generateRequestID()
 		w.Header().Set(requestIDHeader, requestID)
 		ctx := context.WithValue(r.Context(), requestIDContextKey, requestID)
 		next.ServeHTTP(w, r.WithContext(ctx))
