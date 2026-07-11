@@ -1,0 +1,8 @@
+title: "산책로"
+externalLink: "https://koi.or.kr/koi/2026/1/"
+isSpecialJudge: true
+authors:
+  correct_reference.cpp: "한국정보올림피아드"
+  checker.cpp: "한국정보올림피아드"
+  sample_1.in: "한국정보올림피아드"
+  sample_2.in: "한국정보올림피아드"
