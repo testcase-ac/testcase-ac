@@ -43,9 +43,6 @@ __pycache__/
 .gstack/
 .claude/
 
-# Local tooling
-.scripts/
-
 tmp/*
 
 .cph
