@@ -252,7 +252,7 @@ func (s stresser) compileCaseProviders(ctx context.Context, caseProviders []cont
 func (s stresser) generateCaseProvider(ctx context.Context, p compiledCaseProvider, randomSeed int) (string, contracts.GeneratedBy, *executionResult, error) {
 	switch p.Type {
 	case contracts.CaseProviderText:
-		return util.CleanStdout(p.Content, "always"), contracts.GeneratedBy{
+		return p.Content, contracts.GeneratedBy{
 			Stage: p.Type,
 			ID:    p.ID,
 		}, nil, nil
@@ -274,7 +274,7 @@ func (s stresser) generateCaseProvider(ctx context.Context, p compiledCaseProvid
 		if !execution.Success {
 			return "", contracts.GeneratedBy{}, &execution, nil
 		}
-		return util.CleanStdout(execution.Stdout, "always"), generatedBy, nil, nil
+		return execution.Stdout, generatedBy, nil, nil
 	default:
 		return "", contracts.GeneratedBy{}, nil, NewResponseError(
 			contracts.ErrorTypeInternalServerError,
@@ -448,7 +448,7 @@ func dedupAndSort(items []stressIteration) []stressIteration {
 	byTestcase := make(map[string]stressIteration, len(items))
 	order := []string{}
 	for _, item := range items {
-		key := util.CleanStdout(item.Testcase, "no")
+		key := item.Testcase
 		if _, exists := byTestcase[key]; !exists {
 			byTestcase[key] = item
 			order = append(order, key)

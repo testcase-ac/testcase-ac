@@ -2,7 +2,7 @@ package util
 
 import "strings"
 
-// CleanStdout normalizes one stdout/testcase stream before feeding it onward.
+// CleanStdout normalizes program output before judging or display.
 func CleanStdout(output string, trailingNewline string) string {
 	trimmed := strings.TrimRight(output, "\n\r\t ")
 	if trimmed == "" {

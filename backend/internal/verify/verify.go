@@ -250,7 +250,7 @@ func (v verifier) verifyInputs(ctx context.Context, report *VerifyReport, proble
 	}
 
 	for _, testcase := range problem.Testcases {
-		content := util.CleanStdout(testcase.Content, "always")
+		content := testcase.Content
 		if validGeneratedSize(report, StageStatic, testcase.Filename, nil, content) {
 			inputs.verify(ctx, testInput{Content: content, Filename: testcase.Filename})
 		}
@@ -265,7 +265,7 @@ func (v verifier) verifyInputs(ctx context.Context, report *VerifyReport, proble
 			report.addExecution(StageSinglegen, singlegen.Filename, nil, "singlegen execution failed", first)
 			continue
 		}
-		firstOut := util.CleanStdout(first.Stdout, "always")
+		firstOut := first.Stdout
 		if options.Mode != VerifyModeValidateInputs {
 			v.sleep(time.Second)
 			second := v.run(ctx, *program, "", nil, generatorLimits())
@@ -273,7 +273,7 @@ func (v verifier) verifyInputs(ctx context.Context, report *VerifyReport, proble
 				report.addExecution(StageSinglegen, singlegen.Filename, nil, "singlegen repeat execution failed", second)
 				continue
 			}
-			secondOut := util.CleanStdout(second.Stdout, "always")
+			secondOut := second.Stdout
 			if firstOut != secondOut {
 				report.AddFinding(SeverityError, StageSinglegen, singlegen.Filename, nil, "singlegen output changed between runs", first.Stdout, second.Stdout)
 				continue
@@ -319,7 +319,7 @@ func (v verifier) runGenerator(ctx context.Context, report *VerifyReport, filena
 		report.addExecution(StageGenerator, filename, &seed, "generator execution failed", result)
 		return "", false
 	}
-	output := util.CleanStdout(result.Stdout, "always")
+	output := result.Stdout
 	if !validGeneratedSize(report, StageGenerator, filename, &seed, output) {
 		return "", false
 	}

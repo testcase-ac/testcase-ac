@@ -271,6 +271,26 @@ func TestValidateInputsModeSkipsCorrectAndCheckerAfterValidatorAccepts(t *testin
 	}
 }
 
+func TestValidateInputsModePreservesFixedTestcaseBytes(t *testing.T) {
+	fake := newFakeExecutor()
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		[]loader.TestcaseFile{{Filename: "testcase_1.txt", Content: "value \n"}},
+		false,
+	)
+
+	report := fakeVerifier(fake).verifyProblemWithOptions(context.Background(), problem, VerifyOptions{Mode: VerifyModeValidateInputs})
+
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
+	}
+	want := []string{"value \n"}
+	if got := fake.rawRunInputs["validator.cpp"]; !reflect.DeepEqual(got, want) {
+		t.Fatalf("validator inputs = %q, want %q", got, want)
+	}
+}
+
 func TestValidateInputsModeRunsGeneratorsWithoutDiversityGate(t *testing.T) {
 	fake := newFakeExecutor()
 	fake.setSuccessfulRunResult("generator_a.py", "", []string{"0"}, "7\n")
@@ -299,6 +319,27 @@ func TestValidateInputsModeRunsGeneratorsWithoutDiversityGate(t *testing.T) {
 	}
 }
 
+func TestValidateInputsModePreservesGeneratorStdoutBytes(t *testing.T) {
+	fake := newFakeExecutor()
+	fake.setSuccessfulRunResult("generator_a.py", "", []string{"0"}, "7 \n")
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		nil,
+		false,
+	)
+	problem.Generators = []loader.CodeFile{{Filename: "generator_a.py", Language: contracts.LanguagePython3, Content: "generator_a.py"}}
+
+	report := fakeVerifier(fake).verifyProblemWithOptions(context.Background(), problem, VerifyOptions{Mode: VerifyModeValidateInputs})
+
+	if report.HasErrorFinding {
+		t.Fatalf("HasErrorFinding = true, findings = %+v", report.Findings)
+	}
+	if got := fake.rawRunInputs["validator.cpp"][0]; got != "7 \n" {
+		t.Fatalf("first validator input = %q, want %q", got, "7 \n")
+	}
+}
+
 func TestValidateInputsModeRunsSinglegenOnce(t *testing.T) {
 	fake := newFakeExecutor()
 	fake.setSuccessfulRunResult("singlegen_a.py", "", nil, "7\n")
@@ -321,6 +362,27 @@ func TestValidateInputsModeRunsSinglegenOnce(t *testing.T) {
 	}
 	if !reflect.DeepEqual(fake.calls, want) {
 		t.Fatalf("calls:\n%s\nwant:\n%s", strings.Join(fake.calls, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+func TestSinglegenDeterminismUsesExactStdoutBytes(t *testing.T) {
+	fake := newFakeExecutor()
+	fake.setRunResults("singlegen_a.py", "", nil,
+		executor.ExecutionResult{Success: true, Verdict: contracts.VerdictAccepted, Stdout: "7\n"},
+		executor.ExecutionResult{Success: true, Verdict: contracts.VerdictAccepted, Stdout: "7 \n"},
+	)
+	problem := fakeProblem(
+		[]string{"correct_a.py"},
+		&loader.CodeFile{Filename: "validator.cpp", Language: contracts.LanguageCpp23},
+		nil,
+		false,
+	)
+	problem.Singlegens = []loader.CodeFile{{Filename: "singlegen_a.py", Language: contracts.LanguagePython3, Content: "singlegen_a.py"}}
+
+	report := fakeVerifier(fake).verifyProblem(context.Background(), problem)
+
+	if !hasFinding(report, SeverityError, StageSinglegen, "singlegen_a.py") {
+		t.Fatalf("expected exact-byte singlegen determinism finding, got %+v", report.Findings)
 	}
 }
 
@@ -942,18 +1004,22 @@ func fakeVerifier(fake *fakeExecutor) verifier {
 
 type fakeExecutor struct {
 	runResultsByInput     map[runCall]executor.ExecutionResult
+	runResultSequences    map[runCall][]executor.ExecutionResult
 	checkerResultsByInput map[checkerCall]executor.ExecutionResult
 	compileResultsByCode  map[string]executor.CompileResult
 	compileCalls          []string
 	calls                 []string
 	checkerCalls          []string
+	rawRunInputs          map[string][]string
 }
 
 func newFakeExecutor() *fakeExecutor {
 	return &fakeExecutor{
 		runResultsByInput:     map[runCall]executor.ExecutionResult{},
+		runResultSequences:    map[runCall][]executor.ExecutionResult{},
 		checkerResultsByInput: map[checkerCall]executor.ExecutionResult{},
 		compileResultsByCode:  map[string]executor.CompileResult{},
+		rawRunInputs:          map[string][]string{},
 	}
 }
 
@@ -974,12 +1040,18 @@ func (f *fakeExecutor) setCompileResult(code string, result executor.CompileResu
 }
 
 func (f *fakeExecutor) Run(_ context.Context, program executor.CompiledProgram, input string, args []string, _ executor.Limits) executor.ExecutionResult {
+	f.rawRunInputs[program.Dir] = append(f.rawRunInputs[program.Dir], input)
 	key := newRunCall(program.Dir, input, args)
 	call := fmt.Sprintf("run %s input=%s", key.program, key.input)
 	if len(args) > 0 {
 		call += " args=" + strings.Join(args, ",")
 	}
 	f.calls = append(f.calls, call)
+	if sequence := f.runResultSequences[key]; len(sequence) > 0 {
+		result := sequence[0]
+		f.runResultSequences[key] = sequence[1:]
+		return result
+	}
 
 	if result, ok := f.runResultsByInput[key]; ok {
 		return result
@@ -1009,6 +1081,10 @@ func (f *fakeExecutor) setSuccessfulRunResult(program, input string, args []stri
 		ReturnCode: 0,
 		Stdout:     stdout,
 	})
+}
+
+func (f *fakeExecutor) setRunResults(program, input string, args []string, results ...executor.ExecutionResult) {
+	f.runResultSequences[newRunCall(program, input, args)] = results
 }
 
 func newRunCall(program, input string, args []string) runCall {

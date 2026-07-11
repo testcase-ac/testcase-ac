@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -73,6 +74,67 @@ func TestOperationStressSmoke(t *testing.T) {
 	}
 	if result.ExecutionFailedCasesCount != 0 {
 		t.Fatalf("ExecutionFailedCasesCount = %d, want 0", result.ExecutionFailedCasesCount)
+	}
+}
+
+func TestOperationStressPreservesTextProviderBytes(t *testing.T) {
+	fake := newFakeRuntime()
+	result, err := fakeStresser(fake).operationStress(contracts.StressEvent{
+		Operation:          contracts.OperationStress,
+		TargetCode:         "sum",
+		TargetCodeLang:     contracts.LanguageCpp23,
+		CorrectCode:        "sum",
+		CorrectCodeLang:    contracts.LanguageCpp23,
+		TargetTimeLimit:    2,
+		TargetMemoryLimit:  256,
+		CorrectTimeLimit:   2,
+		CorrectMemoryLimit: 256,
+		Iterations:         1,
+		CaseProviders:      []contracts.CaseProvider{textProvider("tc-raw", "1 2 \n")},
+	})
+	if err != nil || result.Error {
+		t.Fatalf("operationStress() result = %+v, error = %v", result, err)
+	}
+	want := []string{"1 2 \n", "1 2 \n"}
+	if got := fake.runInputs["sum"]; !reflect.DeepEqual(got, want) {
+		t.Fatalf("sum inputs = %q, want %q", got, want)
+	}
+}
+
+func TestOperationStressPreservesGeneratorStdoutBytes(t *testing.T) {
+	fake := newFakeRuntime()
+	result, err := fakeStresser(fake).operationStress(contracts.StressEvent{
+		Operation:          contracts.OperationStress,
+		TargetCode:         "sum",
+		TargetCodeLang:     contracts.LanguageCpp23,
+		CorrectCode:        "sum",
+		CorrectCodeLang:    contracts.LanguageCpp23,
+		TargetTimeLimit:    2,
+		TargetMemoryLimit:  256,
+		CorrectTimeLimit:   2,
+		CorrectMemoryLimit: 256,
+		Iterations:         1,
+		CaseProviders:      []contracts.CaseProvider{generatorProvider("gen-raw", "case:1 2 ")},
+	})
+	if err != nil || result.Error {
+		t.Fatalf("operationStress() result = %+v, error = %v", result, err)
+	}
+	want := []string{"1 2 \n", "1 2 \n"}
+	if got := fake.runInputs["sum"]; !reflect.DeepEqual(got, want) {
+		t.Fatalf("sum inputs = %q, want %q", got, want)
+	}
+}
+
+func TestDedupAndSortUsesExactTestcaseBytes(t *testing.T) {
+	items := []stressIteration{
+		{Testcase: "abc\n", GeneratedBy: contracts.GeneratedBy{Stage: contracts.CaseProviderText, ID: "plain"}},
+		{Testcase: "abc \n", GeneratedBy: contracts.GeneratedBy{Stage: contracts.CaseProviderText, ID: "trailing-space"}},
+	}
+
+	got := dedupAndSort(items)
+
+	if len(got) != 2 {
+		t.Fatalf("dedupAndSort() returned %d cases, want 2 exact-byte-distinct cases", len(got))
 	}
 }
 
@@ -414,7 +476,7 @@ func TestBuildStressResponseDedupsAndLimitsReturnedFailures(t *testing.T) {
 			},
 		},
 		{
-			Testcase:      "1 1",
+			Testcase:      "1 1\n",
 			GeneratedBy:   contracts.GeneratedBy{Stage: contracts.CaseProviderGenerator, ID: "g1-dup"},
 			CorrectOutput: "2\n",
 			TargetRun: targetRun{
@@ -497,7 +559,7 @@ func TestBuildStressResponseDedupsAndLimitsReturnedFailures(t *testing.T) {
 func TestBuildStressResponseCleansReturnedStdout(t *testing.T) {
 	wrongCases := []stressIteration{
 		{
-			Testcase:      "1 2\n",
+			Testcase:      "1 2 \n",
 			GeneratedBy:   contracts.GeneratedBy{Stage: contracts.CaseProviderText, ID: "tc"},
 			CorrectOutput: "3  \n\n",
 			TargetRun: targetRun{
@@ -520,6 +582,9 @@ func TestBuildStressResponseCleansReturnedStdout(t *testing.T) {
 	}
 
 	result := buildStressResponse(wrongCases, executionFailedCases, nil, true)
+	if got := result.WrongCases[0].Testcase.Text; got != "1 2 \n" {
+		t.Fatalf("Testcase.Text = %q, want exact input case %q", got, "1 2 \n")
+	}
 	if got := result.WrongCases[0].TargetOutput.Text; got != "4" {
 		t.Fatalf("TargetOutput.Text = %q, want %q", got, "4")
 	}
@@ -543,10 +608,14 @@ func TestBuildStressResponseCleansReturnedStdout(t *testing.T) {
 type fakeRuntime struct {
 	compileFailures map[string]executor.CompileResult
 	runDelay        time.Duration
+	runInputs       map[string][]string
 }
 
 func newFakeRuntime() *fakeRuntime {
-	return &fakeRuntime{compileFailures: map[string]executor.CompileResult{}}
+	return &fakeRuntime{
+		compileFailures: map[string]executor.CompileResult{},
+		runInputs:       map[string][]string{},
+	}
 }
 
 func fakeStresser(fake *fakeRuntime) stresser {
@@ -572,6 +641,7 @@ func (f *fakeRuntime) compile(_ context.Context, source executor.Source) executo
 }
 
 func (f *fakeRuntime) run(ctx context.Context, program executor.CompiledProgram, input string, args []string, _ executor.Limits) executor.ExecutionResult {
+	f.runInputs[program.Dir] = append(f.runInputs[program.Dir], input)
 	if f.runDelay > 0 {
 		select {
 		case <-time.After(f.runDelay):
