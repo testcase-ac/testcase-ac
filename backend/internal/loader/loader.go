@@ -2,13 +2,11 @@ package loader
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -21,7 +19,6 @@ import (
 const (
 	defaultTimeLimitMS = 2000
 	defaultMemoryMB    = 256
-	authorIndexName    = ".author-index.json"
 	typeMetadataName   = "type_metadata.yaml"
 )
 
@@ -123,8 +120,7 @@ type filesystem interface {
 }
 
 type problemLoader struct {
-	files          filesystem
-	gitAuthorIndex func(testcaseRoot string) map[string]string
+	files filesystem
 }
 
 type osFilesystem struct{}
@@ -163,8 +159,8 @@ type rawTypeMetadataSegment struct {
 	Labels yaml.Node `yaml:"labels"`
 }
 
-func BuildCatalog(testcaseRoot string) (map[[2]string]Problem, error) {
-	return newProblemLoader().buildCatalog(testcaseRoot)
+func BuildCatalog(testcaseRoot string, authorByRelPath map[string]string) (map[[2]string]Problem, error) {
+	return newProblemLoader().buildCatalog(testcaseRoot, authorByRelPath)
 }
 
 func BuildTypeMetadata(testcaseRoot string) (map[string]TypeMetadata, error) {
@@ -181,12 +177,11 @@ func LoadProblem(dirPath string, options Options) (Problem, error) {
 
 func newProblemLoader() problemLoader {
 	return problemLoader{
-		files:          osFilesystem{},
-		gitAuthorIndex: buildGitAuthorIndex,
+		files: osFilesystem{},
 	}
 }
 
-func (l problemLoader) buildCatalog(testcaseRoot string) (map[[2]string]Problem, error) {
+func (l problemLoader) buildCatalog(testcaseRoot string, authorByRelPath map[string]string) (map[[2]string]Problem, error) {
 	catalog := make(map[[2]string]Problem)
 	info, err := l.files.Stat(testcaseRoot)
 	if err != nil {
@@ -200,7 +195,6 @@ func (l problemLoader) buildCatalog(testcaseRoot string) (map[[2]string]Problem,
 		return nil, fmt.Errorf("testcase root is not a directory: %s", testcaseRoot)
 	}
 
-	authorByRelPath := l.loadAuthorIndex(testcaseRoot)
 	typeDirs, err := l.files.ReadDir(testcaseRoot)
 	if err != nil {
 		return nil, err
@@ -693,74 +687,4 @@ func CompareExternalID(a, b string) int {
 	default:
 		return strings.Compare(a, b)
 	}
-}
-
-func (l problemLoader) loadAuthorIndex(testcaseRoot string) map[string]string {
-	manifestPath := filepath.Join(testcaseRoot, authorIndexName)
-	data, err := l.files.ReadFile(manifestPath)
-	if err == nil {
-		var authorByRelPath map[string]string
-		if err := json.Unmarshal(data, &authorByRelPath); err != nil {
-			slog.Warn("author_index_parse_failed", "path", manifestPath, "err", err)
-		} else {
-			return authorByRelPath
-		}
-	} else if !errors.Is(err, fs.ErrNotExist) {
-		slog.Warn("author_index_read_failed", "path", manifestPath, "err", err)
-	}
-	if l.gitAuthorIndex == nil {
-		return map[string]string{}
-	}
-	return l.gitAuthorIndex(testcaseRoot)
-}
-
-func buildGitAuthorIndex(testcaseRoot string) map[string]string {
-	repoRoot := filepath.Dir(testcaseRoot)
-	if _, err := os.Stat(filepath.Join(repoRoot, ".git")); err != nil {
-		return map[string]string{}
-	}
-	cmd := exec.Command("git", "-C", repoRoot, "log", "--format=__AUTHOR__%an%x00%ae", "--name-only", "--", "testcase")
-	output, err := cmd.Output()
-	if err != nil {
-		slog.Warn("git_author_index_build_failed", "testcase_root", testcaseRoot, "err", err)
-		return map[string]string{}
-	}
-
-	authorByRelPath := make(map[string]string)
-	currentAuthor := ""
-	for _, rawLine := range bytes.Split(output, []byte{'\n'}) {
-		line := strings.TrimSpace(string(rawLine))
-		if line == "" {
-			continue
-		}
-		if strings.HasPrefix(line, "__AUTHOR__") {
-			payload := strings.TrimPrefix(line, "__AUTHOR__")
-			authorName, authorEmail, _ := strings.Cut(payload, "\x00")
-			currentAuthor = gitContributorLabel(authorName, authorEmail)
-			continue
-		}
-		if currentAuthor == "" || !strings.HasPrefix(line, "testcase/") {
-			continue
-		}
-		relPath := strings.TrimPrefix(line, "testcase/")
-		if _, exists := authorByRelPath[relPath]; !exists {
-			authorByRelPath[relPath] = currentAuthor
-		}
-	}
-	return authorByRelPath
-}
-
-func gitContributorLabel(authorName, authorEmail string) string {
-	email := strings.TrimSpace(authorEmail)
-	if email != "" {
-		local, domain, found := strings.Cut(email, "@")
-		if found && domain == "users.noreply.github.com" {
-			if _, username, plus := strings.Cut(local, "+"); plus && strings.TrimSpace(username) != "" {
-				return strings.TrimSpace(username)
-			}
-			return strings.TrimSpace(local)
-		}
-		return strings.TrimSpace(local)
-	}
-	return strings.TrimSpace(authorName)
 }

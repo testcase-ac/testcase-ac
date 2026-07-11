@@ -8,8 +8,11 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
+
+	"github.com/testcase-ac/testcase-ac/backend/internal/authorindex"
 )
 
 const shutdownTimeout = 180 * time.Second
@@ -26,9 +29,13 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
+	authorByRelPath, err := loadAuthorIndex(settings)
+	if err != nil {
+		fatal(err)
+	}
 
 	buildStarted := time.Now()
-	catalog, err := BuildCatalog(testcaseRoot)
+	catalog, err := BuildCatalog(testcaseRoot, authorByRelPath)
 	if err != nil {
 		fatal(err)
 	}
@@ -64,6 +71,15 @@ func main() {
 	if err := runServer(server); err != nil {
 		fatal(err)
 	}
+}
+
+// loadAuthorIndex uses an explicitly configured manifest strictly and builds
+// from the local Git checkout only when no manifest was configured.
+func loadAuthorIndex(settings Settings) (map[string]string, error) {
+	if strings.TrimSpace(settings.AuthorIndexPath) != "" {
+		return authorindex.ReadFile(settings.AuthorIndexPath)
+	}
+	return authorindex.Build(settings.TestcaseLocalPath)
 }
 
 func fatal(err error) {

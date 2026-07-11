@@ -16,9 +16,6 @@ import (
 func newFakeProblemLoader(files map[string]string) problemLoader {
 	return problemLoader{
 		files: newMapFilesystem(files),
-		gitAuthorIndex: func(string) map[string]string {
-			return map[string]string{}
-		},
 	}
 }
 
@@ -135,7 +132,6 @@ func TestLoadProblemMetadataAuthorsOverrideGitAuthorByFilename(t *testing.T) {
 
 func TestBuildCatalogUsesInjectedFilesystemAndAuthorIndex(t *testing.T) {
 	loader := newFakeProblemLoader(map[string]string{
-		`testcase/.author-index.json`:             `{"boj/1000/correct.cpp":"alice"}`,
 		"testcase/boj/1000/metadata.yaml":         "title: A+B\n",
 		"testcase/boj/1000/correct.cpp":           "int main(){}\n",
 		"testcase/boj/1000/testcase_1.txt":        "1 2\n",
@@ -145,7 +141,9 @@ func TestBuildCatalogUsesInjectedFilesystemAndAuthorIndex(t *testing.T) {
 		"testcase/koi/2020/1/mid/2/metadata.yaml": "title: KOI\n",
 	})
 
-	catalog, err := loader.buildCatalog("testcase")
+	catalog, err := loader.buildCatalog("testcase", map[string]string{
+		"boj/1000/correct.cpp": "alice",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +194,7 @@ func TestBuildCatalogFindsNestedProblemsAndSymlinkDirs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	catalog, err := BuildCatalog(testcaseRoot)
+	catalog, err := BuildCatalog(testcaseRoot, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -369,9 +367,6 @@ func TestLoadProblemOutputOnlySuppressesInputMaterialsWithoutReadingContent(t *t
 	tracker := newReadTrackingFilesystem(files, forbidden)
 	loader := problemLoader{
 		files: tracker,
-		gitAuthorIndex: func(string) map[string]string {
-			return map[string]string{}
-		},
 	}
 
 	// When: the loader builds the domain problem.

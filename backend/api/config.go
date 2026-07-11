@@ -14,6 +14,7 @@ var localhostOriginRegex = regexp.MustCompile(`^http://(localhost|127\.0\.0\.1):
 
 type Settings struct {
 	TestcaseLocalPath          string
+	AuthorIndexPath            string
 	StresserMode               string
 	StresserLocalEndpoint      string
 	StresserLambdaFunctionName string
@@ -29,6 +30,7 @@ func LoadSettings() (Settings, error) {
 
 	settings := Settings{
 		TestcaseLocalPath:          getEnv("TESTCASE_LOCAL_PATH", ""),
+		AuthorIndexPath:            getEnv("AUTHOR_INDEX_PATH", ""),
 		StresserMode:               getEnv("STRESSER_MODE", "local_docker"),
 		StresserLocalEndpoint:      getEnv("STRESSER_LOCAL_ENDPOINT", "http://localhost:9000/2015-03-31/functions/function/invocations"),
 		StresserLambdaFunctionName: getEnv("STRESSER_LAMBDA_FUNCTION_NAME", "testcase-ac-stresser"),
@@ -38,7 +40,6 @@ func LoadSettings() (Settings, error) {
 		CORSAllowOrigins:           splitCSV(getEnv("CORS_ALLOW_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://testcase-ac.github.io,https://next.testcase.ac,https://testcase.ac")),
 		HTTPAddr:                   getEnv("HTTP_ADDR", "127.0.0.1:8000"),
 	}
-
 	switch settings.StresserMode {
 	case "local_docker", "lambda":
 	default:

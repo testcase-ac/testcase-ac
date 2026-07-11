@@ -14,8 +14,8 @@ type TypeMetadata = loader.TypeMetadata
 type TypeMetadataSegment = loader.TypeMetadataSegment
 type TypeMetadataSegmentLabel = loader.TypeMetadataSegmentLabel
 
-func BuildCatalog(testcaseRoot string) (map[[2]string]Problem, error) {
-	return loader.BuildCatalog(testcaseRoot)
+func BuildCatalog(testcaseRoot string, authorByRelPath map[string]string) (map[[2]string]Problem, error) {
+	return loader.BuildCatalog(testcaseRoot, authorByRelPath)
 }
 
 func BuildTypeMetadata(testcaseRoot string) (map[string]TypeMetadata, error) {

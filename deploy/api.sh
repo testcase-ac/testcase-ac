@@ -28,6 +28,7 @@ default_cors_allow_origins() {
 render_backend_env() {
   cat <<EOF
 TESTCASE_LOCAL_PATH=${DEPLOY_APP_DIR}
+AUTHOR_INDEX_PATH=${DEPLOY_APP_DIR}/testcase/.author-index.json
 STRESSER_MODE=lambda
 STRESSER_LAMBDA_FUNCTION_NAME=${STRESSER_LAMBDA_FUNCTION_NAME}
 AWS_REGION=${DEPLOY_AWS_REGION}
@@ -239,9 +240,12 @@ BINARY_PATH="${TMP_DIR}/${DEPLOY_BINARY_NAME}"
 
 echo "==> Building testcase author index"
 AUTHOR_INDEX_PATH="${TMP_DIR}/author-index.json"
-go run "${REPO_ROOT}/deploy/build-author-index.go" \
-  -repo-root "${REPO_ROOT}" \
-  -output "${AUTHOR_INDEX_PATH}"
+(
+  cd "${REPO_ROOT}/backend"
+  go run ./cmd/build-author-index \
+    -repo-root "${REPO_ROOT}" \
+    -output "${AUTHOR_INDEX_PATH}"
+)
 
 ENV_FILE="${TMP_DIR}/backend.env"
 SERVICE_FILE_BLUE="${TMP_DIR}/${DEPLOY_SERVICE_NAME}-blue.service"
