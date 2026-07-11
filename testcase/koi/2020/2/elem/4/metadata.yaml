@@ -1,2 +1,4 @@
 title: "사탕 돌리기"
 externalLink: "https://koi.or.kr/koi/2020/2/"
+timeLimitMs: 2000
+memoryLimitMb: 1024

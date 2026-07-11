@@ -1,4 +1,6 @@
 title: "막대기"
 externalLink: "https://koi.or.kr/koi/2019/1/"
+timeLimitMs: 1000
+memoryLimitMb: 512
 authors:
   correct_reference.cpp: "한국정보올림피아드"

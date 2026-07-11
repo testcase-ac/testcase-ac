@@ -1,2 +1,4 @@
 title: "버블버블"
 externalLink: "https://koi.or.kr/koi/2020/2/"
+timeLimitMs: 2000
+memoryLimitMb: 1024

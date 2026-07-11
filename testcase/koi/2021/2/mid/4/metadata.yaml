@@ -1,4 +1,6 @@
 title: "공통 괄호 문자열 사전"
 externalLink: "https://koi.or.kr/koi/2021/2/"
+timeLimitMs: 3000
+memoryLimitMb: 1024
 authors:
   correct_reference.cpp: "한국정보올림피아드"

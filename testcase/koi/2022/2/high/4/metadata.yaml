@@ -1,4 +1,6 @@
 title: "외곽 순환 도로"
 externalLink: "https://koi.or.kr/koi/2022/2/"
+timeLimitMs: 6000
+memoryLimitMb: 1024
 authors:
   correct_reference.cpp: "한국정보올림피아드"

@@ -1,4 +1,6 @@
 title: "점수 경주"
 externalLink: "https://koi.or.kr/koi/2024/2/"
+timeLimitMs: 6500
+memoryLimitMb: 1024
 authors:
   correct_reference.cpp: "한국정보올림피아드"

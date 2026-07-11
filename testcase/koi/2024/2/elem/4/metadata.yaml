@@ -1,4 +1,6 @@
 title: "양손에 V"
 externalLink: "https://koi.or.kr/koi/2024/2/"
+timeLimitMs: 2000
+memoryLimitMb: 1024
 authors:
   correct_reference.cpp: "한국정보올림피아드"

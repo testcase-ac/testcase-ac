@@ -1,2 +1,4 @@
 title: "드론"
 externalLink: "https://koi.or.kr/koi/2019/2/"
+timeLimitMs: 3500
+memoryLimitMb: 1024

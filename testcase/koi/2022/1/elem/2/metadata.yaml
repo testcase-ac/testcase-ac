@@ -1,4 +1,6 @@
 title: "조약돌"
 externalLink: "https://koi.or.kr/koi/2022/1/"
+timeLimitMs: 500
+memoryLimitMb: 256
 authors:
   correct_reference.cpp: "한국정보올림피아드"

@@ -1,4 +1,6 @@
 title: "고기 파티"
 externalLink: "https://koi.or.kr/koi/2023/2/"
+timeLimitMs: 3000
+memoryLimitMb: 1024
 authors:
   correct_reference.cpp: "한국정보올림피아드"
