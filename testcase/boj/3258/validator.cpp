@@ -19,9 +19,7 @@ int main(int argc, char* argv[]) {
 
     vector<int> obstacles;
     if (m == 0) {
-        if (inf.eoln()) {
-            // The verifier normalizes trailing blank lines from testcase streams.
-        }
+        inf.readEoln();
         inf.readEof();
         return 0;
     }

@@ -21,10 +21,6 @@ int main(int argc, char* argv[]) {
         inf.readEoln();
 
         if (m == 0) {
-            if (i == n && inf.seekEof()) {
-                inf.readEof();
-                return 0;
-            }
             inf.readEoln();
         } else {
             vector<bool> seen(k + 1, false);

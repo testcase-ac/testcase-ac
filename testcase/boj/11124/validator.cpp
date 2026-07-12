@@ -195,14 +195,8 @@ int main(int argc, char* argv[]) {
 
         ensureReachableCubeState(cube, tc);
 
-        if (tc < T) {
-            string emptyLine = inf.readLine("[^]*", "empty_line");
-            ensuref(emptyLine.empty(), "test case %d: expected an empty line after cube", tc);
-        } else if (!inf.eof()) {
-            string emptyLine = inf.readLine("[^]*", "final_empty_line");
-            ensuref(emptyLine.empty(),
-                    "test case %d: expected only an optional empty line after final cube", tc);
-        }
+        string emptyLine = inf.readLine("[^]*", "empty_line");
+        ensuref(emptyLine.empty(), "test case %d: expected an empty line after cube", tc);
     }
 
     inf.readEof();

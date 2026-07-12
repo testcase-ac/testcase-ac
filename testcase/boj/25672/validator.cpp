@@ -28,9 +28,6 @@ int main(int argc, char* argv[]) {
                     previous);
             previous = value;
         }
-        if (k == 0 && tc == t && inf.seekEof()) {
-            break;
-        }
         inf.readEoln();
     }
 

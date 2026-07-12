@@ -9,14 +9,7 @@ int main(int argc, char* argv[]) {
     inf.readInts(n, 1, 100000, "a");
     inf.readEoln();
 
-    if (n == 1) {
-        // CHECK: the parent-list line has zero integers; accept EOF after A[1]
-        // because fixed input materialization may drop a blank-only final line.
-        if (inf.seekEof()) {
-            inf.readEof();
-            return 0;
-        }
-    } else {
+    if (n > 1) {
         for (int i = 2; i <= n; ++i) {
             if (i > 2) {
                 inf.readSpace();

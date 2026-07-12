@@ -74,9 +74,7 @@ int main(int argc, char* argv[]) {
 
     vector<string> initialAlgorithms;
     if (a == 0) {
-        if (!inf.seekEof()) {
-            inf.readEoln();
-        }
+        inf.readEoln();
     } else {
         for (int i = 0; i < a; ++i) {
             initialAlgorithms.push_back(inf.readToken("[a-z]{1,20}", "initial_algorithm"));

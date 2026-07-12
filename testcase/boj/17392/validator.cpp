@@ -13,9 +13,7 @@ int main(int argc, char* argv[]) {
     inf.readEoln();
 
     if (n == 0) {
-        if (!inf.eof()) {
-            inf.readEoln();
-        }
+        inf.readEoln();
     } else {
         vector<int> h = inf.readInts(n, 1, 99, "H_i");
         (void)h;

@@ -15,9 +15,7 @@ int main(int argc, char* argv[]) {
     ensuref(n == 0 || h >= 2, "positive ledges require H >= 2, got n=%d and H=%lld", n, h);
 
     if (n == 0) {
-        if (!inf.eof()) {
-            inf.readEoln();
-        }
+        inf.readEoln();
     } else {
         vector<long long> a;
         a.reserve(n);
