@@ -41,6 +41,7 @@ jobs:
         working-directory: backend
         run: go test ./api ./contracts ./internal/loader
 
+      # Exchange GitHub's OIDC token for short-lived credentials scoped to the API deployer role.
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -57,6 +58,7 @@ jobs:
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
 
+          # Use the AWS session to request a temporary SSH identity and authenticated server host keys.
           access_details="$(aws lightsail get-instance-access-details \
             --region "${AWS_REGION}" \
             --instance-name "${LIGHTSAIL_INSTANCE_NAME}" \
@@ -84,6 +86,8 @@ jobs:
             IdentitiesOnly yes
           EOF
           chmod 600 ~/.ssh/config
+
+          # Tell api.sh to connect through the temporary Lightsail SSH alias configured above.
           echo "DEPLOY_HOST=testcase-ac-api-deploy" >> "${GITHUB_ENV}"
 
       - name: Deploy API
