@@ -596,10 +596,11 @@ func outputOnlyIgnoredRole(role fileRole) (string, bool) {
 }
 
 func sourceAuthor(filename string, authors map[string]string, authorByRelPath map[string]string, problemType, externalID string) string {
-	if author, ok := authors[filename]; ok {
+	logicalPath := filepath.ToSlash(filepath.Join(problemType, externalID, filename))
+	if author, ok := authorByRelPath[logicalPath]; ok {
 		return author
 	}
-	return authorByRelPath[filepath.ToSlash(filepath.Join(problemType, externalID, filename))]
+	return authors[filename]
 }
 
 func IsRoleFile(filename, role string) bool {

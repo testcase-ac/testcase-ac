@@ -98,9 +98,9 @@ func TestLoadProblemRejectsDirectoryWideAuthor(t *testing.T) {
 	}
 }
 
-func TestLoadProblemMetadataAuthorsOverrideGitAuthorByFilename(t *testing.T) {
+func TestLoadProblemAuthorIndexTakesPrecedenceWithMetadataFallback(t *testing.T) {
 	loader := newFakeProblemLoader(map[string]string{
-		"koi/2019/1/elem/1/metadata.yaml":         "title: A+B\nauthors:\n  correct_reference.cpp: 한국정보올림피아드\n",
+		"koi/2019/1/elem/1/metadata.yaml":         "title: A+B\nauthors:\n  correct_reference.cpp: logical-override\n  generator_1.cpp: metadata-fallback\n",
 		"koi/2019/1/elem/1/correct_reference.cpp": "int main(){}\n",
 		"koi/2019/1/elem/1/generator_1.cpp":       "int main(){}\n",
 	})
@@ -109,8 +109,7 @@ func TestLoadProblemMetadataAuthorsOverrideGitAuthorByFilename(t *testing.T) {
 		ProblemType: "koi",
 		ExternalID:  "2019/1/elem/1",
 		AuthorByRelPath: map[string]string{
-			"koi/2019/1/elem/1/correct_reference.cpp": "git-author",
-			"koi/2019/1/elem/1/generator_1.cpp":       "generator-author",
+			"koi/2019/1/elem/1/correct_reference.cpp": "resolved-donor-author",
 		},
 	})
 	if err != nil {
@@ -119,14 +118,14 @@ func TestLoadProblemMetadataAuthorsOverrideGitAuthorByFilename(t *testing.T) {
 	if len(problem.CorrectCodes) != 1 {
 		t.Fatalf("len(CorrectCodes) = %d, want 1", len(problem.CorrectCodes))
 	}
-	if got := problem.CorrectCodes[0].AuthorName; got != "한국정보올림피아드" {
-		t.Fatalf("CorrectCodes[0].AuthorName = %q, want metadata authors override", got)
+	if got := problem.CorrectCodes[0].AuthorName; got != "resolved-donor-author" {
+		t.Fatalf("CorrectCodes[0].AuthorName = %q, want resolved author index entry", got)
 	}
 	if len(problem.Generators) != 1 {
 		t.Fatalf("len(Generators) = %d, want 1", len(problem.Generators))
 	}
-	if got := problem.Generators[0].AuthorName; got != "generator-author" {
-		t.Fatalf("Generators[0].AuthorName = %q, want git author", got)
+	if got := problem.Generators[0].AuthorName; got != "metadata-fallback" {
+		t.Fatalf("Generators[0].AuthorName = %q, want metadata fallback", got)
 	}
 }
 
