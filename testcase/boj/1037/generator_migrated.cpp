@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
 			cout<<v.size()<<'\n';
 			random_shuffle(v.begin(),v.end());
 			for(int i=0;i<v.size()-1;i++) cout<<v[i]<<' ';
-			cout<<v[v.size()-1];
+			cout<<v[v.size()-1]<<'\n';
 			return 0;
 		} if(v.size()==2) k++;
 	}

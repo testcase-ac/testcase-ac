@@ -23,6 +23,6 @@ int main(int argc,char*argv[]){
 	long long B=e-A*rnd.next(-1000LL,1000LL);
 
 	long long D=(B*C-K)/A;
-    if(abs(A)<=1e9&&abs(B)<=1e9&&abs(C)<=1e9&&abs(D)<=1e9) {cout<<A<<" "<<B<<" "<<C<<" "<<D;break;}
+    if(abs(A)<=1e9&&abs(B)<=1e9&&abs(C)<=1e9&&abs(D)<=1e9) {cout<<A<<" "<<B<<" "<<C<<" "<<D<<'\n';break;}
     }
 }

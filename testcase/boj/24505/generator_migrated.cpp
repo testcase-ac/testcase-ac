@@ -38,5 +38,5 @@ int main(int argc, char* argv[]) {
 	vector<int> v(n);
 	iota(v.begin(),v.end(),1);
 	shuffle(v.begin(),v.end(),g);
-	for(int i:v) cout<<i<<' ';
+	for(int i=0;i<n;i++) cout<<v[i]<<(i+1==n?'\n':' ');
 }

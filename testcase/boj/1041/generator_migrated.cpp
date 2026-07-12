@@ -31,5 +31,5 @@ int main(int argc, char* argv[]) {
 	uniform_int_distribution<int> x(1,50);
 	cout<<d(gen)<<'\n';
 	for(int i=0;i<5;i++) cout<<x(gen)<<' ';
-	cout<<x(gen);
+	cout<<x(gen)<<'\n';
 }

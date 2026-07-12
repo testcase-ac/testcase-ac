@@ -36,4 +36,5 @@ int main(int argc, char* argv[]) {
 	    int m=M(g),n=N(g);
 	    cout<<'\n'<<m<<' '<<n;
 	}
+	cout<<'\n';
 }

@@ -19,4 +19,4 @@ for X in range(N):
         if L>100:break
         if i:print(' ',end='')
         print(j,end='')
-    if X<N-1:print()
+    print()

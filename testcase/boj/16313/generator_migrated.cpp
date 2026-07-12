@@ -10,5 +10,5 @@ int main(int argc,char*argv[]) {
 	        shuffle(a,a+4);
 	        break;
 	    }
-	} cout<<a[0]<<' '<<a[1]<<' '<<a[2]<<' '<<a[3];
+	} cout<<a[0]<<' '<<a[1]<<' '<<a[2]<<' '<<a[3]<<'\n';
 }

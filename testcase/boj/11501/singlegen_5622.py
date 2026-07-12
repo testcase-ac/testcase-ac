@@ -7,4 +7,4 @@ print(N)        # N days
 # Day prices: 1,10000,1,10000,...
 # Profit per cycle = 10000 - 1 = 9999; cycles ≈ 500000 → total profit ≈ 5×10^9
 for i in range(N):
-    print(1 if i % 2 == 0 else 10000, end=' ')
+    print(1 if i % 2 == 0 else 10000, end='\n' if i + 1 == N else ' ')

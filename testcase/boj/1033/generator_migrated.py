@@ -54,6 +54,4 @@ for i in range(N-1) :
 
 Order = ransam(range(0, N-1), N-1)
 for i in range(N-1) :
-  for j in range(4) :
-    print(List[Order[i]][j], end=" ")
-  print()
+  print(*List[Order[i]])

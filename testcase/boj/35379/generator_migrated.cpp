@@ -17,5 +17,5 @@ int main(int argc,char*argv[]) {
 	while (gcd(p, q) != 1) {
 		q=rnd.next(p*2-1,1000);
 	}
-	cout<<p<<' '<<q;
+	cout<<p<<' '<<q<<'\n';
 }

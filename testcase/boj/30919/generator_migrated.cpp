@@ -35,4 +35,5 @@ int main(int argc, char* argv[]) {
 	    cout<<t;
 	    while(t--) cout<<'\n'<<uniform_int_distribution<int>(1,1000000)(rd);
 	}
+	cout<<'\n';
 }

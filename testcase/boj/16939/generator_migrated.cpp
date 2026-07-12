@@ -39,6 +39,8 @@ int main(int argc, char* argv[]) {
     }
     shuffle(colors.begin(), colors.end(), gen);
     for (int i = 0; i < 24; i++) {
-        cout << colors[i] << " ";
+        if (i > 0) cout << ' ';
+        cout << colors[i];
     }
+    cout << '\n';
 }

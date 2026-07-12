@@ -24,5 +24,5 @@ int main(int argc, char* argv[]) {
     initSeed(argc, argv);
     random_device rd;
 	mt19937_64 g(rd());
-	cout<<g()%1000000+1;
+	cout<<g()%1000000+1<<'\n';
 }

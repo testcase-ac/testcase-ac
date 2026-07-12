@@ -15,7 +15,7 @@ def main():
         if i:
             w(',')
         w('1')
-    w(']')
+    w(']\n')
 
 if __name__ == '__main__':
     main()

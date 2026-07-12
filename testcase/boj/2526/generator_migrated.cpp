@@ -29,5 +29,5 @@ int main(int argc, char* argv[]) {
     mt19937 gen(rd());
     uniform_int_distribution<int> distn(1,1000);
     uniform_int_distribution<int> distp(2,97);
-    cout<<distn(gen)<<' '<<distp(gen);
+    cout<<distn(gen)<<' '<<distp(gen)<<'\n';
 }

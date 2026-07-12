@@ -42,7 +42,12 @@ int main(int argc, char* argv[]) {
 			}
 		} if(s.size()>1000) {t++;continue;}
 		cout<<s.size()<<'\n';
-		for(int x:s) cout<<x<<" ";
+		bool first=true;
+		for(int x:s){
+			if(!first) cout<<' ';
+			cout<<x;
+			first=false;
+		}
 		cout<<'\n';
 	}
 }

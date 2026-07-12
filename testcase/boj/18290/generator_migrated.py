@@ -22,11 +22,7 @@ print(N, M, K)
 
 if Type/7 <= 2 :
   for i in range(N) :
-    for j in range(M) :
-      print(ranset(-5, 5), end=' ')
-    print()
+    print(*[ranset(-5, 5) for j in range(M)])
 else :
   for i in range(N) :
-    for j in range(M) :
-      print(ranset(-10000, 10000), end=' ')
-    print()
+    print(*[ranset(-10000, 10000) for j in range(M)])

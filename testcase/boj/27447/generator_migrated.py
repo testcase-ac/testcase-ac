@@ -16,7 +16,7 @@ if Type <= 7 :
   time = ranset(0, 6)
   for i in range(N) :
     time += ranset(1, M*2)
-    print(time, end=" ")
+    print(time, end="\n" if i == N-1 else " ")
 else :
   N = ranset(1, 1000000)
   if Type <= 9 :
@@ -27,4 +27,4 @@ else :
   List = random.sample(range(1, 1000001), N)
   List.sort()
   for i in range(N) :
-    print(List[i], end=" ")
+    print(List[i], end="\n" if i == N-1 else " ")

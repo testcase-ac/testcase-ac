@@ -9,7 +9,7 @@ def main():
     sys.stdout.write(f"{N}\n")     # K = 1,000,000
     # All file sizes = 10000
     # Use join for efficient one‐shot output
-    sys.stdout.write(" ".join(["10000"] * N))
+    sys.stdout.write(" ".join(["10000"] * N) + "\n")
 
 if __name__ == "__main__":
     main()

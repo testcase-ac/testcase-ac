@@ -35,7 +35,10 @@ int main(int argc, char* argv[]) {
     cout << N << endl;
 
     for (int i = 0; i < N; ++i) {
-        cout << dis(gen) << " ";
+        if (i > 0) {
+            cout << " ";
+        }
+        cout << dis(gen);
     }
     cout << endl;
     return 0;

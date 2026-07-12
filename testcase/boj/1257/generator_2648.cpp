@@ -32,7 +32,6 @@ int main(int argc, char* argv[]) {
     // Output
     println(M);
     println(N);
-    for (int x : A) printf("%d ", x);
-    printf("\n");
+    for (int i = 0; i < N; i++) printf("%d%c", A[i], " \n"[i + 1 == N]);
     return 0;
 }

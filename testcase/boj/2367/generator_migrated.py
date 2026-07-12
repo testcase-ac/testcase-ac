@@ -29,12 +29,7 @@ else :
     Z[i] = ranset(1, D)
 
 print(N, K, D)
-for i in range(D) :
-  print(L[i], end=" ")
-print()
+print(*L[:D])
 for i in range(N) :
-  print(Z[i], end=" ")
   C = ransam(range(1, D+1), Z[i])
-  for j in range(Z[i]) :
-    print(C[j], end=" ")
-  print()
+  print(Z[i], *C)

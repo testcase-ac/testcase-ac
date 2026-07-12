@@ -35,3 +35,5 @@ for i in range(N) :
     break
   elif Type%5 == 0 and 200 < len+Lists[NX] :
     break
+
+print()

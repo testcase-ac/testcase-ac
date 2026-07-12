@@ -39,5 +39,5 @@ int main(int argc, char* argv[]) {
         "stats", "tenet", "level", "eve", "kayak", 
         "redder", "malayalam", "solos", "pop", "m"
     };
-    cout<<words[dis(gen)];
+    cout<<words[dis(gen)]<<'\n';
 }

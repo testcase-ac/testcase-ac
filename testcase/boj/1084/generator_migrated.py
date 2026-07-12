@@ -34,7 +34,5 @@ else :
     P[i] = ranset(1, 10**18)
 
 print(N)
-for i in range(N) :
-  print(P[i], end=" ")
-print()
+print(*P[:N])
 print(M)

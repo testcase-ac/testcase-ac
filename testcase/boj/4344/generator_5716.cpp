@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
         printf("%d", N);
         for (int x : a)
             printf(" %d", x);
-        if (i + 1 < C) printf("\n");
+        printf("\n");
     }
     return 0;
 }

@@ -47,7 +47,8 @@ void printCube(const vector<vector<string>>& cube) {
     for (int i = 0; i < 3; ++i) {
         cout << "      ";
         for (int j = 0; j < 3; ++j) {
-            cout << cube[4][i * 3 + j] << " ";
+            if (j > 0) cout << " ";
+            cout << cube[4][i * 3 + j];
         }
         cout << endl;
     }
@@ -62,14 +63,16 @@ void printCube(const vector<vector<string>>& cube) {
             cout << cube[2][i * 3 + j] << " ";
         }
         for (int j = 0; j < 3; ++j) {
-            cout << cube[3][i * 3 + j] << " ";
+            cout << cube[3][i * 3 + j];
+            if (j < 2) cout << " ";
         }
         cout << endl;
     }
     for (int i = 0; i < 3; ++i) {
         cout << "      ";
         for (int j = 0; j < 3; ++j) {
-            cout << cube[5][i * 3 + j] << " ";
+            if (j > 0) cout << " ";
+            cout << cube[5][i * 3 + j];
         }
         cout << endl;
     }

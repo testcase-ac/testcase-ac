@@ -44,11 +44,13 @@ int main(int argc, char* argv[]) {
         Y[i] = dis(gen);
     }
     for (int i = 0; i < n; ++i) {
-        cout << X[i] << " ";
+        if (i > 0) cout << " ";
+        cout << X[i];
     }
     cout << "\n";
     for (int i = 0; i < n; ++i) {
-        cout << Y[i] << " ";
+        if (i > 0) cout << " ";
+        cout << Y[i];
     }
     cout << "\n";
     return 0;

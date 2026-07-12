@@ -27,3 +27,4 @@ for i in range(T):
   print()
 for i in range(ranset(1, 10)) :
   print("-", end="")
+print()

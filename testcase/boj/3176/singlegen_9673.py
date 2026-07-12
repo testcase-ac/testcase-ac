@@ -14,7 +14,7 @@ def main():
     out.append(str(K))
     q = f"1 {N}"
     out.extend([q] * K)
-    sys.stdout.write("\n".join(out))
+    sys.stdout.write("\n".join(out) + "\n")
 
 if __name__ == "__main__":
     main()

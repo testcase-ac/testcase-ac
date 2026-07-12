@@ -6,5 +6,8 @@ N = 10**6
 M = 2 * 10**9
 sys.stdout.write(f"{N} {M}\n")
 # print N heights of 10^9 separated by spaces
-for _ in range(N):
-    sys.stdout.write("1000000000 ")
+for i in range(N):
+    if i > 0:
+        sys.stdout.write(" ")
+    sys.stdout.write("1000000000")
+sys.stdout.write("\n")

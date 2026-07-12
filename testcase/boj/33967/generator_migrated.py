@@ -19,4 +19,4 @@ print("[", end="")
 for i in range(N-2) :
   kan = ranset(0, 3)
   print(kanlist[kan], end="")
-print("]", end="")
+print("]")

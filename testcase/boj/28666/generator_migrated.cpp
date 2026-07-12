@@ -27,5 +27,5 @@ int main(int argc, char* argv[]) {
     uniform_int_distribution<int> n(1,1000000);
     int N=n(g);
     uniform_int_distribution<int> m(N,N*5);
-    cout<<N<<' '<<m(g);
+    cout<<N<<' '<<m(g)<<'\n';
 }

@@ -12,9 +12,9 @@ if Type <= 2 :
   N = ranset(1, 5)
   print(N)
   for i in range(N) :
-    print(ranset(0, 30), end=" ")
+    print(ranset(0, 30), end="\n" if i + 1 == N else " ")
 else :
   N = ranset(1, 100000)
   print(N)
   for i in range(N) :
-    print(ranset(0, 10000), end=" ")
+    print(ranset(0, 10000), end="\n" if i + 1 == N else " ")

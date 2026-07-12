@@ -18,4 +18,4 @@ for x in range(1, M//2 + 1):
     print(x, end=' ')
 # next M//2 queries: values not in the set (will output 0)
 for x in range(N+1, N+1 + M//2):
-    print(x, end=' ')
+    print(x, end='\n' if x == N + M//2 else ' ')

@@ -34,4 +34,5 @@ int main(int argc, char* argv[]) {
 	while(t--) {
 	    cout<<'\n'<<n(g);
 	}
+	cout<<'\n';
 }

@@ -26,5 +26,5 @@ int main(int argc, char* argv[]) {
 	mt19937_64 g(rd());
 	int t=g()%10+1;
 	while(t--) cout<<g()%100+1<<'\n';
-	cout<<0;
+	cout<<0<<'\n';
 }

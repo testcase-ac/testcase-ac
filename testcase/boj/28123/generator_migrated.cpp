@@ -34,5 +34,5 @@ int main(int argc, char* argv[]) {
 	x-=floor(x);
 	x=pow(10,x);
 	int t=x/pow(10,floor(log10(x)));
-	cout<<n<<' '<<k<<' '<<t;
+	cout<<n<<' '<<k<<' '<<t<<'\n';
 }

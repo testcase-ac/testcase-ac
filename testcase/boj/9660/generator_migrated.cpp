@@ -29,5 +29,5 @@ int main(int argc, char* argv[]) {
     random_device rd;
     mt19937 gen(rd());
     uniform_int_distribution<long long> d(1,1000000000000);
-    cout<<d(gen);
+    cout<<d(gen)<<'\n';
 }

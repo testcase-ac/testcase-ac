@@ -5,4 +5,5 @@ int main(int argc,char*argv[]) {
 	int l=rnd.next(1,1000);
 	string a="KSA";
 	while(l--) cout<<a[rnd.next(0,2)];
+	cout<<'\n';
 }

@@ -58,9 +58,8 @@ for i in range(N, 0, -1) :
             In -= 1
         In2 += 1
     if Type / 20 <= 3 :
-        print(In2 + 1, end=" ")
+        print(In2 + 1, end="\n" if i == 1 else " ")
     else :
-        print(Ranlist[In2], end=" ")
+        print(Ranlist[In2], end="\n" if i == 1 else " ")
     List[In2] = 0
-print()
-print(K, end="")
+print(K)

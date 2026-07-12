@@ -28,6 +28,6 @@ int main(int argc, char* argv[]) {
     random_device rd;
     mt19937 gen(rd());
     uniform_int_distribution<> dis(1, 100);
-    cout<<dis(gen);
+    cout << dis(gen) << '\n';
     return 0;
 }

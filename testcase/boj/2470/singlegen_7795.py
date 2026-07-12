@@ -14,7 +14,7 @@ def main():
     # positives: 1 to 50000
     for i in range(1, 50001):
         nums.append(str(i))
-    sys.stdout.write(" ".join(nums))
+    sys.stdout.write(" ".join(nums) + "\n")
 
 if __name__ == "__main__":
     main()

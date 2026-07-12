@@ -7,6 +7,6 @@ int main(int argc,char*argv[]) {
 	n=rnd.next(1LL,(long long)1e18);t=n;
 	for(int i=2;i<100000;i++) {
 	    while(t%i==0) t/=i;
-	} if(t==1) {cout<<n;return 0;}
+	} if(t==1) {cout<<n<<'\n';return 0;}
 	}
 }

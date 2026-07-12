@@ -26,5 +26,5 @@ int main(int argc, char* argv[]) {
 	mt19937_64 g(rd());
 	long long n=g()%1000000000000000000LL+1;
     uniform_int_distribution<long long> k(1,n);
-    cout<<n<<' '<<k(g);
+    cout<<n<<' '<<k(g)<<'\n';
 }

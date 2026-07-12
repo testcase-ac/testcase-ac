@@ -154,4 +154,5 @@ int main(int argc, char* argv[]) {
 	    } while(!hasAllowedDivisorCount(value));
 	    cout<<"\n\n"<<value;
 	}
+	cout<<'\n';
 }

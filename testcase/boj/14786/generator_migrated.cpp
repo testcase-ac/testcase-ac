@@ -33,5 +33,5 @@ int main(int argc, char* argv[]) {
     uniform_int_distribution<> dis(1, 100000);
     int a=dis(gen);
     uniform_int_distribution<> bis(1, a);
-    cout<<a<<' '<<bis(gen)<<' '<<dis(gen);
+    cout<<a<<' '<<bis(gen)<<' '<<dis(gen)<<'\n';
 }

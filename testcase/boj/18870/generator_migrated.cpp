@@ -48,6 +48,8 @@ int main(int argc, char* argv[]) {
 
     cout << N << "\n";
     for (int i = 0; i < N; ++i) {
-        cout << unique_X[i] << " ";
+        if (i > 0) cout << " ";
+        cout << unique_X[i];
     }
+    cout << "\n";
 }

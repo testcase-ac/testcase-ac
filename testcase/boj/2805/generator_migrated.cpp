@@ -52,5 +52,6 @@ int main(int argc, char* argv[]) {
 		cout << heights[i];
 		if (i < n - 1) cout << " ";
 	}
+	cout << "\n";
 	return 0;
 }

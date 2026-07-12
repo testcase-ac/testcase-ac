@@ -28,7 +28,4 @@ for _ in range(T) :
   print(K)
   ranlist = ransam(range(1, N), K)
   ranlist.sort()
-  for i in range(K) :
-    print(ranlist[i], end=" ")
-  if _ != T-1 :
-    print()
+  print(*ranlist)

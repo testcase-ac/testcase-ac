@@ -5,7 +5,7 @@ int main(int argc,char*argv[]) {
     int n=rnd.next(4,17),m=rnd.next(4,17);
     cout<<n<<' '<<m<<'\n';
     for(int i=0;i<n;i++) {
-        for(int j=0;j<m;j++) cout<<rnd.next(1,99)<<' ';
+        for(int j=0;j<m;j++) cout<<(j ? " " : "")<<rnd.next(1,99);
         cout<<'\n';
     }
 }

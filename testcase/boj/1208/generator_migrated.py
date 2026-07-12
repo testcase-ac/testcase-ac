@@ -14,17 +14,16 @@ if Type <= 7 :
   S = ranset(-3, 3)
   print(N, S)
   for i in range(N) :
-    print(ranset(-3, 3), end=" ")
+    print(ranset(-3, 3), end="\n" if i + 1 == N else " ")
 elif Type <= 9 :
   N = ranset(1, 40)
   S = ranset(-10, 10)
   print(N, S)
   for i in range(N) :
-    print(ranset(-10, 10), end=" ")
+    print(ranset(-10, 10), end="\n" if i + 1 == N else " ")
 else :
   N = ranset(1, 40)
   S = ranset(-1000000, 1000000)
   print(N, S)
   for i in range(N) :
-    print(ranset(-100000, 100000), end=" ")
-print()
+    print(ranset(-100000, 100000), end="\n" if i + 1 == N else " ")

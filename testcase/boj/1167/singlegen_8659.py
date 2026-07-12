@@ -9,7 +9,7 @@ def main():
     for i in range(2, n):
         out_lines.append(f"{i} {i-1} 1 {i+1} 1 -1")
     out_lines.append(f"{n} {n-1} 1 -1")
-    sys.stdout.write("\n".join(out_lines))
+    sys.stdout.write("\n".join(out_lines) + "\n")
 
 if __name__ == "__main__":
     main()

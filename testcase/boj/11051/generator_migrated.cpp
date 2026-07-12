@@ -30,5 +30,5 @@ int main(int argc, char* argv[]) {
     uniform_int_distribution<int> distn(1,1000);
     int n=distn(gen);
     uniform_int_distribution<int> distk(0,n);
-    cout<<n<<' '<<distk(gen);
+    cout<<n<<' '<<distk(gen)<<'\n';
 }

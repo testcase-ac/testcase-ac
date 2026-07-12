@@ -11,7 +11,8 @@ int main(int argc,char*argv[]) {
         while(1) {
             a=rnd.next(1,1000);
             if(s.find(a)==s.end()) break;
-        } cout<<a<<' ';
+        } if(!s.empty()) cout<<' ';
+        cout<<a;
         s.insert(a);
-    }
+    } cout<<'\n';
 }

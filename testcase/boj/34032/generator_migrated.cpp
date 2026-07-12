@@ -6,5 +6,6 @@ int main(int argc, char* argv[]){
   int N=rnd.next(2,500000);
   cout<<N<<'\n';
   while(N--){cout<<(rnd.next(0,1)?'O':'X');}
+  cout<<'\n';
   return 0;
 }

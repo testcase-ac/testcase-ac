@@ -11,16 +11,14 @@ if Type <= 4 :
   N = ranset(1, 5)
   print(N)
   for i in range(N) :
-    print(ranset(1, 10), end=" ")
-  print()
+    print(ranset(1, 10), end="\n" if i == N - 1 else " ")
   for i in range(N) :
-    print(ranset(1, 10), end=" ")
+    print(ranset(1, 10), end="\n" if i == N - 1 else " ")
 else :
   N = ranset(1, 50)
   print(N)
   for i in range(N) :
-    print(ranset(1, 1000), end=" ")
-  print()
+    print(ranset(1, 1000), end="\n" if i == N - 1 else " ")
   for i in range(N) :
-    print(ranset(1, 1000), end=" ")
+    print(ranset(1, 1000), end="\n" if i == N - 1 else " ")
   

@@ -29,5 +29,5 @@ int main(int argc, char* argv[]) {
 	mt19937_64 gen(rd());
 	uniform_int_distribution<int> n(100,2000000000);
 	uniform_int_distribution<int> f(1,100);
-	cout<<n(gen)<<'\n'<<f(gen);
+	cout<<n(gen)<<'\n'<<f(gen)<<'\n';
 }

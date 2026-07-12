@@ -40,5 +40,5 @@ int main(int argc, char* argv[]) {
         a = large_dis(gen);
         b = large_dis(gen);
     }
-    cout << a << " " << b;
+    cout << a << " " << b << '\n';
 }

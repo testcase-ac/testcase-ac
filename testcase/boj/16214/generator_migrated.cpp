@@ -35,4 +35,5 @@ int main(int argc, char* argv[]) {
 	    int n=distn(gen),m=distn(gen);
 	    std::cout<<'\n'<<n<<' '<<m;
 	}
+	std::cout<<'\n';
 }

@@ -16,4 +16,4 @@ else :
   T, N, D, K = ranset(1, 10**9), ranset(1, 10**6), ranset(1, 10**9), ranset(1, 10)
 print(T, N, D, K)
 for i in range(N) :
-  print(ranset(1, T), end=" ")
+  print(ranset(1, T), end="\n" if i + 1 == N else " ")

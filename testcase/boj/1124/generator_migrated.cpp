@@ -31,5 +31,5 @@ int main(int argc, char* argv[]) {
     uniform_int_distribution<int> dist(2,100000);
     int a=dist(gen),b=dist(gen);
     if(a>b) swap(a,b);
-    cout<<a<<' '<<b;
+    cout<<a<<' '<<b<<'\n';
 }

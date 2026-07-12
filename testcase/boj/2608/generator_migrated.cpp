@@ -44,6 +44,9 @@ int main(int argc, char* argv[]) {
     mt19937 gen(rd());
     uniform_int_distribution<int> dist(1, 2000);
     int num1 = dist(gen);
-    int num2 = dist(gen);
-    cout<<toRoman(num1)<<"\n"<<toRoman(num2);
+    int num2;
+    do {
+        num2 = dist(gen);
+    } while (num1 + num2 >= 4000);
+    cout<<toRoman(num1)<<"\n"<<toRoman(num2)<<"\n";
 }

@@ -7,7 +7,7 @@ def main():
     n = 100000
     out = [str(n)]
     out.extend(["100000"] * n)
-    sys.stdout.write("\n".join(out))
+    sys.stdout.write("\n".join(out) + "\n")
 
 if __name__ == "__main__":
     main()

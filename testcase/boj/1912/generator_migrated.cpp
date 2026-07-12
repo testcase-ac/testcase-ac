@@ -16,6 +16,8 @@ int main(int argc, char** argv)
   cout<<n<<"\n";
   for(int i=0;i<n;i++)
     {
-      cout<<dis(gen)-1000<<" ";
+      if(i) cout<<" ";
+      cout<<dis(gen)-1000;
     }
+  cout<<"\n";
 }

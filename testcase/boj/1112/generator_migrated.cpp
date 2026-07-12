@@ -27,5 +27,5 @@ int main(int argc, char* argv[]) {
     uniform_int_distribution<int> n(-1000000000,1000000000),b(2,10),r(0,1);
     int N=n(g),B=b(g);
     if(r(g)%2) B=-B;
-    cout<<N<<' '<<B;
+    cout<<N<<' '<<B<<'\n';
 }

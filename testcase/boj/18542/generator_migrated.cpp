@@ -26,10 +26,9 @@ int main(int argc, char* argv[]) {
 	mt19937_64 g(rd());
 	int n=g()%100+1;
 	cout<<n<<'\n';
-	for(int i=0;i<n;i++) cout<<g()%1000000000+1<<' ';
-	cout<<'\n';
+	for(int i=0;i<n;i++) cout<<g()%1000000000+1<<(i+1==n?'\n':' ');
 	int a[n];
 	iota(a,a+n,1);
 	shuffle(a,a+n,g);
-	for(int i:a) cout<<i<<' ';
+	for(int i=0;i<n;i++) cout<<a[i]<<(i+1==n?'\n':' ');
 }

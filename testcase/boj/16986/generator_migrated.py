@@ -32,11 +32,6 @@ for i in range(1, N) :
 
 print(N, K)
 for i in range(N) :
-  for j in range(N) :
-    print(List[i][j], end=" ")
-  print()
-for i in range(20) :
-  print(ranset(1, N), end=" ")
-print()
-for i in range(20):
-  print(ranset(1, N), end=" ")
+  print(*List[i])
+print(*(ranset(1, N) for i in range(20)))
+print(*(ranset(1, N) for i in range(20)))

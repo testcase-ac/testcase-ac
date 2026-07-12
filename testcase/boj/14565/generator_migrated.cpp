@@ -31,5 +31,5 @@ int main(int argc, char* argv[]) {
     uniform_int_distribution<long long> dist(2,1000000000000);
     long long n=dist(gen);
     uniform_int_distribution<long long> dis(1,n-1);
-    cout<<n<<' '<<dis(gen);
+    cout<<n<<' '<<dis(gen)<<'\n';
 }

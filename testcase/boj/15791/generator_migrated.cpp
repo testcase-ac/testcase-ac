@@ -32,5 +32,5 @@ int main(int argc, char* argv[]) {
     int N = n_dist(gen);
     uniform_int_distribution<> m_dist(1, N);
     int M = m_dist(gen);
-    cout << N << " " << M;
+    cout << N << " " << M << '\n';
 }

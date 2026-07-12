@@ -6,9 +6,8 @@ int main(int argc, char* argv[]){
   printf("%d %d\n",N,M);
   for(int i=0;i<N;i++){
     for(int i=0;i<N;i++){
-      printf("%d ",rnd.next(1, M));
+      printf("%d%c",rnd.next(1, M),i+1==N?'\n':' ');
     }
-    printf("\n");
   }
   return 0; 
 }

@@ -67,5 +67,5 @@ int main(int argc, char* argv[]) {
     else while(1) {
         P=p(g);
         if(isprime(P)) break;
-    } cout<<P<<' '<<N;
+    } cout<<P<<' '<<N<<'\n';
 }

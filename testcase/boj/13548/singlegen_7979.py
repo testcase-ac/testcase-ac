@@ -33,7 +33,7 @@ def main():
             r = l
         out_lines.append(f"{l} {r}")
 
-    sys.stdout.write("\n".join(out_lines))
+    sys.stdout.write("\n".join(out_lines) + "\n")
 
 if __name__ == "__main__":
     main()

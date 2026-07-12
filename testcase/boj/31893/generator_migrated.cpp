@@ -31,4 +31,5 @@ int main(int argc, char* argv[]) {
 		cout<<uniform_int_distribution<int>(1,1000)(rd);
 		if(i<n-1) cout<<' ';
 	}
+	cout<<'\n';
 }

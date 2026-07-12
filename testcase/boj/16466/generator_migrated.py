@@ -22,4 +22,4 @@ elif Type/10 <= 2 :
 else :
   ranlist = ransam(range(1, N*2+1), N)
 for i in range(N) :
-  print(ranlist[i], end=" ")
+  print(ranlist[i], end="\n" if i == N - 1 else " ")

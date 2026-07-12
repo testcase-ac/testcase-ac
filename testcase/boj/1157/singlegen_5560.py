@@ -5,4 +5,4 @@ import sys
 n = 10**6
 half = n // 2
 s = 'A' * half + 'B' * (n - half)
-sys.stdout.write(s)
+sys.stdout.write(s + '\n')

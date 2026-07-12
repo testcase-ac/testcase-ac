@@ -32,5 +32,5 @@ int main(int argc, char* argv[]) {
         char ch = (dist(gen) % 2 == 0) ? 'a' + dist(gen) % 26 : 'A' + dist(gen) % 26;
         input += ch;
     }
-    cout << input;
+    cout << input << '\n';
 }

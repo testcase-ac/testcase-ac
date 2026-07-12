@@ -3,6 +3,6 @@
 using namespace std;
 int main(int argc,char*argv[]) {
 	registerGen(argc,argv,1);
-    cout<<rnd.next(1,(1<<20))<<'\n'<<rnd.next(1,20);
+    cout<<rnd.next(1,(1<<20))<<'\n'<<rnd.next(1,20)<<'\n';
   
 }

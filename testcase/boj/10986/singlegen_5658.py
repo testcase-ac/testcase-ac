@@ -8,8 +8,6 @@ import sys
 N = 10**6
 M = 1000
 sys.stdout.write(f"{N} {M}\n")
-# print N zeros separated by spaces
-chunk = "0 " * 1000
-for _ in range(N // 1000):
-    sys.stdout.write(chunk)
-# if N is not a multiple of 1000 (not in this case), you'd handle remainder here
+# Print exactly N zeros without trailing whitespace.
+sys.stdout.write(" ".join(["0"] * N))
+sys.stdout.write("\n")

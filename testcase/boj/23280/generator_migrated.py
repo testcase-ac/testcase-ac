@@ -16,5 +16,4 @@ elif Type == 3 :
 else :
   N = ranset(9901, 10000)
   print(N, ranset(1, 100), ranset(1, 100))
-for i in range(N) :
-  print(ranset(1, 12), end=" ")
+print(" ".join(str(ranset(1, 12)) for _ in range(N)))

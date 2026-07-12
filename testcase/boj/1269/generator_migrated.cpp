@@ -53,7 +53,14 @@ int main(int argc, char* argv[]) {
 		b.insert(v);
 	}
 
-	for (int v : a) cout << v << ' ';
+	for (auto it = a.begin(); it != a.end(); ++it) {
+		if (it != a.begin()) cout << ' ';
+		cout << *it;
+	}
 	cout << '\n';
-	for (int v : b) cout << v << ' ';
+	for (auto it = b.begin(); it != b.end(); ++it) {
+		if (it != b.begin()) cout << ' ';
+		cout << *it;
+	}
+	cout << '\n';
 }

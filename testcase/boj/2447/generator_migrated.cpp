@@ -32,5 +32,5 @@ int main(int argc, char* argv[]) {
     int k=d(gen),n=1;
     while(k--) {
         n*=3;
-    } cout<<n;
+    } cout<<n<<'\n';
 }
