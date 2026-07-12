@@ -45,6 +45,8 @@ int main(int argc, char* argv[]) {
                 int pos = rnd.next(0, len - 1);
                 s[pos] = char(rnd.next(33, 126));
             }
+            if (s.front() == ' ') s.front() = char(rnd.next(33, 126));
+            if (s.back() == ' ') s.back() = char(rnd.next(33, 126));
             println(s);
         }
     }

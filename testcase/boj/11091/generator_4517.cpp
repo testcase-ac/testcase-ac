@@ -64,7 +64,14 @@ int main(int argc, char* argv[]) {
 
         // build and print the sentence
         string s(v.begin(), v.end());
-        println(s);
+        string normalized;
+        for (char c : s) {
+            if (c != ' ' || (!normalized.empty() && normalized.back() != ' ')) {
+                normalized.push_back(c);
+            }
+        }
+        if (!normalized.empty() && normalized.back() == ' ') normalized.pop_back();
+        println(normalized);
     }
 
     return 0;

@@ -72,7 +72,9 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    for (const string& line : lines) {
+    for (string& line : lines) {
+        if (line.front() == ' ') line.front() = rnd.any(letters);
+        if (line.back() == ' ') line.back() = rnd.any(letters);
         println(line);
     }
 

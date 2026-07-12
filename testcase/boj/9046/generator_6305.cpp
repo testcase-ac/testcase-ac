@@ -79,7 +79,14 @@ int main(int argc, char* argv[]) {
         string s;
         s.reserve(L);
         for (char c : v) s.push_back(c);
-        println(s);
+        string normalized;
+        for (char c : s) {
+            if (c != ' ' || (!normalized.empty() && normalized.back() != ' ')) {
+                normalized.push_back(c);
+            }
+        }
+        if (!normalized.empty() && normalized.back() == ' ') normalized.pop_back();
+        println(normalized);
     }
     return 0;
 }

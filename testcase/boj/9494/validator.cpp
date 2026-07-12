@@ -45,6 +45,9 @@ int main(int argc, char* argv[]) {
             ensuref(1 <= len && len <= 100,
                     "Length of line %d in test case %d is %d (expected 1 to 100)",
                     i+1, test_cases, len);
+            ensuref(line.front() != ' ' && line.back() != ' ',
+                    "line %d in test case %d must not have leading or trailing spaces",
+                    i + 1, test_cases);
             // Check each character is printable ASCII (32..126)
             for (int j = 0; j < len; j++) {
                 unsigned char c = line[j];

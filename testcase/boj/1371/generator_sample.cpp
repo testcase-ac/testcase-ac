@@ -21,6 +21,8 @@ string makeLine(int length, const string& alphabet, int spaceWeight) {
             line.push_back(rnd.any(alphabet));
         }
     }
+    if (line.front() == ' ') line.front() = rnd.any(alphabet);
+    if (line.back() == ' ') line.back() = rnd.any(alphabet);
     return line;
 }
 
@@ -48,7 +50,7 @@ vector<string> randomLines(int lineCount, int maxLen, const string& alphabet, in
     vector<string> lines;
     lines.reserve(lineCount);
     for (int i = 0; i < lineCount; ++i) {
-        int length = rnd.next(0, maxLen);
+        int length = rnd.next(1, maxLen);
         lines.push_back(makeLine(length, alphabet, spaceWeight));
     }
     ensureLetter(lines);
@@ -85,9 +87,13 @@ vector<string> tiedLeaders() {
         if (int(line.size()) < 50) line.push_back(c);
     }
 
+    lines.erase(remove_if(lines.begin(), lines.end(),
+                          [](const string& line) { return line.empty(); }),
+                lines.end());
+
     for (string& line : lines) {
-        while (int(line.size()) < 50 && rnd.next(100) < 25) {
-            line.insert(line.begin() + rnd.next(0, int(line.size())), ' ');
+        while (line.size() >= 2 && int(line.size()) < 50 && rnd.next(100) < 25) {
+            line.insert(line.begin() + rnd.next(1, int(line.size()) - 1), ' ');
         }
     }
     return lines;
@@ -99,7 +105,7 @@ vector<string> boundaryLines() {
     lines.reserve(lineCount);
     char dominant = randomLetter('z');
     for (int i = 0; i < lineCount; ++i) {
-        int length = rnd.next(0, 50);
+        int length = rnd.next(1, 50);
         string line;
         line.reserve(length);
         for (int j = 0; j < length; ++j) {
@@ -108,6 +114,8 @@ vector<string> boundaryLines() {
             else if (roll < 75) line.push_back(dominant);
             else line.push_back(randomLetter('z'));
         }
+        if (line.front() == ' ') line.front() = randomLetter('z');
+        if (line.back() == ' ') line.back() = randomLetter('z');
         lines.push_back(line);
     }
     ensureLetter(lines);
@@ -137,8 +145,7 @@ int main(int argc, char* argv[]) {
     } else if (mode == 3) {
         int lineCount = rnd.next(1, 10);
         char c = randomLetter('z');
-        lines.assign(lineCount, "");
-        lines[rnd.next(0, lineCount - 1)] = string(1, c);
+        lines.assign(lineCount, string(1, c));
     } else {
         lines = boundaryLines();
     }

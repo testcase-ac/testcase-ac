@@ -50,7 +50,7 @@ bool isAllowedDisplayChar(char ch) {
 }
 
 string normalizeDisplayLine(const string& line, int displayIndex, int rowIndex) {
-    ensuref(line.size() <= 29, "display %d row %d has length %d", displayIndex, rowIndex, int(line.size()));
+    ensuref(line.size() == 29, "display %d row %d has length %d, expected 29", displayIndex, rowIndex, int(line.size()));
     for (int col = 0; col < int(line.size()); ++col) {
         ensuref(isAllowedDisplayChar(line[col]),
                 "display %d row %d column %d has invalid character code %d",
@@ -59,7 +59,7 @@ string normalizeDisplayLine(const string& line, int displayIndex, int rowIndex) 
                 col + 1,
                 int(static_cast<unsigned char>(line[col])));
     }
-    return line + string(29 - line.size(), ' ');
+    return line;
 }
 
 void renderDigit(array<string, 7>& expected, int colOffset, int digit) {

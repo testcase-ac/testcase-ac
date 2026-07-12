@@ -5,7 +5,7 @@ using namespace std;
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read the plaintext line: can be empty, up to 30000 chars, only 'a'..'z' and spaces.
+    // Read a nonempty plaintext line of up to 30000 lowercase letters and spaces.
     // We read any characters (except newline) and then validate manually.
     string plaintext = inf.readLine("[^]*", "plaintext");
     // Check length constraint
@@ -20,6 +20,8 @@ int main(int argc, char* argv[]) {
         hasLetter = hasLetter || (c >= 'a' && c <= 'z');
     }
     ensuref(hasLetter, "Plaintext must contain at least one lowercase letter");
+    ensuref(plaintext.front() != ' ' && plaintext.back() != ' ',
+            "Plaintext must not have leading or trailing spaces");
 
     // Read the key: must be non-empty and only lowercase letters.
     // We use readToken since key has no spaces.

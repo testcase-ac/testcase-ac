@@ -29,6 +29,10 @@ int main(int argc, char* argv[]) {
         }
         ensuref(has_non_space,
                 "Line %d has no non-space character: '%s'", cnt, line.c_str());
+        ensuref(line.front() != ' ' && line.back() != ' ',
+                "Line %d must not have leading or trailing spaces", cnt);
+        ensuref(line.find("  ") == string::npos,
+                "Line %d must not contain repeated spaces", cnt);
     }
 
     // After reading the terminator line "#", we must have reached EOF exactly.

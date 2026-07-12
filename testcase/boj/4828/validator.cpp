@@ -36,6 +36,8 @@ int main(int argc, char* argv[]) {
     // CHECK: The statement gives no document-count bound; use the local default
     // cap for an unspecified number of cases.
     ensuref(lineCount <= 100000, "too many document lines: %d", lineCount);
+    ensuref(lineCount >= 1, "input must contain at least one document line");
+    ensuref(atLineStart, "input must end immediately after the final newline");
 
     inf.readEof();
 }

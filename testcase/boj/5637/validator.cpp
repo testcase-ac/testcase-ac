@@ -21,6 +21,16 @@ int main(int argc, char* argv[]) {
 
     ensuref(!text.empty(), "input is empty");
 
+    for (size_t start = 0; start < text.size();) {
+        size_t end = text.find('\n', start);
+        if (end == string::npos) end = text.size();
+        if (end > start) {
+            ensuref(text[end - 1] != ' ',
+                    "text line must not have trailing spaces");
+        }
+        start = end == text.size() ? end : end + 1;
+    }
+
     bool hasEndMarker = false;
     size_t endMarkerEnd = string::npos;
     for (size_t i = 0; i < text.size();) {
@@ -46,8 +56,7 @@ int main(int argc, char* argv[]) {
     }
 
     ensuref(hasEndMarker, "missing E-N-D marker");
-    ensuref(endMarkerEnd == text.size() ||
-                (endMarkerEnd + 1 == text.size() && text[endMarkerEnd] == '\n'),
-            "characters appear after E-N-D marker");
+    ensuref(endMarkerEnd + 1 == text.size() && text[endMarkerEnd] == '\n',
+            "E-N-D marker must be followed immediately by the final newline");
     inf.readEof();
 }

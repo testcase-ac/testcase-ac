@@ -26,6 +26,10 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < N; i++) {
         // Read a line of length 1 to 100 (any characters)
         string s = inf.readLine("[^]{1,100}", "sentence");
+        ensuref(s.front() != ' ' && s.back() != ' ',
+                "sentence %d must not have leading or trailing spaces", i + 1);
+        ensuref(s.find("  ") == string::npos,
+                "sentence %d must not contain repeated spaces", i + 1);
         // Validate characters
         for (int j = 0; j < (int)s.size(); j++) {
             char c = s[j];

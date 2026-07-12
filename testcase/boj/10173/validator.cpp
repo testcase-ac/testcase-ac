@@ -11,12 +11,16 @@ int main(int argc, char* argv[]) {
     while (true) {
         // Read a line of length between 0 and 80 (excluding the newline).
         // [^] matches any character (except newline, since readLine stops there).
-        string s = inf.readLine("[^]{0,80}", "line");
+        string s = inf.readLine("[^]{1,80}", "line");
         lines++;
         ensuref(lines <= MAX_LINES,
                 "Too many lines: %d (maximum %d allowed)", lines, MAX_LINES);
         // If this is the terminator, stop reading further.
         if (s == "EOI") break;
+        ensuref(s.front() != ' ' && s.back() != ' ',
+                "line %d must not have leading or trailing spaces", lines);
+        ensuref(s.find("  ") == string::npos,
+                "line %d must not contain repeated spaces", lines);
     }
     // No extra content after the "EOI" line.
     inf.readEof();

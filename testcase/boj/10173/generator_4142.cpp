@@ -14,6 +14,16 @@ int main(int argc, char* argv[]) {
 
     vector<string> lines;
 
+    auto normalize_sentence = [](const string& input) {
+        string result;
+        for (char c : input) {
+            if (c == ' ' && (result.empty() || result.back() == ' ')) continue;
+            result.push_back(c);
+        }
+        if (!result.empty() && result.back() == ' ') result.pop_back();
+        return result;
+    };
+
     // Helper to generate random printable ASCII string of given length
     auto gen_rand = [&](int len) {
         string s;
@@ -38,7 +48,7 @@ int main(int argc, char* argv[]) {
         }
         s += token;
         s += gen_rand(suf);
-        lines.push_back(s);
+        lines.push_back(normalize_sentence(s));
     }
 
     // Generate M lines that do NOT contain "nemo" (case-insensitive)
@@ -47,9 +57,10 @@ int main(int argc, char* argv[]) {
         do {
             int len = rnd.next(1, 80);
             s = gen_rand(len);
+            s = normalize_sentence(s);
             string low = s;
             for (char &c : low) c = char(tolower(c));
-            if (low.find("nemo") == string::npos) break;
+            if (!s.empty() && s != "EOI" && low.find("nemo") == string::npos) break;
         } while (true);
         lines.push_back(s);
     }

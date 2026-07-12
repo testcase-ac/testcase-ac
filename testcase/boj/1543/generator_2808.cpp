@@ -40,6 +40,8 @@ int main(int argc, char* argv[]) {
         int pos = rnd.next(0, n - 1);
         doc[pos] = rnd.any(letters);
     }
+    if (doc.front() == ' ') doc.front() = rnd.any(letters);
+    if (doc.back() == ' ') doc.back() = rnd.any(letters);
 
     // Build random pattern
     bool forceOverlapFriendly = (rnd.next() < 0.3);
@@ -63,6 +65,8 @@ int main(int argc, char* argv[]) {
         int pos = rnd.next(0, m - 1);
         pattern[pos] = rnd.any(letters);
     }
+    if (pattern.front() == ' ') pattern.front() = rnd.any(letters);
+    if (pattern.back() == ' ') pattern.back() = rnd.any(letters);
 
     // Force some occurrences of the pattern into the document
     int maxForced = n / m;

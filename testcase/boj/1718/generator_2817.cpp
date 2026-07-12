@@ -33,10 +33,6 @@ int main(int argc, char* argv[]) {
         if (i) plain.push_back(' ');
         plain += words[i];
     }
-    // Optionally add leading/trailing spaces
-    if (rnd.next() < 0.3) plain = " " + plain;
-    if (rnd.next() < 0.3) plain = plain + " ";
-
     // Hyper-parameter: key length
     int K = rnd.next(1, 5);
     string key;

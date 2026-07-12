@@ -90,7 +90,10 @@ int main(int argc, char* argv[]) {
         lines[rnd.next(static_cast<int>(lines.size()))].push_back(rnd.any(all));
     }
 
-    for (const string& line : lines) {
+    for (string& line : lines) {
+        while (!line.empty() && line.front() == ' ') line.erase(line.begin());
+        while (!line.empty() && line.back() == ' ') line.pop_back();
+        if (line.empty()) line.push_back(rnd.any(all));
         println(line);
     }
 

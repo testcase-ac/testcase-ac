@@ -19,6 +19,10 @@ int main(int argc, char* argv[]) {
         ensuref(!line.empty(), "line %d must contain at least one character", lineCount);
         ensuref((int)line.size() <= 80,
                 "line %d is too long: %d > 80", lineCount, (int)line.size());
+        ensuref(line.front() != ' ' && line.back() != ' ',
+                "line %d must not have leading or trailing spaces", lineCount);
+        ensuref(line.find("  ") == string::npos,
+                "line %d must not contain repeated spaces", lineCount);
         ensuref(lineCount <= MAX_LINES,
                 "too many input lines: %d > %d", lineCount, MAX_LINES);
 

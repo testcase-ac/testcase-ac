@@ -107,6 +107,8 @@ int main(int argc, char* argv[]) {
         if ((ch == '('||ch==')'||ch=='['||ch==']'||ch==',') && rnd.next() < 0.3)
             P += ' ';
     }
+    while (!P.empty() && P.front() == ' ') P.erase(P.begin());
+    while (!P.empty() && P.back() == ' ') P.pop_back();
 
     // weight W
     int W = rnd.next(2, 27);

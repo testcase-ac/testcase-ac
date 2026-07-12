@@ -13,6 +13,11 @@ bool isSep(char c) {
               c == '-' );
 }
 
+string trimTrailingSpaces(string line) {
+    while (!line.empty() && line.back() == ' ') line.pop_back();
+    return line;
+}
+
 // generate a word of given length, with up to hyCount hyphens if allowHyphens
 string makeWord(int length, bool allowHyphens) {
     static const string letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -85,7 +90,8 @@ int main(int argc, char* argv[]) {
         if (end == ptr) {
             end = min(ptr + maxLen, N);
         }
-        printf("%s\n", text.substr(ptr, end - ptr).c_str());
+        string line = trimTrailingSpaces(text.substr(ptr, end - ptr));
+        if (!line.empty()) printf("%s\n", line.c_str());
         ptr = end;
     }
     // termination marker

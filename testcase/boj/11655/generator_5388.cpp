@@ -44,6 +44,8 @@ int main(int argc, char* argv[]) {
         else c = char('0' + rnd.next(0, 9));
         s[pos] = c;
     }
+    if (s.front() == ' ') s.front() = char('a' + rnd.next(0, 25));
+    if (s.back() == ' ') s.back() = char('a' + rnd.next(0, 25));
 
     // Output the test case
     println(s);

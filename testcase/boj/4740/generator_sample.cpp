@@ -19,6 +19,16 @@ string randomPrintable(int length) {
     return s;
 }
 
+string normalizeSentence(const string& input) {
+    string result;
+    for (char c : input) {
+        if (c == ' ' && (result.empty() || result.back() == ' ')) continue;
+        result += c;
+    }
+    if (!result.empty() && result.back() == ' ') result.pop_back();
+    return result;
+}
+
 string makeLine(int mode) {
     static const string letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     static const string alnum = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -71,7 +81,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < lineCount; ++i) {
         string line;
         do {
-            line = makeLine(rnd.next(0, 4));
+            line = normalizeSentence(makeLine(rnd.next(0, 4)));
         } while (line == "***" || line.empty() || line.find_first_not_of(' ') == string::npos || int(line.size()) > 80);
         println(line);
     }

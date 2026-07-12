@@ -12,8 +12,11 @@ int main(int argc, char* argv[]) {
     while (!inf.eof()) {
         ensuref(lineCount < 50, "too many lines: at least %d", lineCount + 1);
 
-        string line = inf.readLine("[a-z\\ ]{0,50}", "line");
+        string line = inf.readLine("[a-z\\ ]{1,50}", "line");
         lineCount++;
+
+        ensuref(line.front() != ' ' && line.back() != ' ',
+                "line %d must not have leading or trailing spaces", lineCount);
 
         for (char c : line) {
             if ('a' <= c && c <= 'z') {

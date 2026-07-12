@@ -64,8 +64,16 @@ int main(int argc, char* argv[]) {
             line[pos] = char(base + rnd.next(0, 25));
         }
 
+        string normalized;
+        for (char c : line) {
+            if (c != ' ' || (!normalized.empty() && normalized.back() != ' ')) {
+                normalized.push_back(c);
+            }
+        }
+        if (!normalized.empty() && normalized.back() == ' ') normalized.pop_back();
+
         // Output the line
-        printf("%s\n", line.c_str());
+        printf("%s\n", normalized.c_str());
     }
 
     // Terminating line

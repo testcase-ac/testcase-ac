@@ -36,6 +36,16 @@ string printableAscii() {
     return chars;
 }
 
+string normalizeSentence(const string& input) {
+    string result;
+    for (char ch : input) {
+        if (ch == ' ' && (result.empty() || result.back() == ' ')) continue;
+        result += ch;
+    }
+    if (!result.empty() && result.back() == ' ') result.pop_back();
+    return result;
+}
+
 int main(int argc, char* argv[]) {
     registerGen(argc, argv, 1);
 
@@ -75,7 +85,7 @@ int main(int argc, char* argv[]) {
 
     for (const auto& testCase : cases) {
         println(testCase.first);
-        println(testCase.second);
+        println(normalizeSentence(testCase.second));
     }
     println(0);
 

@@ -22,6 +22,10 @@ int main(int argc, char* argv[]) {
         setTestCase(++testCaseCount);
 
         string text = inf.readLine("[^]{1,1000000}", "text");
+        ensuref(text.front() != ' ' && text.back() != ' ',
+                "text must not have leading or trailing spaces");
+        ensuref(text.find("  ") == string::npos,
+                "text must not contain repeated spaces");
         for (int i = 0; i < static_cast<int>(text.size()); ++i) {
             unsigned char ch = static_cast<unsigned char>(text[i]);
             ensuref(32 <= ch && ch <= 126, "text contains non-printable ASCII at position %d", i + 1);

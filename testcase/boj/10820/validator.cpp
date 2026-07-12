@@ -22,6 +22,9 @@ int main(int argc, char* argv[]) {
     // For each line, check length and allowed characters
     for (int i = 0; i < N; i++) {
         const string &s = lines[i];
+        ensuref(!s.empty(), "line %d must not be empty", i + 1);
+        ensuref(s.find_first_not_of(' ') != string::npos,
+                "line %d must not contain only spaces", i + 1);
         ensuref((int)s.size() <= 100,
                 "Length of line %d is %d, but must be at most 100",
                 i+1, (int)s.size());

@@ -52,13 +52,11 @@ int main(int argc, char* argv[]) {
     }
 
     println(n);
-    if (n > 1) {
-        vector<int> parents;
-        for (int i = 2; i <= n; ++i) {
-            parents.push_back(parent[i]);
-        }
-        println(parents);
+    vector<int> parents;
+    for (int i = 2; i <= n; ++i) {
+        parents.push_back(parent[i]);
     }
+    println(parents);
 
     return 0;
 }

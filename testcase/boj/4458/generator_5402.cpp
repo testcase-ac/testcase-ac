@@ -38,7 +38,12 @@ int main(int argc, char* argv[]) {
                 s.push_back('-');
             }
         }
-        println(s);
+        string normalized;
+        for (char c : s) {
+            if (c != ' ' || normalized.back() != ' ') normalized.push_back(c);
+        }
+        if (normalized.back() == ' ') normalized.pop_back();
+        println(normalized);
     }
     return 0;
 }

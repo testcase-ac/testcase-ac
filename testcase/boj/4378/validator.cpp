@@ -14,10 +14,12 @@ int main(int argc, char* argv[]) {
 
     while (!inf.eof()) {
         // CHECK: The statement has no length bounds; cap text input to a practical size.
-        string line = inf.readLine("[^]{0,10000}", "line");
+        string line = inf.readLine("[^]{1,10000}", "line");
         ++lineCount;
         totalChars += static_cast<long long>(line.size());
         ensuref(totalChars <= 10000000LL, "total input text is too long");
+        ensuref(line.front() != ' ' && line.back() != ' ',
+                "line %d must not have leading or trailing spaces", lineCount);
 
         for (char ch : line) {
             ensuref(allowed.find(ch) != string::npos, "invalid input character: %c", ch);

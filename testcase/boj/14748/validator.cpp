@@ -11,6 +11,8 @@ int main(int argc, char* argv[]) {
 
     string P = inf.readLine();
     ensuref(!P.empty(), "P must not be empty");
+    ensuref(P.front() != ' ' && P.back() != ' ',
+            "P must not have leading or trailing spaces");
 
     ensuref((int)P.size() < 70000,
             "Length of P must be less than 70000, but got %d", (int)P.size());

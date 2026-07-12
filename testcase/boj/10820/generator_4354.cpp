@@ -51,6 +51,10 @@ int main(int argc, char* argv[]) {
             }
             s.push_back(ch);
         }
+        if (s.empty()) s.push_back(char(rnd.next('a', 'z')));
+        if (s.find_first_not_of(' ') == string::npos) {
+            s[rnd.next(0, int(s.size()) - 1)] = char(rnd.next('a', 'z'));
+        }
         lines.push_back(s);
     }
 
