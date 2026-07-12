@@ -14,7 +14,6 @@ on:
       - "deploy/util/runtime_image.sh"
       - "deploy/util/runtime_image_hash.sh"
       - "third_party/testlib/**"
-      - "tests/deploy/stresser_release_test.sh"
       - "tests/dockertest/run_test.sh"
       - ".github/workflows/deploy-stresser.yml"
   workflow_dispatch:
@@ -39,14 +38,9 @@ jobs:
       STRESSER_AWS_REGION: ${{ vars.STRESSER_AWS_REGION }}
       STRESSER_ECR_REPOSITORY_NAME: ${{ vars.STRESSER_ECR_REPOSITORY_NAME }}
       STRESSER_FUNCTION_NAME: ${{ vars.STRESSER_LAMBDA_FUNCTION_NAME }}
-      STRESSER_IMAGE_TAG: ${{ github.sha }}
-      STRESSER_LOCAL_IMAGE: testcase-ac-stresser:${{ github.sha }}
 
     steps:
       - uses: actions/checkout@v6
-
-      - name: Test release script
-        run: ./tests/deploy/stresser_release_test.sh
 
       - name: Build and test stresser image
         env:

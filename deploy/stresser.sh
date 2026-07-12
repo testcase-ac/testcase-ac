@@ -44,56 +44,19 @@ tf_apply() {
 }
 
 wait_for_lambda_update() {
-  while true; do
-    local status
-    status="$(aws lambda get-function \
-      --region "${STRESSER_AWS_REGION}" \
-      --function-name "${STRESSER_FUNCTION_NAME}" \
-      --query 'Configuration.LastUpdateStatus' \
-      --output text)"
+  if aws lambda wait function-updated-v2 \
+    --region "${STRESSER_AWS_REGION}" \
+    --function-name "${STRESSER_FUNCTION_NAME}"; then
+    return 0
+  fi
 
-    case "${status}" in
-      Successful)
-        return 0
-        ;;
-      Failed)
-        echo "Lambda update failed" >&2
-        aws lambda get-function \
-          --region "${STRESSER_AWS_REGION}" \
-          --function-name "${STRESSER_FUNCTION_NAME}" \
-          --query 'Configuration.[LastUpdateStatusReason,StateReason]' \
-          --output table >&2 || true
-        exit 1
-        ;;
-    esac
-
-    sleep 2
-  done
-}
-
-print_backend_env() {
-  local access_key_id="$1"
-  local iam_user_arn="$2"
-
-  echo "==> Stresser deployed"
-  echo "Function name: ${STRESSER_FUNCTION_NAME}"
-  echo "Image URI: ${IMAGE_URI}"
-  echo "Architecture: ${STRESSER_LAMBDA_ARCHITECTURE}"
-  echo
-  echo "Backend invoker IAM user: ${iam_user_arn}"
-  echo
-  echo "Backend environment:"
-  echo "  STRESSER_MODE=lambda"
-  echo "  STRESSER_LAMBDA_FUNCTION_NAME=${STRESSER_FUNCTION_NAME}"
-  echo "  AWS_REGION=${STRESSER_AWS_REGION}"
-  echo
-  echo "Use these when running ./deploy/api.sh:"
-  echo "  export DEPLOY_AWS_REGION=${STRESSER_AWS_REGION}"
-  echo "  export DEPLOY_AWS_ACCESS_KEY_ID=${access_key_id}"
-  echo "  export DEPLOY_AWS_SECRET_ACCESS_KEY=<redacted>"
-  echo
-  echo "Secret access key was not printed. Retrieve it with:"
-  echo "  terraform -chdir=${TERRAFORM_DIR} output -raw secret_access_key"
+  echo "Lambda update failed or timed out" >&2
+  aws lambda get-function \
+    --region "${STRESSER_AWS_REGION}" \
+    --function-name "${STRESSER_FUNCTION_NAME}" \
+    --query 'Configuration.[LastUpdateStatusReason,StateReason]' \
+    --output table >&2 || true
+  return 1
 }
 
 require_command aws
@@ -163,6 +126,7 @@ tf_apply
 echo "==> Waiting for Lambda update to settle"
 wait_for_lambda_update
 
-ACCESS_KEY_ID="$(tf_output access_key_id)"
-IAM_USER_ARN="$(tf_output iam_user_arn)"
-print_backend_env "${ACCESS_KEY_ID}" "${IAM_USER_ARN}"
+echo "==> Stresser deployed"
+echo "Function name: ${STRESSER_FUNCTION_NAME}"
+echo "Image URI: ${IMAGE_URI}"
+echo "Architecture: ${STRESSER_LAMBDA_ARCHITECTURE}"

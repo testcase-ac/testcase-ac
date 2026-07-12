@@ -14,35 +14,18 @@ require_command() {
 }
 
 wait_for_lambda_update() {
-  local attempt
-  local status
+  if aws lambda wait function-updated-v2 \
+    --region "${STRESSER_AWS_REGION}" \
+    --function-name "${STRESSER_FUNCTION_NAME}"; then
+    return 0
+  fi
 
-  for ((attempt = 1; attempt <= 150; attempt++)); do
-    status="$(aws lambda get-function \
-      --region "${STRESSER_AWS_REGION}" \
-      --function-name "${STRESSER_FUNCTION_NAME}" \
-      --query 'Configuration.LastUpdateStatus' \
-      --output text)"
-
-    case "${status}" in
-      Successful)
-        return 0
-        ;;
-      Failed)
-        echo "Lambda update failed" >&2
-        aws lambda get-function \
-          --region "${STRESSER_AWS_REGION}" \
-          --function-name "${STRESSER_FUNCTION_NAME}" \
-          --query 'Configuration.[LastUpdateStatusReason,StateReason]' \
-          --output table >&2 || true
-        return 1
-        ;;
-    esac
-
-    sleep 2
-  done
-
-  echo "Timed out waiting for Lambda update" >&2
+  echo "Lambda update failed or timed out" >&2
+  aws lambda get-function \
+    --region "${STRESSER_AWS_REGION}" \
+    --function-name "${STRESSER_FUNCTION_NAME}" \
+    --query 'Configuration.[LastUpdateStatusReason,StateReason]' \
+    --output table >&2 || true
   return 1
 }
 
@@ -54,7 +37,7 @@ STRESSER_AWS_REGION="${STRESSER_AWS_REGION:-ap-northeast-2}"
 STRESSER_ECR_REPOSITORY_NAME="${STRESSER_ECR_REPOSITORY_NAME:-testcase-ac-stresser}"
 STRESSER_FUNCTION_NAME="${STRESSER_FUNCTION_NAME:-testcase-ac-stresser}"
 STRESSER_IMAGE_TAG="${STRESSER_IMAGE_TAG:-$(git -C "${REPO_ROOT}" rev-parse HEAD)}"
-STRESSER_LOCAL_IMAGE="${STRESSER_LOCAL_IMAGE:-testcase-ac-stresser:${STRESSER_IMAGE_TAG}}"
+STRESSER_LOCAL_IMAGE="${STRESSER_LOCAL_IMAGE:-${RUNTIME_IMAGE:-testcase-ac-stresser:${STRESSER_IMAGE_TAG}}}"
 
 if ! docker image inspect "${STRESSER_LOCAL_IMAGE}" >/dev/null; then
   echo "Tested local image not found: ${STRESSER_LOCAL_IMAGE}" >&2
