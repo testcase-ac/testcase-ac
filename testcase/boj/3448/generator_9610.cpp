@@ -128,7 +128,7 @@ int main(int argc, char* argv[]) {
         for (string &s : tests[ti]) {
             println(s);
         }
-        if (ti + 1 < N) println(""); // blank line between test cases
+        println(""); // blank line after every test case, including the last
     }
 
     return 0;
