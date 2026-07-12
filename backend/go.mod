@@ -1,6 +1,8 @@
 module github.com/testcase-ac/testcase-ac/backend
 
-go 1.25
+go 1.26.0
+
+toolchain go1.26.5
 
 require (
 	github.com/aws/aws-lambda-go v1.54.0
