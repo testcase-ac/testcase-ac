@@ -40,6 +40,7 @@ int parseCanonicalInt(const string& token, int low, int high, const char* name) 
 vector<string> splitCoordinateLine(const string& line, int index) {
     ensuref(!line.empty(), "coordinate line %d must not be empty", index);
     ensuref(line[0] != ' ', "coordinate line %d has leading space", index);
+    ensuref(line.back() != ' ', "coordinate line %d has trailing space", index);
 
     vector<string> tokens;
     string current;
@@ -75,8 +76,6 @@ int main(int argc, char* argv[]) {
 
     set<pair<int, int>> locations;
     for (int i = 1; i <= n; ++i) {
-        // CHECK: the official sample has one trailing space after a coordinate pair,
-        // so coordinate lines allow trailing spaces while keeping one separator between x and y.
         vector<string> tokens = splitCoordinateLine(inf.readLine(), i);
         int x = parseCanonicalInt(tokens[0], -10000, 10000, "x_i");
         int y = parseCanonicalInt(tokens[1], -10000, 10000, "y_i");

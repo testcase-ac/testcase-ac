@@ -4,11 +4,6 @@
 
 using namespace std;
 
-static void readHeaderLineEnd() {
-    // The official sample has a trailing space after R, so header lines accept it.
-    ensuref(inf.seekEoln(), "expected end of test case header line");
-}
-
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
@@ -25,7 +20,7 @@ int main(int argc, char* argv[]) {
         int t = inf.readInt(1, 1000000, "t");
         inf.readSpace();
         int r = inf.readInt(1, 100000000, "r");
-        readHeaderLineEnd();
+        inf.readEoln();
 
         (void)t;
         (void)r;

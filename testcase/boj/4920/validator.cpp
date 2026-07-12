@@ -12,11 +12,11 @@ constexpr int kMinValue = -1000000;
 constexpr int kMaxValue = 1000000;
 constexpr int kMaxCases = 100000;
 
-string trimSpaces(const string& line) {
-    size_t first = line.find_first_not_of(' ');
-    ensuref(first != string::npos, "empty line");
-    size_t last = line.find_last_not_of(' ');
-    return line.substr(first, last - first + 1);
+const string& requireNoEdgeSpaces(const string& line, const char* name) {
+    ensuref(!line.empty(), "%s line must not be empty", name);
+    ensuref(line.front() != ' ', "%s line has leading space", name);
+    ensuref(line.back() != ' ', "%s line has trailing space", name);
+    return line;
 }
 
 int parseIntToken(const string& token, int low, int high, const char* name) {
@@ -47,26 +47,26 @@ int parseIntToken(const string& token, int low, int high, const char* name) {
 }
 
 int parseSingleIntLine(const string& line, int low, int high, const char* name) {
-    string trimmed = trimSpaces(line);
-    ensuref(trimmed.find(' ') == string::npos, "%s line has extra tokens", name);
-    return parseIntToken(trimmed, low, high, name);
+    const string& content = requireNoEdgeSpaces(line, name);
+    ensuref(content.find(' ') == string::npos, "%s line has extra tokens", name);
+    return parseIntToken(content, low, high, name);
 }
 
 vector<int> parseGridRow(const string& line, int n, int rowIndex) {
-    string trimmed = trimSpaces(line);
+    const string& content = requireNoEdgeSpaces(line, "grid row");
     vector<int> values;
 
     size_t pos = 0;
-    while (pos < trimmed.size()) {
-        size_t next = trimmed.find(' ', pos);
-        string token = trimmed.substr(pos, next == string::npos ? string::npos : next - pos);
+    while (pos < content.size()) {
+        size_t next = content.find(' ', pos);
+        string token = content.substr(pos, next == string::npos ? string::npos : next - pos);
         ensuref(!token.empty(), "row %d has an empty value", rowIndex);
         values.push_back(parseIntToken(token, kMinValue, kMaxValue, "grid value"));
         if (next == string::npos) {
             break;
         }
-        pos = trimmed.find_first_not_of(' ', next);
-        ensuref(pos != string::npos, "row %d has trailing spaces after trimming", rowIndex);
+        pos = content.find_first_not_of(' ', next);
+        ensuref(pos != string::npos, "row %d has trailing spaces", rowIndex);
     }
 
     ensuref(static_cast<int>(values.size()) == n,

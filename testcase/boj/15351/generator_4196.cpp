@@ -54,19 +54,12 @@ int main(int argc, char* argv[]) {
             // random string up to 30 chars
             int L = rnd.next(1, 30);
             string s;
-            bool hasLetter = false;
             for (int j = 0; j < L; j++) {
-                if (rnd.next() < 0.2) {
+                if (j > 0 && j + 1 < L && s.back() != ' ' && rnd.next() < 0.2) {
                     s += ' ';
                 } else {
-                    hasLetter = true;
                     s += char('A' + rnd.next(0, 25));
                 }
-            }
-            if (!hasLetter) {
-                // ensure at least one letter
-                int pos = rnd.next(0, L - 1);
-                s[pos] = char('A' + rnd.next(0, 25));
             }
             items.push_back(s);
         }

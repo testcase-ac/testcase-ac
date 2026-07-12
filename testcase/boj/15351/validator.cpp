@@ -9,9 +9,11 @@ int main(int argc, char* argv[]) {
     inf.readEoln();
 
     // Each of the next N lines: a name consisting of uppercase letters and spaces, length 1..30
-    // Regex: [A-Z\ ] matches uppercase or space; space must be escaped
     for (int i = 0; i < N; i++) {
-        inf.readLine("[A-Z\\ ]{1,30}", "name");
+        string name = inf.readLine("[A-Z\\ ]{1,30}", "name");
+        ensuref(name.front() != ' ', "name %d has leading space", i + 1);
+        ensuref(name.back() != ' ', "name %d has trailing space", i + 1);
+        ensuref(name.find("  ") == string::npos, "name %d has repeated spaces", i + 1);
     }
 
     inf.readEof();

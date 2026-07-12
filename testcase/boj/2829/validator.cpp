@@ -7,11 +7,9 @@ using namespace std;
 namespace {
 
 vector<string> splitBySingleSpaces(const string& content, const string& lineName) {
-    // CHECK: Official sample 1 has a trailing space after N, so trailing spaces
-    // are accepted on numeric lines while leading spaces and repeated separators
-    // before another token remain invalid.
     ensuref(!content.empty(), "%s must not be empty", lineName.c_str());
     ensuref(content.front() != ' ', "%s has leading space", lineName.c_str());
+    ensuref(content.back() != ' ', "%s has trailing space", lineName.c_str());
 
     vector<string> tokens;
     string current;
