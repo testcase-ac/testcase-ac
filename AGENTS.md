@@ -33,15 +33,24 @@ The frontend sends user code to the API to find counterexamples, the API loads t
 
 ## Local Testing
 
-Host-local checks cover packages whose tests either avoid testcase program execution or stub it through the executor seam:
+Run checks for the affected area. Prefer affected packages over `./...` unless the change is broad.
 
-- Run frontend typechecking with `cd frontend && npm run typecheck`.
-- Run backend host-safe validation with `cd backend && go test ./api ./contracts ./internal/loader ./internal/verify ./stresser`.
+Frontend:
 
-Docker runtime checks are required for executor compile/run behavior and real problem verification. Run these commands from the repo root, and do not treat host-only executor or real-problem verification failures as sufficient verification:
+- `cd frontend && npm test`
+- `cd frontend && npm run typecheck`
 
-- Real problem verification: `./tests/verify/run_problems.sh testcase/<type>/<id>`
-- Default Docker package test: `./tests/dockertest/run_test.sh`, covering `./internal/executor`.
+Backend Go, from `backend/`:
+
+- Test: `go test ./path/to/package` (Tests for `backend/internal/executor` require the Linux runtime environment: use `./tests/dockertest/run_test.sh` instead of direct `go test`.)
+- Static Analysis: `go vet ./path/to/package`
+- Modernization suggestion: `go fix -diff ./path/to/package`
+
+## Problem Verification
+
+Check that a problem folder is valid and its solutions, testcases, generators, validators, and checkers work together correctly in the Docker runtime:
+
+- `./tests/verify/run_problems.sh testcase/<type>/<id>`
 
 ## Deployment
 
