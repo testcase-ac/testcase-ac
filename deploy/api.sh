@@ -3,7 +3,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-STRESSER_TERRAFORM_DIR="${REPO_ROOT}/deploy/terraform/stresser"
 
 # Shared local helpers used by both the regular deploy path and the temporary
 # bootstrap/provisioning blocks below.
@@ -23,33 +22,12 @@ require_env() {
   fi
 }
 
-terraform_output() {
-  local output_name="$1"
-  require_command terraform
-  terraform -chdir="${STRESSER_TERRAFORM_DIR}" output -raw "${output_name}"
-}
-
 set_default() {
   local name="$1"
   local value="$2"
   if [[ -z "${!name:-}" ]]; then
     printf -v "${name}" '%s' "${value}"
   fi
-}
-
-resolve_from_terraform() {
-  local name="$1"
-  local output_name="$2"
-  local value
-  if [[ -n "${!name:-}" ]]; then
-    return 0
-  fi
-  if ! value="$(terraform_output "${output_name}")"; then
-    echo "Missing required environment variable: ${name}" >&2
-    echo "Also failed to resolve Terraform output '${output_name}' from ${STRESSER_TERRAFORM_DIR}" >&2
-    exit 1
-  fi
-  printf -v "${name}" '%s' "${value}"
 }
 
 join_by() {
@@ -89,13 +67,7 @@ AWS_REGION=${DEPLOY_AWS_REGION}
 RATE_LIMIT_MAX=${DEPLOY_RATE_LIMIT_MAX}
 RATE_LIMIT_WINDOW_S=${DEPLOY_RATE_LIMIT_WINDOW_S}
 CORS_ALLOW_ORIGINS=${DEPLOY_CORS_ALLOW_ORIGINS}
-AWS_ACCESS_KEY_ID=${DEPLOY_AWS_ACCESS_KEY_ID}
-AWS_SECRET_ACCESS_KEY=${DEPLOY_AWS_SECRET_ACCESS_KEY}
 EOF
-
-  if [[ -n "${DEPLOY_AWS_SESSION_TOKEN}" ]]; then
-    printf 'AWS_SESSION_TOKEN=%s\n' "${DEPLOY_AWS_SESSION_TOKEN}"
-  fi
 }
 
 render_service_unit() {
@@ -111,6 +83,7 @@ Type=simple
 User=${DEPLOY_APP_USER}
 Group=${DEPLOY_APP_USER}
 WorkingDirectory=${DEPLOY_APP_DIR}/backend
+EnvironmentFile=${DEPLOY_AWS_ENV_PATH}
 EnvironmentFile=${DEPLOY_ENV_PREFIX}.${slot}
 ExecStart=${DEPLOY_APP_DIR}/backend/${DEPLOY_BINARY_NAME}
 Restart=always
@@ -165,6 +138,7 @@ set -euo pipefail
 APP_DIR="${DEPLOY_APP_DIR}"
 APP_USER="${DEPLOY_APP_USER}"
 ENV_PREFIX="${DEPLOY_ENV_PREFIX}"
+AWS_ENV_PATH="${DEPLOY_AWS_ENV_PATH}"
 SERVICE_NAME="${DEPLOY_SERVICE_NAME}"
 CADDY_SNIPPET="${DEPLOY_CADDY_SNIPPET}"
 BINARY_NAME="${DEPLOY_BINARY_NAME}"
@@ -235,6 +209,43 @@ ensure_packages_installed() {
   sudo apt-get install -y "${missing[@]}"
 }
 
+ensure_backend_aws_env() {
+  local candidate
+  local temp_file
+
+  if sudo test -f "${AWS_ENV_PATH}"; then
+    if ! sudo grep -q '^AWS_ACCESS_KEY_ID=.' "${AWS_ENV_PATH}" ||
+       ! sudo grep -q '^AWS_SECRET_ACCESS_KEY=.' "${AWS_ENV_PATH}"; then
+      echo "Existing backend AWS environment is incomplete: ${AWS_ENV_PATH}" >&2
+      return 1
+    fi
+    return 0
+  fi
+
+  for candidate in "${ENV_PREFIX}.blue" "${ENV_PREFIX}.green"; do
+    if ! sudo test -f "${candidate}" ||
+       ! sudo grep -q '^AWS_ACCESS_KEY_ID=.' "${candidate}" ||
+       ! sudo grep -q '^AWS_SECRET_ACCESS_KEY=.' "${candidate}"; then
+      continue
+    fi
+
+    umask 077
+    temp_file="$(mktemp)"
+    sudo awk -F= '
+      $1 == "AWS_ACCESS_KEY_ID" ||
+      $1 == "AWS_SECRET_ACCESS_KEY" ||
+      $1 == "AWS_SESSION_TOKEN" { print }
+    ' "${candidate}" > "${temp_file}"
+    sudo install -o root -g root -m 0600 "${temp_file}" "${AWS_ENV_PATH}"
+    rm -f "${temp_file}"
+    echo "Migrated backend AWS credentials to ${AWS_ENV_PATH}"
+    return 0
+  done
+
+  echo "Could not initialize ${AWS_ENV_PATH} from an existing slot environment" >&2
+  return 1
+}
+
 ensure_packages_installed curl rsync caddy
 
 sudo systemctl disable --now "${LEGACY_SERVICE_NAME}" >/dev/null 2>&1 || true
@@ -247,7 +258,7 @@ else
 fi
 
 sudo mkdir -p "${APP_DIR}" "${APP_DIR}/backend" "${APP_DIR}/testcase" \
-  "$(dirname "${ENV_PREFIX}")" "$(dirname "${CADDY_SNIPPET}")"
+  "$(dirname "${ENV_PREFIX}")" "$(dirname "${AWS_ENV_PATH}")" "$(dirname "${CADDY_SNIPPET}")"
 sudo find "${APP_DIR}" -mindepth 1 -maxdepth 1 \
   ! -name backend ! -name testcase ! -name "${ACTIVE_SLOT_BASENAME}" -exec rm -rf {} +
 
@@ -263,6 +274,8 @@ inactive_service="$(slot_service "${inactive_slot}")"
 
 printf 'Deploying inactive API slot %s on port %s; current active slot is %s\n' \
   "${inactive_slot}" "${inactive_port}" "${active_slot}"
+
+ensure_backend_aws_env
 
 sudo rsync -a --delete "${INCOMING_TESTCASE_DIR}/" "${APP_DIR}/testcase/"
 sudo install -o "${APP_USER}" -g "${APP_USER}" -m 0644 "${STAGING_DIR}/author-index.json" "${APP_DIR}/testcase/.author-index.json"
@@ -339,8 +352,8 @@ require_command git
 
 # REGULAR DEPLOY CONFIGURATION
 #
-# Stresser/Lambda credentials are supplied by the caller, or resolved from
-# Terraform outputs for local deploys that have the stresser Terraform state.
+# Stresser/Lambda invocation credentials stay in a persistent root-owned file
+# on the server and are not supplied by each deployment.
 # ${DEPLOY_ENV_PREFIX} is a filename prefix; only ${DEPLOY_ENV_PREFIX}.blue
 # and ${DEPLOY_ENV_PREFIX}.green are used as env files. The unsuffixed prefix
 # path is intentionally not used as a source of truth.
@@ -352,6 +365,7 @@ DEPLOY_SSH_PORT="${DEPLOY_SSH_PORT:-22}"
 DEPLOY_APP_USER="${DEPLOY_APP_USER:-testcase-ac}"
 DEPLOY_APP_DIR="${DEPLOY_APP_DIR:-/srv/testcase-ac}"
 DEPLOY_ENV_PREFIX="${DEPLOY_ENV_PREFIX:-${DEPLOY_ENV_PATH:-/etc/testcase-ac/backend.env}}"
+DEPLOY_AWS_ENV_PATH="${DEPLOY_AWS_ENV_PATH:-/etc/testcase-ac/backend-aws.env}"
 DEPLOY_SERVICE_NAME="${DEPLOY_SERVICE_NAME:-testcase-ac-backend}"
 DEPLOY_CADDY_SNIPPET="${DEPLOY_CADDY_SNIPPET:-/etc/caddy/Caddyfile.d/testcase-ac-api.caddy}"
 DEPLOY_BINARY_NAME="${DEPLOY_BINARY_NAME:-testcase-ac-backend}"
@@ -362,7 +376,6 @@ DEPLOY_SHUTDOWN_TIMEOUT_SEC="${DEPLOY_SHUTDOWN_TIMEOUT_SEC:-190s}"
 DEPLOY_GOOS="${DEPLOY_GOOS:-linux}"
 DEPLOY_GOARCH="${DEPLOY_GOARCH:-amd64}"
 DEPLOY_AWS_REGION="${DEPLOY_AWS_REGION:-ap-northeast-2}"
-DEPLOY_AWS_SESSION_TOKEN="${DEPLOY_AWS_SESSION_TOKEN:-}"
 DEPLOY_RATE_LIMIT_MAX="${DEPLOY_RATE_LIMIT_MAX:-5}"
 DEPLOY_RATE_LIMIT_WINDOW_S="${DEPLOY_RATE_LIMIT_WINDOW_S:-10}"
 DEPLOY_CORS_ALLOW_ORIGINS="${DEPLOY_CORS_ALLOW_ORIGINS:-$(default_cors_allow_origins)}"
@@ -371,15 +384,11 @@ REMOTE_STAGING_DIR="${REMOTE_STAGING_DIR:-/tmp/testcase-ac-deploy}"
 SSH_ARGS=(-p "${DEPLOY_SSH_PORT}" -o BatchMode=yes)
 SSH_RSH="ssh ${SSH_ARGS[*]}"
 
-resolve_from_terraform STRESSER_LAMBDA_FUNCTION_NAME lambda_function_name
-resolve_from_terraform DEPLOY_AWS_ACCESS_KEY_ID access_key_id
-resolve_from_terraform DEPLOY_AWS_SECRET_ACCESS_KEY secret_access_key
+set_default STRESSER_LAMBDA_FUNCTION_NAME "testcase-ac-stresser"
 
 require_env DEPLOY_HOST
 require_env API_DOMAIN
 require_env STRESSER_LAMBDA_FUNCTION_NAME
-require_env DEPLOY_AWS_ACCESS_KEY_ID
-require_env DEPLOY_AWS_SECRET_ACCESS_KEY
 require_env DEPLOY_AWS_REGION
 
 if [[ "${DEPLOY_BLUE_PORT}" == "${DEPLOY_GREEN_PORT}" ]]; then
@@ -447,6 +456,7 @@ ssh "${SSH_ARGS[@]}" "${DEPLOY_SSH_TARGET}" \
   "DEPLOY_APP_DIR=$(shell_quote "${DEPLOY_APP_DIR}") \
    DEPLOY_APP_USER=$(shell_quote "${DEPLOY_APP_USER}") \
    DEPLOY_ENV_PREFIX=$(shell_quote "${DEPLOY_ENV_PREFIX}") \
+   DEPLOY_AWS_ENV_PATH=$(shell_quote "${DEPLOY_AWS_ENV_PATH}") \
    DEPLOY_SERVICE_NAME=$(shell_quote "${DEPLOY_SERVICE_NAME}") \
    DEPLOY_CADDY_SNIPPET=$(shell_quote "${DEPLOY_CADDY_SNIPPET}") \
    DEPLOY_BINARY_NAME=$(shell_quote "${DEPLOY_BINARY_NAME}") \

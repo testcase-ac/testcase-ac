@@ -4,8 +4,12 @@
 기본값입니다. 개인 포크나 다른 환경에서는 조정이 필요할 수 있습니다.
 
 - `api.sh`는 백엔드 API를 빌드하고 testcase 데이터를 동기화한 뒤 blue/green 슬롯을
-  전환합니다.
+  전환합니다. GitHub Actions는 AWS OIDC로 인증한 뒤 임시 Lightsail SSH 자격 증명을
+  요청하며, Lambda 호출 자격 증명은 호스트의 root 전용 영구 환경 파일에 둡니다.
 - `stresser.sh`는 stresser 런타임 이미지를 빌드해 ECR/Lambda 쪽 배포를 갱신합니다.
+- `stresser-release.sh`는 테스트된 로컬 이미지를 게시하고 인프라 변경 없이 기존
+  Lambda를 갱신합니다. 관련 변경이 `main`에 반영되면 GitHub Actions가 이 경로를
+  사용합니다.
 - `terraform/`은 stresser 배포 대상 인프라를 정의합니다.
 
 플랫폼의 배포 방식이 바뀔 때는 가능하면 이 `deploy/` 디렉터리 안의 파일만 수정하는

@@ -22,6 +22,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: testcase-ac-prod
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v6
@@ -38,26 +41,60 @@ jobs:
         working-directory: backend
         run: go test ./api ./contracts ./internal/loader
 
-      - name: Configure SSH
+      - name: Test API deployment contract
+        run: ./tests/deploy/api_oidc_deploy_test.sh
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.API_DEPLOY_ROLE_ARN }}
+          role-session-name: github-actions-api-${{ github.run_id }}
+          aws-region: ${{ vars.API_AWS_REGION }}
+
+      - name: Configure temporary Lightsail SSH access
         env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          LIGHTSAIL_INSTANCE_NAME: ${{ vars.API_LIGHTSAIL_INSTANCE_NAME }}
+          AWS_REGION: ${{ vars.API_AWS_REGION }}
         run: |
           set -euo pipefail
-          DEPLOY_HOST="${DEPLOY_HOST:-testcase-ac-api}"
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\n' "${DEPLOY_SSH_PRIVATE_KEY}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p 22 "${DEPLOY_HOST}" > ~/.ssh/known_hosts
+
+          access_details="$(aws lightsail get-instance-access-details \
+            --region "${AWS_REGION}" \
+            --instance-name "${LIGHTSAIL_INSTANCE_NAME}" \
+            --protocol ssh \
+            --output json)"
+          deploy_host="$(jq -er '.accessDetails.ipAddress' <<<"${access_details}")"
+          deploy_user="$(jq -er '.accessDetails.username' <<<"${access_details}")"
+
+          jq -er '.accessDetails.privateKey' <<<"${access_details}" > ~/.ssh/lightsail_deploy
+          jq -er '.accessDetails.certKey' <<<"${access_details}" > ~/.ssh/lightsail_deploy-cert.pub
+          jq -er --arg host "${deploy_host}" \
+            '.accessDetails.hostKeys[] | [$host, .algorithm, .publicKey] | @tsv' \
+            <<<"${access_details}" > ~/.ssh/known_hosts
+
+          chmod 600 ~/.ssh/lightsail_deploy ~/.ssh/lightsail_deploy-cert.pub
           chmod 644 ~/.ssh/known_hosts
+          ssh-keygen -L -f ~/.ssh/lightsail_deploy-cert.pub >/dev/null
+
+          cat >> ~/.ssh/config <<EOF
+          Host testcase-ac-api-deploy
+            HostName ${deploy_host}
+            User ${deploy_user}
+            IdentityFile ~/.ssh/lightsail_deploy
+            CertificateFile ~/.ssh/lightsail_deploy-cert.pub
+            IdentitiesOnly yes
+          EOF
+          chmod 600 ~/.ssh/config
+          echo "DEPLOY_HOST=testcase-ac-api-deploy" >> "${GITHUB_ENV}"
 
       - name: Deploy API
         env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          STRESSER_LAMBDA_FUNCTION_NAME: ${{ secrets.STRESSER_LAMBDA_FUNCTION_NAME }}
-          DEPLOY_AWS_REGION: ${{ secrets.DEPLOY_AWS_REGION }}
-          DEPLOY_AWS_ACCESS_KEY_ID: ${{ secrets.DEPLOY_AWS_ACCESS_KEY_ID }}
-          DEPLOY_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEPLOY_AWS_SECRET_ACCESS_KEY }}
-          DEPLOY_AWS_SESSION_TOKEN: ${{ secrets.DEPLOY_AWS_SESSION_TOKEN }}
+          STRESSER_LAMBDA_FUNCTION_NAME: ${{ vars.STRESSER_LAMBDA_FUNCTION_NAME }}
+          DEPLOY_AWS_REGION: ${{ vars.API_AWS_REGION }}
         run: ./deploy/api.sh
+
+      - name: Remove temporary SSH credentials
+        if: always()
+        run: rm -f ~/.ssh/lightsail_deploy ~/.ssh/lightsail_deploy-cert.pub

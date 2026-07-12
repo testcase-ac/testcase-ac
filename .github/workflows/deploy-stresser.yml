@@ -1,0 +1,64 @@
+name: Deploy stresser
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/go.mod"
+      - "backend/go.sum"
+      - "backend/contracts/**"
+      - "backend/internal/**"
+      - "backend/stresser/**"
+      - "deploy/stresser.Dockerfile"
+      - "deploy/stresser-release.sh"
+      - "deploy/util/runtime_image.sh"
+      - "deploy/util/runtime_image_hash.sh"
+      - "third_party/testlib/**"
+      - "tests/deploy/stresser_release_test.sh"
+      - "tests/dockertest/run_test.sh"
+      - ".github/workflows/deploy-stresser.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-stresser
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: testcase-ac-prod
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RUNTIME_IMAGE: testcase-ac-stresser:${{ github.sha }}
+      RUNTIME_PLATFORM: linux/amd64
+      STRESSER_AWS_REGION: ${{ vars.STRESSER_AWS_REGION }}
+      STRESSER_ECR_REPOSITORY_NAME: ${{ vars.STRESSER_ECR_REPOSITORY_NAME }}
+      STRESSER_FUNCTION_NAME: ${{ vars.STRESSER_LAMBDA_FUNCTION_NAME }}
+      STRESSER_IMAGE_TAG: ${{ github.sha }}
+      STRESSER_LOCAL_IMAGE: testcase-ac-stresser:${{ github.sha }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Test release script
+        run: ./tests/deploy/stresser_release_test.sh
+
+      - name: Build and test stresser image
+        env:
+          DOCKERTEST_FORCE_BUILD: "1"
+        run: ./tests/dockertest/run_test.sh ./stresser ./internal/executor ./internal/verify
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.STRESSER_DEPLOY_ROLE_ARN }}
+          role-session-name: github-actions-stresser-${{ github.run_id }}
+          aws-region: ${{ vars.STRESSER_AWS_REGION }}
+
+      - name: Deploy tested stresser image
+        run: ./deploy/stresser-release.sh

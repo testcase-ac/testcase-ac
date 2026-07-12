@@ -5,6 +5,7 @@ on:
     paths:
       - "backend/**"
       - "deploy/stresser.Dockerfile"
+      - "third_party/testlib/**"
       - "dev.sh"
       - "frontend/**"
       - "tests/**"
@@ -14,6 +15,7 @@ on:
     paths:
       - "backend/**"
       - "deploy/stresser.Dockerfile"
+      - "third_party/testlib/**"
       - "dev.sh"
       - "frontend/**"
       - "tests/**"
