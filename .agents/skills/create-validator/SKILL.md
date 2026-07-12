@@ -43,7 +43,7 @@ If the problem path is missing, ask before editing.
    - `sample_{i}.in`
    - `sample_{i}.out` when official output is present
 
-   Preserve exact sample formatting, and ensure it has a final newline.
+   Preserve semantically meaningful sample formatting, normalize accidental whitespace according to `input-contract-guide.md`, and ensure a final newline.
 
 5. Normalize exact duplicate legacy fixed testcases.
    - Run `.agents/skills/create-validator/scripts/normalize-statement-samples.py <problem path>` first as a dry run.
