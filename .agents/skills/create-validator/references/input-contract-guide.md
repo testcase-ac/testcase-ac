@@ -24,7 +24,6 @@ Only the provided statement and repo-local policy define validity. Existing solu
 
 - Validate the stated input shape: number of lines, number of test cases, token order, separators, line endings, and EOF.
 - Validate value domains: numeric bounds, token alphabets, string lengths, array lengths, matrix dimensions, and per-field domains.
-- Treat irregular sample whitespace as intentional only when explicitly allowed or semantically meaningful to the problem; otherwise normalize it as a typo and apply local formatting defaults.
 
 ### Structural Consistency
 
@@ -56,9 +55,10 @@ Apply the local defaults below only when the statement is silent and official sa
 
 ### Formatting Defaults
 
-- Follow the stated line breaks, use exactly one ASCII space between tokens, and end the file immediately after the final newline.
-- Do not allow trailing spaces before newlines, leading spaces at the start of the line, or repeated separators unless the statement, official samples, or format examples imply that broader format.
-- For natural-language string lines made of words, default to ordinary spacing unless the statement or samples imply otherwise: no leading or trailing spaces, no repeated spaces between words, and only ASCII spaces separate words within a line.
+- Follow the stated line breaks and end the file immediately after the final newline.
+- Do not allow leading or trailing spaces unless the statement explicitly allows them, or an official example shows them and they are semantically meaningful enough to be intentional rather than a formatting mistake.
+- Separate stated values or fields with exactly one ASCII space. Also use exactly one ASCII space between words when the input is described as sentences or words. If the statement instead defines an entire line or string by an allowed character set containing spaces, allow repeated internal spaces.
+
 - Reject empty or whitespace-only input by default. For ordinary tokens or lines, require at least one non-whitespace character unless the statement explicitly allows an empty string, empty line, or whitespace-only line. A maximum length or allowed space character alone does not make the blank case valid. Allowing leading or trailing whitespace does not explicitly allow whitespace-only input.
 
 ### Numeric Defaults
