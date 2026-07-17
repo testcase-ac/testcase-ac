@@ -129,6 +129,21 @@ func TestLoadProblemAuthorIndexTakesPrecedenceWithMetadataFallback(t *testing.T)
 	}
 }
 
+func TestLoadProblemIgnoresMissingAuthorOverride(t *testing.T) {
+	loader := newFakeProblemLoader(map[string]string{
+		"boj/1000/metadata.yaml": "title: A+B\nauthors:\n  correct.cpp: alice\n  missing.cpp: bob\n",
+		"boj/1000/correct.cpp":   "int main(){}\n",
+	})
+
+	problem, err := loader.loadProblem("boj/1000", Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := problem.CorrectCodes[0].AuthorName; got != "alice" {
+		t.Fatalf("CorrectCodes[0].AuthorName = %q, want alice", got)
+	}
+}
+
 func TestBuildCatalogUsesInjectedFilesystemAndAuthorIndex(t *testing.T) {
 	loader := newFakeProblemLoader(map[string]string{
 		"testcase/boj/1000/metadata.yaml":         "title: A+B\n",

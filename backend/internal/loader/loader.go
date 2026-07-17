@@ -510,11 +510,6 @@ func (l problemLoader) loadProblem(dirPath string, options Options) (Problem, er
 			return Problem{}, fmt.Errorf("language override references missing file %q", name)
 		}
 	}
-	for name := range meta.Authors {
-		if _, ok := seen[name]; !ok {
-			return Problem{}, fmt.Errorf("author override references missing file %q", name)
-		}
-	}
 	if len(problem.UnknownFiles) > 0 && !options.AllowUnknownFiles {
 		slices.Sort(problem.UnknownFiles)
 		return Problem{}, fmt.Errorf("unrecognized problem files: %s", strings.Join(problem.UnknownFiles, ", "))
