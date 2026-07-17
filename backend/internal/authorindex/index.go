@@ -40,7 +40,7 @@ type dependencies struct {
 // Build produces final authors for the current logical testcase tree.
 func Build(repoRoot string) (map[string]string, error) {
 	return buildWithDependencies(repoRoot, dependencies{
-		loadLogicalToPhysical: buildLogicalToPhysical,
+		loadLogicalToPhysical: LogicalToPhysical,
 		loadGitAuthors:        buildGitAuthors,
 		loadOverrides:         buildPhysicalOverrides,
 	})
@@ -147,8 +147,8 @@ func buildGitAuthors(repoRoot string) (map[string]string, error) {
 	return authorByRelPath, nil
 }
 
-// buildLogicalToPhysical materializes every current logical key and its final donor.
-func buildLogicalToPhysical(repoRoot string) (map[string]string, error) {
+// LogicalToPhysical maps every current logical testcase file to its resolved target.
+func LogicalToPhysical(repoRoot string) (map[string]string, error) {
 	testcaseRoot, err := filepath.EvalSymlinks(filepath.Join(repoRoot, "testcase"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {

@@ -218,6 +218,25 @@ func TestBuildCatalogFindsNestedProblemsAndSymlinkDirs(t *testing.T) {
 	}
 }
 
+func TestIsProblemDir(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "validator.cpp"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := IsProblemDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got {
+		t.Fatal("IsProblemDir() = false, want true")
+	}
+
+	if _, err := IsProblemDir(filepath.Join(dir, "missing")); err == nil {
+		t.Fatal("IsProblemDir() succeeded for a missing directory")
+	}
+}
+
 func TestLoadTypeMetadataPreservesOrderedLabels(t *testing.T) {
 	loader := newFakeProblemLoader(map[string]string{
 		"koi/" + typeMetadataName: `schemaVersion: 1

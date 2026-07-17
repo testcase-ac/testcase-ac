@@ -377,6 +377,15 @@ func isProblemDir(entries []fs.DirEntry) bool {
 	return false
 }
 
+// IsProblemDir reports whether dirPath contains a recognized problem marker.
+func IsProblemDir(dirPath string) (bool, error) {
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return false, err
+	}
+	return isProblemDir(entries), nil
+}
+
 func (l problemLoader) loadProblem(dirPath string, options Options) (Problem, error) {
 	problemType := filepath.Base(filepath.Dir(dirPath))
 	externalID := filepath.Base(dirPath)
