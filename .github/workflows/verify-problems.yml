@@ -3,6 +3,7 @@ name: Verify contributed problems
 on:
   pull_request:
     paths:
+      - "backend/cmd/changed-problems/**"
       - "backend/cmd/verify/**"
       - "backend/internal/**"
       - "deploy/stresser.Dockerfile"
@@ -23,9 +24,9 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ github.sha }}
 
       - name: Find changed problems
-        id: changed-problems
         shell: bash
         run: |
           set -euo pipefail
@@ -35,18 +36,18 @@ jobs:
             base="HEAD^"
           fi
           echo "Diff base: ${base}"
-          mapfile -t problem_dirs < <(./tests/verify/changed_problem_dirs.sh "${base}" HEAD)
-          if [ "${#problem_dirs[@]}" -eq 0 ]; then
-            echo "No changed problem directories detected; verifying smoke fixture."
-            problem_dirs=(testcase/boj/1000)
+          go -C backend run ./cmd/changed-problems \
+            --repo-root "${GITHUB_WORKSPACE}" \
+            --base "${base}" \
+            > changed-problems.json
+          echo "Affected problem directories:"
+          jq -r '.affectedProblemDirs[] | "  \(.)"' changed-problems.json
+          echo "Unowned testcase paths:"
+          jq -r '.unownedTestcasePaths[] | "  \(.)"' changed-problems.json
+          if [ "$(jq '.unownedTestcasePaths | length' changed-problems.json)" -ne 0 ]; then
+            echo "Every changed testcase path must belong directly to a supported problem directory." >&2
+            exit 1
           fi
-          printf 'Problem directories selected for verification:\n'
-          printf '  %s\n' "${problem_dirs[@]}"
-          {
-            echo "problem-dirs<<EOF"
-            printf '%s\n' "${problem_dirs[@]}"
-            echo "EOF"
-          } >> "${GITHUB_OUTPUT}"
 
       - name: Build runtime image
         run: docker build -f deploy/stresser.Dockerfile -t testcase-ac-dockertest .
@@ -54,11 +55,16 @@ jobs:
       - name: Verify changed problems
         env:
           DOCKERTEST_SKIP_BUILD: "1"
-          PROBLEM_DIRS: ${{ steps.changed-problems.outputs.problem-dirs }}
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t problem_dirs <<< "${PROBLEM_DIRS}"
+          mapfile -t problem_dirs < <(jq -r '.affectedProblemDirs[]' changed-problems.json)
+          if [ "${#problem_dirs[@]}" -eq 0 ]; then
+            echo "No affected problem directories detected; verifying smoke fixture."
+            problem_dirs=(testcase/boj/1000)
+          fi
+          printf 'Problem directories selected for verification:\n'
+          printf '  %s\n' "${problem_dirs[@]}"
           status=0
           VERIFY_REPORT_JSON=verify-report.json ./tests/verify/run_problems.sh "${problem_dirs[@]}" || status=$?
           node ./tests/verify/write_summary.mjs verify-report.json
