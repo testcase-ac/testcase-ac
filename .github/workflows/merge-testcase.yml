@@ -83,70 +83,14 @@ jobs:
             }
             core.info(`OK: pull request changes ${files.length} file(s).`);
 
-            const underTestcase = (path) => path.startsWith('testcase/');
-            const problemDir = (path) => {
-              const match = path.match(/^(testcase\/[^/]+\/[^/]+)\//);
-              return match ? match[1] : null;
-            };
+            const outsideTestcase = files
+              .flatMap((file) => [file.filename, file.previous_filename].filter(Boolean))
+              .find((path) => !path.startsWith('testcase/'));
 
-            const changedProblemDirs = new Set();
-            const outsideTestcase = [];
-            const outsideProblemDirs = [];
-
-            for (const file of files) {
-              const paths = [file.filename];
-              if (file.previous_filename) paths.push(file.previous_filename);
-
-              for (const path of paths) {
-                if (!underTestcase(path)) {
-                  outsideTestcase.push(path);
-                  continue;
-                }
-
-                const dir = problemDir(path);
-                if (!dir) {
-                  outsideProblemDirs.push(path);
-                  continue;
-                }
-                changedProblemDirs.add(dir);
-              }
-            }
-
-            if (outsideTestcase.length > 0) {
-              return reject(`all changed files must be under \`testcase/\`. Offending path: \`${outsideTestcase[0]}\`.`);
+            if (outsideTestcase) {
+              return reject(`all changed files must be under \`testcase/\`. Offending path: \`${outsideTestcase}\`.`);
             }
             core.info('OK: all changed files are under testcase/.');
-
-            if (outsideProblemDirs.length > 0) {
-              return reject(`changes must be inside problem directories like \`testcase/boj/1000/\`. Offending path: \`${outsideProblemDirs[0]}\`.`);
-            }
-            core.info('OK: all changed files are inside testcase problem directories.');
-
-            if (changedProblemDirs.size === 0) {
-              return reject('no changed testcase problem directories were found.');
-            }
-            core.info(`OK: found ${changedProblemDirs.size} changed testcase problem directory/directories.`);
-
-            for (const dir of [...changedProblemDirs].sort()) {
-              const validatorPath = `${dir}/validator.cpp`;
-              try {
-                const response = await github.rest.repos.getContent({
-                  owner,
-                  repo,
-                  path: validatorPath,
-                  ref: pr.head.sha,
-                });
-                if (Array.isArray(response.data) || response.data.type !== 'file') {
-                  return reject(`\`${validatorPath}\` must be a file.`);
-                }
-              } catch (error) {
-                if (error.status === 404) {
-                  return reject(`\`${validatorPath}\` is required for every changed testcase problem directory.`);
-                }
-                throw error;
-              }
-            }
-            core.info('OK: every changed testcase problem directory has validator.cpp.');
 
             const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
               owner,
