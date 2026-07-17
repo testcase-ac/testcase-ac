@@ -64,7 +64,7 @@ func TestSelectProblems(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			findProblemDir := func(filePath string) (string, error) {
+			findProblemDirForPath := func(filePath string) (string, error) {
 				if tt.problemDirs[filePath] {
 					return filePath, nil
 				}
@@ -75,7 +75,7 @@ func TestSelectProblems(t *testing.T) {
 				return "", nil
 			}
 
-			got, err := selectProblems(tt.changedPaths, tt.logicalToPhysical, findProblemDir)
+			got, err := selectProblems(tt.changedPaths, tt.logicalToPhysical, findProblemDirForPath)
 			if err != nil {
 				t.Fatal(err)
 			}

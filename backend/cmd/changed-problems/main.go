@@ -31,6 +31,8 @@ func main() {
 	}
 }
 
+// run expects CLI arguments naming a clean tested-merge checkout and its base.
+// It writes the affected and unowned paths as JSON to output.
 func run(args []string, output io.Writer) error {
 	flags := flag.NewFlagSet("changed-problems", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
@@ -63,6 +65,9 @@ func run(args []string, output io.Writer) error {
 	return nil
 }
 
+// gitChangedPaths returns repository-relative paths changed from base to HEAD.
+// The -z flag makes Git delimit paths with NUL, so newlines and other unusual
+// path characters remain unambiguous.
 func gitChangedPaths(repoRoot, base string) ([]string, error) {
 	output, err := exec.Command(
 		"git", "-C", repoRoot, "diff", "--name-only", "-z", "--no-renames", base, "HEAD", "--",
@@ -80,10 +85,14 @@ func gitChangedPaths(repoRoot, base string) ([]string, error) {
 	return paths, nil
 }
 
+// selectProblems combines repository-relative changed paths with the current
+// testcase-relative target index and returns sorted affected and unowned paths.
+// It expects findProblemDirForPath to return "" when a path has no current
+// owning problem.
 func selectProblems(
 	changedPaths []string,
 	logicalToPhysical map[string]string,
-	findProblemDir func(string) (string, error),
+	findProblemDirForPath func(string) (string, error),
 ) (commandResult, error) {
 	affected := map[string]bool{}
 	unowned := map[string]bool{}
@@ -92,7 +101,7 @@ func selectProblems(
 		if !strings.HasPrefix(changedPath, "testcase/") {
 			continue
 		}
-		problemDir, err := findProblemDir(changedPath)
+		problemDir, err := findProblemDirForPath(changedPath)
 		if err != nil {
 			return commandResult{}, err
 		}
@@ -111,7 +120,7 @@ func selectProblems(
 			if consumerTarget != physicalPath {
 				continue
 			}
-			problemDir, err := findProblemDir("testcase/" + consumerPath)
+			problemDir, err := findProblemDirForPath("testcase/" + consumerPath)
 			if err != nil {
 				return commandResult{}, err
 			}
@@ -127,6 +136,9 @@ func selectProblems(
 	}, nil
 }
 
+// problemDirForPath expects a slash-separated path relative to repoRoot. It
+// returns the current problem directory found at that path or its immediate
+// parent; missing and non-directory candidates have no owner.
 func problemDirForPath(repoRoot, repoPath string) (string, error) {
 	for _, candidate := range []string{repoPath, path.Dir(repoPath)} {
 		fullPath := filepath.Join(repoRoot, filepath.FromSlash(candidate))
