@@ -90,6 +90,7 @@ start_backend() {
       TESTCASE_LOCAL_PATH="$TESTCASE_LOCAL_PATH" \
       STRESSER_MODE="local_docker" \
       STRESSER_LOCAL_ENDPOINT="$stresser_endpoint" \
+      STATS_DB_PATH="$ROOT/backend/execution-stats.db" \
       CORS_ALLOW_ORIGINS="$LOCAL_CORS_ALLOW_ORIGINS" \
       HTTP_ADDR="127.0.0.1:$BACKEND_PORT" \
       go run ./api 2>&1

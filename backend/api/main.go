@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -24,6 +25,15 @@ func main() {
 	settings, err := LoadSettings()
 	if err != nil {
 		fatal(err)
+	}
+	if len(os.Args) > 1 {
+		if os.Args[1] != "reconcile-stats" || len(os.Args) != 2 {
+			fatal(fmt.Errorf("unknown command %q", strings.Join(os.Args[1:], " ")))
+		}
+		if err := runReconcileStats(context.Background(), settings); err != nil {
+			fatal(err)
+		}
+		return
 	}
 	testcaseRoot, err := ResolveTestcaseRoot(settings)
 	if err != nil {
@@ -60,6 +70,9 @@ func main() {
 	)
 
 	app := NewAppWithTypeMetadata(settings, catalog, typeMetadata, stresser)
+	if app.stats != nil {
+		defer app.stats.Close()
+	}
 	server := &http.Server{
 		Addr:         settings.HTTPAddr,
 		Handler:      app.Handler(),

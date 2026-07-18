@@ -36,10 +36,11 @@ type App struct {
 	stresser     StresserClient
 	rateLimiter  *RateLimiter
 	validate     *validator.Validate
+	stats        *StatsStore
 }
 
 func NewAppWithTypeMetadata(settings Settings, catalog map[[2]string]Problem, typeMetadata map[string]TypeMetadata, stresser StresserClient) *App {
-	return &App{
+	app := &App{
 		settings:     settings,
 		catalog:      catalog,
 		typeMetadata: typeMetadata,
@@ -47,6 +48,15 @@ func NewAppWithTypeMetadata(settings Settings, catalog map[[2]string]Problem, ty
 		rateLimiter:  NewRateLimiter(settings.RateLimitMax, settings.RateLimitWindowS),
 		validate:     validator.New(validator.WithRequiredStructEnabled()),
 	}
+	if settings.StatsDBPath != "" {
+		stats, err := OpenStatsStore(settings.StatsDBPath)
+		if err != nil {
+			slog.Error("stats_disabled", "err", err)
+		} else {
+			app.stats = stats
+		}
+	}
+	return app
 }
 
 func (a *App) Handler() http.Handler {
@@ -190,7 +200,7 @@ func (a *App) handleStress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	requestID := requestIDFromContext(r.Context())
-	response, statusCode, detail, ok := RunStress(r.Context(), problem, payload, requestID, a.stresser)
+	response, statusCode, detail, ok := runProblemStress(r.Context(), problem, payload, requestID, a.stresser, a.stats)
 	if !ok {
 		writeError(w, statusCode, detail)
 		return

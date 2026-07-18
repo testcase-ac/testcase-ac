@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 	"github.com/testcase-ac/testcase-ac/backend/internal/executionlimits"
@@ -290,16 +291,19 @@ func buildSinglegenProviders(inputs []CodeFile) []contracts.CaseProvider {
 	return out
 }
 
-func RunStress(ctx context.Context, problem Problem, request StressRequest, requestID string, stresser StresserClient) (StressResponse, int, string, bool) {
+func runProblemStress(ctx context.Context, problem Problem, request StressRequest, requestID string, stresser StresserClient, stats *StatsStore) (StressResponse, int, string, bool) {
 	event, statusCode, detail, ok := BuildStresserEvent(problem, request, requestID)
 	if !ok {
 		return StressResponse{}, statusCode, detail, false
 	}
+	dispatch := statsDispatchForEvent(problem, event, time.Now().UTC())
 	return invokeStressEvent(
 		ctx,
 		event,
 		requestID,
 		stresser,
+		stats,
+		&dispatch,
 		"problem_type", problem.ProblemType,
 		"external_id", problem.ExternalID,
 	)
@@ -310,10 +314,10 @@ func RunCustomStress(ctx context.Context, request StressRequest, requestID strin
 	if !ok {
 		return StressResponse{}, statusCode, detail, false
 	}
-	return invokeStressEvent(ctx, event, requestID, stresser, "custom_invocation", true)
+	return invokeStressEvent(ctx, event, requestID, stresser, nil, nil, "custom_invocation", true)
 }
 
-func invokeStressEvent(ctx context.Context, event contracts.StressEvent, requestID string, stresser StresserClient, attrs ...any) (StressResponse, int, string, bool) {
+func invokeStressEvent(ctx context.Context, event contracts.StressEvent, requestID string, stresser StresserClient, stats *StatsStore, dispatch *StatsDispatch, attrs ...any) (StressResponse, int, string, bool) {
 	logAttrs := []any{
 		"request_id", requestID,
 		"case_providers", len(event.CaseProviders),
@@ -321,15 +325,33 @@ func invokeStressEvent(ctx context.Context, event contracts.StressEvent, request
 		"total_runtime_limit_seconds", event.TotalRuntimeLimitSeconds,
 	}
 	logAttrs = append(logAttrs, attrs...)
+	if dispatch != nil {
+		logAttrs = append(logAttrs,
+			"target_language", *dispatch.TargetLanguage,
+			"text_provider_count", *dispatch.TextProviderCount,
+			"generator_provider_count", *dispatch.GeneratorProviderCount,
+			"singlegen_provider_count", *dispatch.SinglegenProviderCount,
+			"checker_used", *dispatch.CheckerUsed,
+		)
+	}
 	slog.Info(
 		"stress_dispatch",
 		logAttrs...,
 	)
+	if stats != nil && dispatch != nil {
+		statsWrite(func(writeCtx context.Context) error { return stats.RecordDispatch(writeCtx, *dispatch) })
+	}
 	stresserResp, err := stresser.Invoke(ctx, event)
 	if err != nil {
 		if isRequestContextCanceled(ctx, err) {
 			slog.Info("stress_request_canceled", "request_id", requestID)
+			if dispatch != nil {
+				recordStatsTerminal(stats, StatsTerminal{RequestID: requestID, TerminalAt: time.Now().UTC(), Outcome: "canceled"})
+			}
 			return StressResponse{}, statusClientClosedRequest, clientClosedRequestDetail, false
+		}
+		if dispatch != nil {
+			recordStatsTerminal(stats, StatsTerminal{RequestID: requestID, TerminalAt: time.Now().UTC(), Outcome: "invoke_failed"})
 		}
 		var invokeErr *StresserInvokeError
 		if ok := errors.As(err, &invokeErr); ok {
@@ -338,7 +360,75 @@ func invokeStressEvent(ctx context.Context, event contracts.StressEvent, request
 		return StressResponse{}, http.StatusServiceUnavailable, "Stresser is unavailable, try again shortly.", false
 	}
 	response := transformStresserResponse(stresserResp, requestID)
+	status := string(response.Status)
+	runtimeSeconds := stresserResp.RuntimeSeconds
+	totalCases := stresserResp.TotalCases
+	wrongCases := stresserResp.WrongCasesCount
+	executionFailedCases := stresserResp.ExecutionFailedCasesCount
+	terminal := StatsTerminal{
+		RequestID: requestID, TerminalAt: time.Now().UTC(), Outcome: "completed",
+		StressStatus: &status, RuntimeSeconds: &runtimeSeconds, TotalCases: &totalCases,
+		WrongCases: &wrongCases, ExecutionFailedCases: &executionFailedCases,
+	}
+	if stresserResp.ErrorType != "" {
+		errorType := string(stresserResp.ErrorType)
+		terminal.ErrorType = &errorType
+	}
+	if dispatch != nil {
+		recordStatsTerminal(stats, terminal)
+	}
 	return response, 0, "", true
+}
+
+func statsDispatchForEvent(problem Problem, event contracts.StressEvent, at time.Time) StatsDispatch {
+	textCount, generatorCount, singlegenCount := 0, 0, 0
+	for _, provider := range event.CaseProviders {
+		switch provider.Type {
+		case contracts.CaseProviderText:
+			textCount++
+		case contracts.CaseProviderGenerator:
+			generatorCount++
+		case contracts.CaseProviderSinglegen:
+			singlegenCount++
+		}
+	}
+	targetLanguage := string(event.TargetCodeLang)
+	iterations := event.Iterations
+	checkerUsed := event.CheckerCode != ""
+	return StatsDispatch{
+		RequestID: event.RequestID, ProblemType: problem.ProblemType, ExternalID: problem.ExternalID,
+		DispatchedAt: at, TargetLanguage: &targetLanguage, Iterations: &iterations,
+		TextProviderCount: &textCount, GeneratorProviderCount: &generatorCount,
+		SinglegenProviderCount: &singlegenCount, CheckerUsed: &checkerUsed,
+	}
+}
+
+func recordStatsTerminal(stats *StatsStore, terminal StatsTerminal) {
+	attrs := []any{"request_id", terminal.RequestID, "outcome", terminal.Outcome}
+	if terminal.StressStatus != nil {
+		attrs = append(attrs,
+			"stress_status", *terminal.StressStatus,
+			"runtime_seconds", *terminal.RuntimeSeconds,
+			"total_cases", *terminal.TotalCases,
+			"wrong_cases", *terminal.WrongCases,
+			"execution_failed_cases", *terminal.ExecutionFailedCases,
+		)
+	}
+	if terminal.ErrorType != nil {
+		attrs = append(attrs, "error_type", *terminal.ErrorType)
+	}
+	slog.Info("stress_terminal", attrs...)
+	if stats != nil {
+		statsWrite(func(writeCtx context.Context) error { return stats.RecordTerminal(writeCtx, terminal) })
+	}
+}
+
+func statsWrite(write func(context.Context) error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+	defer cancel()
+	if err := write(ctx); err != nil {
+		slog.Warn("stats_write_failed", "err", err)
+	}
 }
 
 func transformStresserResponse(stresserResp contracts.StressResult, requestID string) StressResponse {

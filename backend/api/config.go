@@ -24,6 +24,7 @@ type Settings struct {
 	RateLimitWindowS           float64
 	CORSAllowOrigins           []string
 	HTTPAddr                   string
+	StatsDBPath                string
 }
 
 func LoadSettings() (Settings, error) {
@@ -40,6 +41,7 @@ func LoadSettings() (Settings, error) {
 		RateLimitWindowS:           getEnvFloat("RATE_LIMIT_WINDOW_S", 10.0),
 		CORSAllowOrigins:           splitCSV(getEnv("CORS_ALLOW_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://testcase-ac.github.io,https://next.testcase.ac,https://testcase.ac")),
 		HTTPAddr:                   getEnv("HTTP_ADDR", "127.0.0.1:8000"),
+		StatsDBPath:                getEnv("STATS_DB_PATH", ""),
 	}
 	switch settings.StresserMode {
 	case "local_docker", "lambda":

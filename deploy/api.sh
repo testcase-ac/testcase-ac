@@ -35,6 +35,7 @@ AWS_REGION=${DEPLOY_AWS_REGION}
 RATE_LIMIT_MAX=${DEPLOY_RATE_LIMIT_MAX}
 RATE_LIMIT_WINDOW_S=${DEPLOY_RATE_LIMIT_WINDOW_S}
 CORS_ALLOW_ORIGINS=${DEPLOY_CORS_ALLOW_ORIGINS}
+STATS_DB_PATH=${DEPLOY_STATS_DB_PATH}
 EOF
 }
 
@@ -62,9 +63,50 @@ PrivateTmp=true
 ProtectHome=true
 ProtectSystem=full
 RestrictSUIDSGID=true
+StateDirectory=testcase-ac
 
 [Install]
 WantedBy=multi-user.target
+EOF
+}
+
+render_stats_reconcile_unit() {
+  cat <<EOF
+[Unit]
+Description=testcase.ac execution statistics reconciliation
+After=systemd-journald.service
+
+[Service]
+Type=oneshot
+User=${DEPLOY_APP_USER}
+Group=${DEPLOY_APP_USER}
+SupplementaryGroups=systemd-journal
+WorkingDirectory=${DEPLOY_APP_DIR}/backend
+Environment=STATS_DB_PATH=${DEPLOY_STATS_DB_PATH}
+ExecStart=${DEPLOY_APP_DIR}/backend/${DEPLOY_BINARY_NAME} reconcile-stats
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+RestrictSUIDSGID=true
+StateDirectory=testcase-ac
+EOF
+}
+
+render_stats_reconcile_timer() {
+  cat <<EOF
+[Unit]
+Description=Reconcile testcase.ac execution statistics every minute
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Persistent=true
+Unit=${DEPLOY_STATS_RECONCILE_SERVICE}
+
+[Install]
+WantedBy=timers.target
 EOF
 }
 
@@ -90,6 +132,8 @@ AWS_ENV_PATH="/etc/testcase-ac/backend-aws.env"
 SERVICE_NAME="testcase-ac-backend"
 CADDY_SNIPPET="/etc/caddy/Caddyfile.d/testcase-ac-api.caddy"
 BINARY_NAME="testcase-ac-backend"
+STATS_RECONCILE_SERVICE="testcase-ac-stats-reconcile.service"
+STATS_RECONCILE_TIMER="testcase-ac-stats-reconcile.timer"
 BLUE_PORT="8000"
 GREEN_PORT="8001"
 ACTIVE_SLOT_PATH="/srv/testcase-ac/.active-api-slot"
@@ -153,11 +197,18 @@ for slot in blue green; do
     "${STAGING_DIR}/${SERVICE_NAME}-${slot}.service" \
     "/etc/systemd/system/${SERVICE_NAME}-${slot}.service"
 done
+sudo install -o root -g root -m 0644 \
+  "${STAGING_DIR}/${STATS_RECONCILE_SERVICE}" \
+  "/etc/systemd/system/${STATS_RECONCILE_SERVICE}"
+sudo install -o root -g root -m 0644 \
+  "${STAGING_DIR}/${STATS_RECONCILE_TIMER}" \
+  "/etc/systemd/system/${STATS_RECONCILE_TIMER}"
 sudo install -o "${APP_USER}" -g "${APP_USER}" -m 0755 "${STAGING_DIR}/${BINARY_NAME}" "${APP_DIR}/backend/${BINARY_NAME}"
 sudo rm -rf "${APP_DIR}/backend/.venv" "${APP_DIR}/backend/app"
 sudo chown -R "${APP_USER}:${APP_USER}" "${APP_DIR}"
 
 sudo systemctl daemon-reload
+sudo systemctl enable "${STATS_RECONCILE_TIMER}"
 
 sudo systemctl enable "${inactive_service}"
 sudo systemctl restart "${inactive_service}"
@@ -187,6 +238,7 @@ sudo systemctl reload caddy
 printf '%s\n' "${inactive_slot}" | sudo tee "${ACTIVE_SLOT_PATH}" >/dev/null
 
 sudo systemctl disable --now "${active_service}" >/dev/null 2>&1 || true
+sudo systemctl start "${STATS_RECONCILE_TIMER}"
 
 rm -rf "${STAGING_DIR}"
 EOF
@@ -210,6 +262,9 @@ DEPLOY_BINARY_NAME="testcase-ac-backend"
 DEPLOY_BLUE_PORT="8000"
 DEPLOY_GREEN_PORT="8001"
 DEPLOY_SHUTDOWN_TIMEOUT_SEC="190s"
+DEPLOY_STATS_DB_PATH="/var/lib/testcase-ac/execution-stats.db"
+DEPLOY_STATS_RECONCILE_SERVICE="testcase-ac-stats-reconcile.service"
+DEPLOY_STATS_RECONCILE_TIMER="testcase-ac-stats-reconcile.timer"
 DEPLOY_AWS_REGION="${DEPLOY_AWS_REGION:-ap-northeast-2}"
 DEPLOY_RATE_LIMIT_MAX="5"
 DEPLOY_RATE_LIMIT_WINDOW_S="10"
@@ -252,12 +307,16 @@ SERVICE_FILE_BLUE="${TMP_DIR}/${DEPLOY_SERVICE_NAME}-blue.service"
 SERVICE_FILE_GREEN="${TMP_DIR}/${DEPLOY_SERVICE_NAME}-green.service"
 CADDY_FILE_BLUE="${TMP_DIR}/testcase-ac-api-blue.caddy"
 CADDY_FILE_GREEN="${TMP_DIR}/testcase-ac-api-green.caddy"
+STATS_RECONCILE_SERVICE_FILE="${TMP_DIR}/${DEPLOY_STATS_RECONCILE_SERVICE}"
+STATS_RECONCILE_TIMER_FILE="${TMP_DIR}/${DEPLOY_STATS_RECONCILE_TIMER}"
 render_backend_env > "${ENV_FILE}"
 chmod 0600 "${ENV_FILE}"
 render_service_unit blue > "${SERVICE_FILE_BLUE}"
 render_service_unit green > "${SERVICE_FILE_GREEN}"
 render_caddy_snippet "${DEPLOY_BLUE_PORT}" > "${CADDY_FILE_BLUE}"
 render_caddy_snippet "${DEPLOY_GREEN_PORT}" > "${CADDY_FILE_GREEN}"
+render_stats_reconcile_unit > "${STATS_RECONCILE_SERVICE_FILE}"
+render_stats_reconcile_timer > "${STATS_RECONCILE_TIMER_FILE}"
 
 echo "==> Preparing remote staging directory"
 ssh "${SSH_ARGS[@]}" "${DEPLOY_SSH_TARGET}" \
@@ -274,6 +333,8 @@ rsync -az -e "${SSH_RSH}" \
   "${SERVICE_FILE_GREEN}" \
   "${CADDY_FILE_BLUE}" \
   "${CADDY_FILE_GREEN}" \
+  "${STATS_RECONCILE_SERVICE_FILE}" \
+  "${STATS_RECONCILE_TIMER_FILE}" \
   "${BINARY_PATH}" \
   "${AUTHOR_INDEX_PATH}" \
   "${DEPLOY_SSH_TARGET}:${REMOTE_STAGING_DIR}/"
