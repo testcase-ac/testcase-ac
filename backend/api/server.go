@@ -63,6 +63,7 @@ func (a *App) Handler() http.Handler {
 	router := chi.NewRouter()
 	router.Get("/api/health", a.handleHealth)
 	router.Get("/api/problems", a.handleListProblems)
+	router.Get("/api/stats", a.handleStats)
 	router.Post("/api/custom-invocation/stress", a.handleCustomStress)
 	router.Route("/api/problems/{problemType}/{externalId}", func(r chi.Router) {
 		r.Get("/", a.handleGetProblem)
@@ -191,6 +192,23 @@ func (a *App) handleGetProblem(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, detail)
+}
+
+func (a *App) handleStats(w http.ResponseWriter, r *http.Request) {
+	if a.stats == nil {
+		writeError(w, http.StatusServiceUnavailable, "Statistics are temporarily unavailable")
+		return
+	}
+	snapshot, err := a.stats.Snapshot(r.Context(), time.Now().UTC())
+	if err != nil {
+		slog.Warn("stats_snapshot_failed", "err", err)
+		writeError(w, http.StatusServiceUnavailable, "Statistics are temporarily unavailable")
+		return
+	}
+	writeJSON(w, http.StatusOK, StatsResponse{
+		Total: snapshot.Total, Buckets: snapshot.Buckets,
+		TopProblems: sortedTopProblems(snapshot, a.catalog),
+	})
 }
 
 func (a *App) handleStress(w http.ResponseWriter, r *http.Request) {

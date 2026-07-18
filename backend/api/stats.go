@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -396,4 +397,33 @@ func (message journalMessage) terminal(at time.Time) StatsTerminal {
 
 func formatStatsTime(value time.Time) string {
 	return value.UTC().Format(statsTimeLayout)
+}
+
+func sortedTopProblems(snapshot StatsSnapshot, catalog map[[2]string]Problem) []StatsTopProblem {
+	items := make([]StatsTopProblem, 0, len(snapshot.ProblemCounts))
+	for key, count := range snapshot.ProblemCounts {
+		problem, ok := catalog[key]
+		if !ok {
+			continue
+		}
+		items = append(items, StatsTopProblem{
+			ProblemType: problem.ProblemType,
+			ExternalID:  problem.ExternalID,
+			Title:       nilIfEmpty(problem.Title),
+			Count:       count,
+		})
+	}
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].Count != items[j].Count {
+			return items[i].Count > items[j].Count
+		}
+		if items[i].ProblemType != items[j].ProblemType {
+			return items[i].ProblemType < items[j].ProblemType
+		}
+		return items[i].ExternalID < items[j].ExternalID
+	})
+	if len(items) > 10 {
+		items = items[:10]
+	}
+	return items
 }

@@ -16,6 +16,7 @@ import "./index.css";
 const ProblemPage = lazy(() => import("./pages/ProblemPage"));
 const CustomInvocationPage = lazy(() => import("./pages/CustomInvocationPage"));
 const ProblemTypePage = lazy(() => import("./pages/ProblemTypePage"));
+const StatsPage = lazy(() => import("./pages/StatsPage"));
 
 function EditorFallback() {
   const { t } = useI18n();
@@ -54,6 +55,14 @@ const router = createBrowserRouter(
       errorElement: <RouteErrorBoundary />,
       children: [
         { index: true, element: <HomePage /> },
+        {
+          path: "stats",
+          element: (
+            <Suspense fallback={<EditorFallback />}>
+              <StatsPage />
+            </Suspense>
+          ),
+        },
         {
           path: "custom-invocation",
           element: (

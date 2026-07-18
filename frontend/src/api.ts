@@ -4,6 +4,7 @@ import type {
   ProblemList,
   StressRequest,
   StressResponse,
+  StatsResponse,
 } from "./types";
 
 const configuredApiBase = import.meta.env.VITE_API_BASE_URL?.trim();
@@ -44,6 +45,10 @@ export class ApiError extends Error {
 
 export function getHealth(): Promise<HealthResponse> {
   return request<HealthResponse>("/api/health");
+}
+
+export function getStats(): Promise<StatsResponse> {
+  return request<StatsResponse>("/api/stats");
 }
 
 export function listProblems(

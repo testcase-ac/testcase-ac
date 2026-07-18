@@ -19,9 +19,12 @@ export default function App() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-background/95">
         <div className="container flex flex-wrap items-center gap-x-3 gap-y-2 py-5">
-          <Link to="/" className="text-2xl font-semibold text-foreground hover:no-underline">
+          <Link to="/" className="self-baseline text-2xl font-semibold text-foreground hover:no-underline">
             {t("app.title")}
           </Link>
+          <Button asChild variant="ghost" size="sm" className="self-baseline text-foreground hover:no-underline">
+            <Link to="/stats">{t("nav.stats")}</Link>
+          </Button>
           <div className="ml-auto flex items-center gap-2">
             <LanguageSelect />
             <ThemeToggle />

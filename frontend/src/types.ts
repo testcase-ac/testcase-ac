@@ -108,6 +108,24 @@ export interface ProblemDetail {
   totalExecutionCount: number | null;
 }
 
+export interface StatsBucket {
+  startUtc: string;
+  count: number;
+}
+
+export interface StatsTopProblem {
+  problemType: string;
+  externalId: string;
+  title: string | null;
+  count: number;
+}
+
+export interface StatsResponse {
+  total: number;
+  buckets: StatsBucket[];
+  topProblems: StatsTopProblem[];
+}
+
 export interface HealthResponse {
   status: string;
   problemsLoaded: number;

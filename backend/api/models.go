@@ -163,6 +163,19 @@ type ProblemDetail struct {
 	TotalExecutionCount *int64         `json:"totalExecutionCount"`
 }
 
+type StatsTopProblem struct {
+	ProblemType string  `json:"problemType"`
+	ExternalID  string  `json:"externalId"`
+	Title       *string `json:"title"`
+	Count       int64   `json:"count"`
+}
+
+type StatsResponse struct {
+	Total       int64             `json:"total"`
+	Buckets     []StatsBucket     `json:"buckets"`
+	TopProblems []StatsTopProblem `json:"topProblems"`
+}
+
 type HealthResponse struct {
 	Status         string `json:"status"`
 	ProblemsLoaded int    `json:"problemsLoaded"`

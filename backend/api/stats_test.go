@@ -197,20 +197,28 @@ func journalLine(t *testing.T, cursor string, at time.Time, message map[string]a
 	return append(line, '\n')
 }
 
-func TestProblemDetailRemainsAvailableWithoutStats(t *testing.T) {
+func TestStatsAPIUnavailableAndProblemDetailRemainsAvailable(t *testing.T) {
 	app := newTestApp(
 		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
 		map[[2]string]Problem{{"boj", "1000"}: basicStressProblem()},
 		okStresserClient{},
 	)
-	req := httptest.NewRequest(http.MethodGet, "/api/problems/boj/1000", nil)
-	rec := httptest.NewRecorder()
-	app.Handler().ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+
+	statsReq := httptest.NewRequest(http.MethodGet, "/api/stats", nil)
+	statsRec := httptest.NewRecorder()
+	app.Handler().ServeHTTP(statsRec, statsReq)
+	if statsRec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("stats status = %d, want 503", statsRec.Code)
+	}
+
+	problemReq := httptest.NewRequest(http.MethodGet, "/api/problems/boj/1000", nil)
+	problemRec := httptest.NewRecorder()
+	app.Handler().ServeHTTP(problemRec, problemReq)
+	if problemRec.Code != http.StatusOK {
+		t.Fatalf("problem status = %d, body = %s", problemRec.Code, problemRec.Body.String())
 	}
 	var problem ProblemDetail
-	if err := json.Unmarshal(rec.Body.Bytes(), &problem); err != nil {
+	if err := json.Unmarshal(problemRec.Body.Bytes(), &problem); err != nil {
 		t.Fatal(err)
 	}
 	if problem.TotalExecutionCount != nil {
@@ -319,6 +327,44 @@ func TestProblemStatsEventsAreLoggedWithoutSQLite(t *testing.T) {
 		if !strings.Contains(logs, want) {
 			t.Fatalf("logs missing %s:\n%s", want, logs)
 		}
+	}
+}
+
+func TestStatsEndpointFiltersMissingProblemsAndOrdersTies(t *testing.T) {
+	store := newTestStatsStore(t)
+	now := time.Now().UTC()
+	for _, dispatch := range []StatsDispatch{
+		{RequestID: "1", ProblemType: "boj", ExternalID: "1000", DispatchedAt: now},
+		{RequestID: "2", ProblemType: "boj", ExternalID: "2000", DispatchedAt: now},
+		{RequestID: "3", ProblemType: "removed", ExternalID: "1", DispatchedAt: now},
+	} {
+		if err := store.RecordDispatch(context.Background(), dispatch); err != nil {
+			t.Fatal(err)
+		}
+	}
+	app := newTestApp(Settings{RateLimitMax: 100, RateLimitWindowS: 10}, map[[2]string]Problem{
+		{"boj", "1000"}: {ProblemType: "boj", ExternalID: "1000", Title: "A+B"},
+		{"boj", "2000"}: {ProblemType: "boj", ExternalID: "2000", Title: "A-B"},
+	}, okStresserClient{})
+	app.stats = store
+	req := httptest.NewRequest(http.MethodGet, "/api/stats", nil)
+	rec := httptest.NewRecorder()
+	app.Handler().ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var response StatsResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Total != 3 || len(response.TopProblems) != 2 {
+		t.Fatalf("response = %+v, want total 3 and two catalog problems", response)
+	}
+	if want := `"startUtc":"` + response.Buckets[0].StartUTC.Format(time.RFC3339) + `"`; !strings.Contains(rec.Body.String(), want) {
+		t.Fatalf("response body missing RFC3339 bucket %s", want)
+	}
+	if response.TopProblems[0].ExternalID != "1000" || response.TopProblems[1].ExternalID != "2000" {
+		t.Fatalf("TopProblems = %+v, want stable source/id order", response.TopProblems)
 	}
 }
 
