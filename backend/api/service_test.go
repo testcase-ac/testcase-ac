@@ -26,7 +26,7 @@ func TestBuildStresserEventAppliesAdjustedLimitsPerLanguage(t *testing.T) {
 		StressRequest{
 			TargetCode:               "console.log(0)",
 			TargetCodeLang:           "nodejs",
-			CorrectCodeFilename:      stringPtr("correct.py"),
+			CorrectCodeFilename:      new("correct.py"),
 			TestcaseFilenames:        []string{"sample.txt"},
 			Iterations:               &iterations,
 			TotalRuntimeLimitSeconds: &totalRuntimeLimitSeconds,

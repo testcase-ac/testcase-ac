@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -60,10 +61,8 @@ func OriginAllowed(settings Settings, origin string) bool {
 	if origin == "" {
 		return false
 	}
-	for _, allowed := range settings.CORSAllowOrigins {
-		if origin == allowed {
-			return true
-		}
+	if slices.Contains(settings.CORSAllowOrigins, origin) {
+		return true
 	}
 	return localhostOriginRegex.MatchString(origin)
 }

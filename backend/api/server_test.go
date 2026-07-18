@@ -495,7 +495,7 @@ func (c *inlineMaterialsStresserClient) Invoke(_ context.Context, event contract
 		RequestID:         event.RequestID,
 		RuntimeSeconds:    1.234,
 		Error:             false,
-		CorrectCases:      []contracts.CorrectCase{{GeneratedBy: contracts.GeneratedBy{Stage: contracts.CaseProviderGenerator, ID: "generator_inline.py", Seed: stringPtr("7")}}},
+		CorrectCases:      []contracts.CorrectCase{{GeneratedBy: contracts.GeneratedBy{Stage: contracts.CaseProviderGenerator, ID: "generator_inline.py", Seed: new("7")}}},
 		TotalCases:        1,
 		CorrectCasesCount: 1,
 	}, nil
@@ -523,7 +523,7 @@ func TestHandleStressAcceptsInlineCustomMaterials(t *testing.T) {
 		TargetCodeLang:     "cpp23",
 		CorrectCode:        "inline-correct",
 		CorrectCodeLang:    "python3",
-		CheckerCode:        stringPtr(""),
+		CheckerCode:        new(""),
 		GeneratorSources:   []InlineCodeInput{{ID: "generator_inline.py", Code: "print(0)", Language: "python3"}},
 		TextTestcases:      []InlineTextcaseInput{{ID: "sample.txt", Content: "1 2\n"}},
 		GeneratorFilenames: []string{},
@@ -564,7 +564,7 @@ func (c *customInvocationStresserClient) Invoke(_ context.Context, event contrac
 		RequestID:         event.RequestID,
 		RuntimeSeconds:    1.234,
 		Error:             false,
-		CorrectCases:      []contracts.CorrectCase{{GeneratedBy: contracts.GeneratedBy{Stage: contracts.CaseProviderGenerator, ID: "generator_inline.py", Seed: stringPtr("7")}}},
+		CorrectCases:      []contracts.CorrectCase{{GeneratedBy: contracts.GeneratedBy{Stage: contracts.CaseProviderGenerator, ID: "generator_inline.py", Seed: new("7")}}},
 		TotalCases:        1,
 		CorrectCasesCount: 1,
 	}, nil
@@ -586,7 +586,7 @@ func TestHandleCustomStressAcceptsExplicitLimits(t *testing.T) {
 		MemoryLimitMB:   &memoryLimitMB,
 		CorrectCode:     "inline-correct",
 		CorrectCodeLang: "python3",
-		CheckerCode:     stringPtr(""),
+		CheckerCode:     new(""),
 		GeneratorSources: []InlineCodeInput{
 			{ID: "generator_inline.py", Code: "print(0)", Language: "python3"},
 		},

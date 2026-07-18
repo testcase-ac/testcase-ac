@@ -119,14 +119,11 @@ func (a *App) handleListProblems(w http.ResponseWriter, r *http.Request) {
 	if start > len(items) {
 		start = len(items)
 	}
-	end := start + limit
-	if end > len(items) {
-		end = len(items)
-	}
+	end := min(start+limit, len(items))
 	page := items[start:end]
 	var nextCursor *string
 	if end < len(items) {
-		nextCursor = stringPtr(strconv.Itoa(end))
+		nextCursor = new(strconv.Itoa(end))
 	}
 	response := ProblemList{
 		Problems:     page,
@@ -503,9 +500,5 @@ func nilIfEmpty(value string) *string {
 	if strings.TrimSpace(value) == "" {
 		return nil
 	}
-	return &value
-}
-
-func stringPtr(value string) *string {
 	return &value
 }

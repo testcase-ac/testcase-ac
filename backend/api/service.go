@@ -355,7 +355,7 @@ func transformStresserResponse(stresserResp contracts.StressResult, requestID st
 			WrongCases:                []Counterexample{},
 			ExecutionFailedCases:      []ExecutionFailedCase{},
 			Counterexamples:           []Counterexample{},
-			ErrorMessage:              stringPtr(errText),
+			ErrorMessage:              new(errText),
 			AttemptedCases:            []AttemptedCase{},
 			TotalCases:                0,
 			TotalAttempted:            0,
