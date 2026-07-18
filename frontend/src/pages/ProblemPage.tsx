@@ -7,10 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { SubmissionProgress } from "@/components/SubmissionProgress";
 import { guessLanguage, resolveDetectedLanguage } from "@/lib/languageDetection";
 import { usePersistentSettings } from "@/lib/persistentSettings";
 import { defaultSource } from "@/lib/sourceTemplates";
-import { useElapsedSeconds } from "@/lib/useElapsedSeconds";
+import {
+  recordCompileProgress,
+  type DisplayedStressProgress,
+} from "@/lib/stressProgress";
 import { cn } from "@/lib/utils";
 import { ApiError, getProblem, submitStress } from "../api";
 import CodeEditor from "../components/CodeEditor";
@@ -25,6 +29,7 @@ import {
   type CodeInfo,
   type LanguageValue,
   type ProblemDetail,
+  type StressProgress,
   type StressRequest,
   type TestcaseInfo,
   type TypeMetadata,
@@ -210,12 +215,30 @@ export function ProblemWorkspace({
     TOTAL_RUNTIME_LIMIT_DEFAULT_SECONDS,
   );
   const [lastSubmittedRequest, setLastSubmittedRequest] = useState<string | null>(null);
+  const [submittedCorrectCode, setSubmittedCorrectCode] = useState<string | null>(null);
+  const [progress, setProgress] = useState<DisplayedStressProgress | null>(null);
+  const [compileProgress, setCompileProgress] = useState<StressProgress[]>([]);
+  const activeController = useRef<AbortController | null>(null);
   const stressMutation = useMutation({
-    mutationFn: (payload: StressRequest) => submitStress(problemType, externalId, payload),
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ["problem", problemType, externalId] }),
+    mutationFn: ({ payload, controller }: { payload: StressRequest; controller: AbortController }) =>
+      submitStress(
+        problemType,
+        externalId,
+        payload,
+        (next) => {
+          setProgress(next);
+          setCompileProgress((previous) => recordCompileProgress(previous, next));
+        },
+        controller.signal,
+      ),
+    onSettled: (_data, error, variables) => {
+      if (activeController.current === variables.controller) {
+        activeController.current = null;
+        setProgress(error ? null : { stage: "completed" });
+      }
+      return queryClient.invalidateQueries({ queryKey: ["problem", problemType, externalId] });
+    },
   });
-  const submitElapsedSeconds = useElapsedSeconds(stressMutation.isPending);
 
   useEffect(() => {
     if (!problemQuery.data) return;
@@ -241,6 +264,8 @@ export function ProblemWorkspace({
     }
   }, [language, lastManualCppLanguage, source, useLanguageAutodetect]);
 
+  useEffect(() => () => activeController.current?.abort(), []);
+
   function handleManualLanguageChange(next: LanguageValue) {
     if (isUsingAutoFilledSource({ source, problemType, externalId, language })) {
       setSource(initialSourceForProblem({ problemType, externalId, language: next }));
@@ -265,9 +290,15 @@ export function ProblemWorkspace({
       iterations: clampIterations(iterations),
       totalRuntimeLimitSeconds: clampTotalRuntimeLimitSeconds(totalRuntimeLimitSeconds),
     });
+    activeController.current?.abort();
+    const controller = new AbortController();
+    activeController.current = controller;
     stressMutation.reset();
+    setProgress({ stage: "preparing" });
+    setCompileProgress([]);
+    setSubmittedCorrectCode(selectedCorrectCode);
     setLastSubmittedRequest(JSON.stringify(payload));
-    stressMutation.mutate(payload);
+    stressMutation.mutate({ payload, controller });
   }
 
   const loadError = problemQuery.error instanceof Error ? problemQuery.error.message : null;
@@ -311,9 +342,7 @@ export function ProblemWorkspace({
   const showLatestResponse = currentRequest === lastSubmittedRequest;
   const submitError = showLatestResponse ? formatSubmitError(stressMutation.error, t) : null;
   const result = showLatestResponse ? stressMutation.data ?? null : null;
-  const submitLabel = submitting
-    ? t("problem.submittingWithElapsed", { seconds: submitElapsedSeconds })
-    : t("problem.submit");
+  const submitLabel = submitting ? t("problem.submitting") : t("problem.submit");
 
   return (
     <section className="space-y-6">
@@ -428,7 +457,7 @@ export function ProblemWorkspace({
               </p>
             )}
 
-            <div className="flex justify-end">
+            <div className="flex flex-col items-end gap-2">
               <Button
                 type="submit"
                 disabled={
@@ -437,13 +466,18 @@ export function ProblemWorkspace({
                   (providerSelectionRequired && selectedProviderCount === 0) ||
                   !selectedCorrectCode
                 }
-                className={cn(
-                  submitting &&
-                    "disabled:opacity-100 dark:disabled:bg-primary dark:disabled:text-primary-foreground",
-                )}
               >
                 {submitLabel}
               </Button>
+              {progress && (
+                <SubmissionProgress
+                  progress={progress}
+                  compileProgress={compileProgress}
+                  problem={problem}
+                  selectedCorrectCode={submittedCorrectCode}
+                  t={t}
+                />
+              )}
             </div>
           </form>
         </CardContent>

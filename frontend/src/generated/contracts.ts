@@ -83,6 +83,24 @@ export const STRESS_STATUS_VALUES = [
 
 export type StressStatus = (typeof STRESS_STATUS_VALUES)[number];
 
+export const STRESS_PROGRESS_STAGE_VALUES = [
+  "compiling",
+  "stress_running",
+  "finalizing",
+] as const;
+
+export type StressProgressStage = (typeof STRESS_PROGRESS_STAGE_VALUES)[number];
+
+export const STRESS_PROGRESS_SOURCE_VALUES = [
+  "target",
+  "correct",
+  "checker",
+  "generator",
+  "singlegen",
+] as const;
+
+export type StressProgressSource = (typeof STRESS_PROGRESS_SOURCE_VALUES)[number];
+
 export interface CaseProvider {
   type: CaseProviderType;
   id: string;
@@ -106,6 +124,14 @@ export interface StressEvent {
   iterations: number;
   totalRuntimeLimitSeconds?: number;
   caseProviders: CaseProvider[];
+  streamProgress?: boolean;
+}
+
+export interface StressProgress {
+  stage: StressProgressStage;
+  source?: StressProgressSource;
+  sourceId?: string;
+  completedIterations?: number | null;
 }
 
 export interface OutputTextMetadata {

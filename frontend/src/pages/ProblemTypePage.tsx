@@ -49,7 +49,12 @@ function ProblemTypeBrowser({ problemType, currentPath }: { problemType: string;
   if (!loading && !error && exactProblem) {
     return (
       <Suspense fallback={<p className="text-sm text-muted-foreground">{t("problem.loading")}</p>}>
-        <ProblemWorkspace problemType={problemType} externalId={currentPath} typeMetadata={typeMetadata} />
+        <ProblemWorkspace
+          key={`${problemType}/${currentPath}`}
+          problemType={problemType}
+          externalId={currentPath}
+          typeMetadata={typeMetadata}
+        />
       </Suspense>
     );
   }
