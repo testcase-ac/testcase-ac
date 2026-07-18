@@ -105,6 +105,7 @@ export interface ProblemDetail {
   validator: CodeInfo | null;
   checker: CodeInfo | null;
   testcases: TestcaseInfo[];
+  totalExecutionCount: number | null;
 }
 
 export interface HealthResponse {

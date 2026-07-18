@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, ExternalLink } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -175,6 +175,7 @@ export function ProblemWorkspace({
   typeMetadata?: TypeMetadata;
 }) {
   const { t } = useI18n();
+  const queryClient = useQueryClient();
   const {
     useLanguageAutodetect,
     setUseLanguageAutodetect,
@@ -211,6 +212,8 @@ export function ProblemWorkspace({
   const [lastSubmittedRequest, setLastSubmittedRequest] = useState<string | null>(null);
   const stressMutation = useMutation({
     mutationFn: (payload: StressRequest) => submitStress(problemType, externalId, payload),
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ["problem", problemType, externalId] }),
   });
   const submitElapsedSeconds = useElapsedSeconds(stressMutation.isPending);
 
@@ -314,40 +317,60 @@ export function ProblemWorkspace({
 
   return (
     <section className="space-y-6">
-      <header className="space-y-3">
-        <h1 className="flex flex-wrap items-center gap-2 text-3xl font-semibold">
-          <Badge variant="secondary">
-            {problemTypeLabel(problem.problemType, typeMetadata)}
-          </Badge>
-          <span className="font-mono text-2xl text-muted-foreground">{problem.externalId}</span>
-          {problem.title ? <span>{problem.title}</span> : null}
-        </h1>
-        <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
-          {problem.externalLink && (
-            <a
-              href={problem.externalLink}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 hover:text-foreground"
-            >
-              {t("problem.externalLink")}
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-            </a>
-          )}
-          {repoDir && (
-            <a
-              href={repoDir}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 hover:text-foreground"
-            >
-              {t("problem.viewOnGitHub")}
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-            </a>
-          )}
-          <span>{t("problem.time", { ms: problem.timeLimitMs })}</span>
-          <span>{t("problem.memory", { mb: problem.memoryLimitMb })}</span>
+      <header className="space-y-5">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">
+              {problemTypeLabel(problem.problemType, typeMetadata)}
+            </Badge>
+            <span className="font-mono text-base text-muted-foreground">{problem.externalId}</span>
+          </div>
+          <h1 className="text-3xl font-semibold">{problem.title || problem.externalId}</h1>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
+            {problem.externalLink && (
+              <a
+                href={problem.externalLink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 hover:text-foreground"
+              >
+                {t("problem.externalLink")}
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              </a>
+            )}
+            {repoDir && (
+              <a
+                href={repoDir}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 hover:text-foreground"
+              >
+                {t("problem.viewOnGitHub")}
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              </a>
+            )}
+          </div>
         </div>
+        <dl className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+          <div className="flex items-baseline gap-1.5">
+            <dt className="text-muted-foreground">{t("problem.timeLimit")}</dt>
+            <dd className="font-medium tabular-nums">
+              {problem.timeLimitMs.toLocaleString()} ms
+            </dd>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <dt className="text-muted-foreground">{t("problem.memoryLimit")}</dt>
+            <dd className="font-medium tabular-nums">
+              {problem.memoryLimitMb.toLocaleString()} MB
+            </dd>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <dt className="text-muted-foreground">{t("problem.totalExecutionCount")}</dt>
+            <dd className="font-medium tabular-nums">
+              {problem.totalExecutionCount?.toLocaleString() ?? "-"}
+            </dd>
+          </div>
+        </dl>
       </header>
 
       {problem.description && (

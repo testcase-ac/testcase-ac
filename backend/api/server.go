@@ -181,7 +181,16 @@ func (a *App) handleGetProblem(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	writeJSON(w, http.StatusOK, buildProblemDetail(problem))
+	detail := buildProblemDetail(problem)
+	if a.stats != nil {
+		total, err := a.stats.ProblemTotal(r.Context(), problem.ProblemType, problem.ExternalID)
+		if err != nil {
+			slog.Warn("stats_problem_total_failed", "problem_type", problem.ProblemType, "external_id", problem.ExternalID, "err", err)
+		} else {
+			detail.TotalExecutionCount = &total
+		}
+	}
+	writeJSON(w, http.StatusOK, detail)
 }
 
 func (a *App) handleStress(w http.ResponseWriter, r *http.Request) {

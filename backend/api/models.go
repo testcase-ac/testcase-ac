@@ -145,21 +145,22 @@ type ProblemList struct {
 }
 
 type ProblemDetail struct {
-	ProblemType    string         `json:"problemType"`
-	ExternalID     string         `json:"externalId"`
-	Title          *string        `json:"title"`
-	ExternalLink   *string        `json:"externalLink"`
-	TimeLimitMS    int            `json:"timeLimitMs"`
-	MemoryLimitMB  int            `json:"memoryLimitMb"`
-	Description    *string        `json:"description"`
-	IsSpecialJudge bool           `json:"isSpecialJudge"`
-	OutputOnly     bool           `json:"outputOnly"`
-	CorrectCodes   []CodeInfo     `json:"correctCodes"`
-	Generators     []CodeInfo     `json:"generators"`
-	Singlegens     []CodeInfo     `json:"singlegens"`
-	Validator      *CodeInfo      `json:"validator"`
-	Checker        *CodeInfo      `json:"checker"`
-	Testcases      []TestcaseInfo `json:"testcases"`
+	ProblemType         string         `json:"problemType"`
+	ExternalID          string         `json:"externalId"`
+	Title               *string        `json:"title"`
+	ExternalLink        *string        `json:"externalLink"`
+	TimeLimitMS         int            `json:"timeLimitMs"`
+	MemoryLimitMB       int            `json:"memoryLimitMb"`
+	Description         *string        `json:"description"`
+	IsSpecialJudge      bool           `json:"isSpecialJudge"`
+	OutputOnly          bool           `json:"outputOnly"`
+	CorrectCodes        []CodeInfo     `json:"correctCodes"`
+	Generators          []CodeInfo     `json:"generators"`
+	Singlegens          []CodeInfo     `json:"singlegens"`
+	Validator           *CodeInfo      `json:"validator"`
+	Checker             *CodeInfo      `json:"checker"`
+	Testcases           []TestcaseInfo `json:"testcases"`
+	TotalExecutionCount *int64         `json:"totalExecutionCount"`
 }
 
 type HealthResponse struct {

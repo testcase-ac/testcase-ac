@@ -197,6 +197,27 @@ func journalLine(t *testing.T, cursor string, at time.Time, message map[string]a
 	return append(line, '\n')
 }
 
+func TestProblemDetailRemainsAvailableWithoutStats(t *testing.T) {
+	app := newTestApp(
+		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
+		map[[2]string]Problem{{"boj", "1000"}: basicStressProblem()},
+		okStresserClient{},
+	)
+	req := httptest.NewRequest(http.MethodGet, "/api/problems/boj/1000", nil)
+	rec := httptest.NewRecorder()
+	app.Handler().ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var problem ProblemDetail
+	if err := json.Unmarshal(rec.Body.Bytes(), &problem); err != nil {
+		t.Fatal(err)
+	}
+	if problem.TotalExecutionCount != nil {
+		t.Fatalf("TotalExecutionCount = %v, want nil", problem.TotalExecutionCount)
+	}
+}
+
 func TestStatsInitializationFailureDoesNotBreakAPI(t *testing.T) {
 	blocked := filepath.Join(t.TempDir(), "not-a-directory")
 	if err := os.WriteFile(blocked, []byte("x"), 0o644); err != nil {
