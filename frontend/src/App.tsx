@@ -18,14 +18,19 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-background/95">
-        <div className="container flex flex-wrap items-center gap-x-3 gap-y-2 py-5">
-          <Link to="/" className="self-baseline text-2xl font-semibold text-foreground hover:no-underline">
+        <div className="container flex flex-nowrap items-center gap-x-1 py-3 sm:gap-x-3 sm:py-5">
+          <Link to="/" className="self-baseline text-lg font-semibold text-foreground hover:no-underline sm:text-2xl">
             {t("app.title")}
           </Link>
-          <Button asChild variant="ghost" size="sm" className="self-baseline text-foreground hover:no-underline">
+          <Button asChild variant="ghost" size="sm" className="h-8 px-1 self-baseline text-foreground hover:no-underline sm:h-9 sm:px-3">
             <Link to="/stats">{t("nav.stats")}</Link>
           </Button>
-          <div className="ml-auto flex items-center gap-2">
+          <Button asChild variant="ghost" size="sm" className="h-8 px-1 self-baseline text-foreground hover:no-underline sm:-ml-3 sm:h-9 sm:px-3">
+            <a href="https://help.testcase.ac" target="_blank" rel="noreferrer">
+              {t("nav.help")}
+            </a>
+          </Button>
+          <div className="ml-auto flex items-center gap-0 sm:gap-2">
             <LanguageSelect />
             <ThemeToggle />
           </div>
@@ -61,6 +66,7 @@ function ThemeToggle() {
       aria-label={label}
       title={label}
       onClick={toggleTheme}
+      className="h-8 w-8 sm:h-10 sm:w-10"
     >
       {theme === "light" ? <Moon /> : <Sun />}
     </Button>
@@ -80,10 +86,10 @@ function LanguageSelect() {
           size="sm"
           aria-label={t("language.toggle.label")}
           title={t("language.toggle.label")}
-          className="h-9 gap-1 px-2 text-xs font-medium"
+          className="h-8 w-8 gap-0 px-0 text-xs font-medium sm:h-9 sm:w-auto sm:gap-1 sm:px-2"
         >
           <Languages className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="uppercase">{shortLabel}</span>
+          <span className="hidden uppercase sm:inline">{shortLabel}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

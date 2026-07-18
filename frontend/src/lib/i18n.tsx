@@ -35,6 +35,7 @@ const translations = {
     "language.option.en": "English",
     "language.option.ko": "한국어",
     "nav.stats": "Stats",
+    "nav.help": "Help",
     "home.title": "Problems",
     "home.subtitle":
       "Paste a wrong solution for a saved problem and find an input where it differs from the reference.",
@@ -230,6 +231,7 @@ const translations = {
     "language.option.en": "English",
     "language.option.ko": "한국어",
     "nav.stats": "통계",
+    "nav.help": "도움말",
     "home.title": "문제 목록",
     "home.subtitle":
       "등록된 문제에 대해 오답 코드를 붙여넣어 정답 풀이와 출력이 다른 입력을 찾아보세요.",
