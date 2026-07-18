@@ -104,13 +104,6 @@ RUN curl -fsSL --retry 8 --retry-delay 2 --retry-all-errors \
     && cp "/tmp/${BOOST_DIR}/LICENSE_1_0.txt" /opt/boost/LICENSE_1_0.txt \
     && rm -rf /tmp/boost.tar.bz2 "/tmp/${BOOST_DIR}"
 
-ARG RIE_VERSION=v1.35
-RUN ARCH=$(uname -m) && \
-    if [ "$ARCH" = "aarch64" ]; then RIE_ARCH=arm64; else RIE_ARCH=x86_64; fi && \
-    curl -fsSL -o /usr/local/bin/aws-lambda-rie \
-      "https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/download/${RIE_VERSION}/aws-lambda-rie-${RIE_ARCH}" && \
-    chmod +x /usr/local/bin/aws-lambda-rie
-
 WORKDIR /var/task
 ENV DOTNET_CLI_HOME=/tmp/dotnet
 ENV DOTNET_NUGET_SIGNATURE_VERIFICATION=false

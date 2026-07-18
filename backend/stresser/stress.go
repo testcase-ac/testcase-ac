@@ -54,31 +54,6 @@ type stressIteration struct {
 	TargetRun     targetRun
 }
 
-type eventRecorder struct {
-	events    []contracts.EventRecord
-	startTime time.Time
-}
-
-func newEventRecorder() *eventRecorder {
-	r := &eventRecorder{startTime: time.Now()}
-	r.record("start_event_recorder", "")
-	return r
-}
-
-func (r *eventRecorder) record(eventType, value string) {
-	r.events = append(r.events, contracts.EventRecord{
-		ID:             len(r.events) + 1,
-		Type:           eventType,
-		Value:          value,
-		ElapsedSeconds: util.RoundSeconds(time.Since(r.startTime)),
-	})
-}
-
-func (r *eventRecorder) response() []contracts.EventRecord {
-	r.record("end_event_recorder", "")
-	return r.events
-}
-
 func newStresser() stresser {
 	return stresser{
 		compile:    executor.Compile,
@@ -90,13 +65,15 @@ func newStresser() stresser {
 	}
 }
 
-func operationStress(event contracts.StressEvent) (contracts.StressResult, error) {
-	return newStresser().operationStress(event)
+func operationStress(event contracts.StressEvent, progress func(contracts.StressProgress)) (contracts.StressResult, error) {
+	return newStresser().operationStress(event, progress)
 }
 
-func (s stresser) operationStress(event contracts.StressEvent) (contracts.StressResult, error) {
+func (s stresser) operationStress(event contracts.StressEvent, progress func(contracts.StressProgress)) (contracts.StressResult, error) {
+	if progress == nil {
+		progress = func(contracts.StressProgress) {}
+	}
 	normalized := normalizeStressEvent(event)
-	events := newEventRecorder()
 	startTime := time.Now()
 	stressCtx, cancel := context.WithTimeout(context.Background(), time.Duration(normalized.TotalRuntimeLimitSeconds)*time.Second)
 	defer cancel()
@@ -111,8 +88,7 @@ func (s stresser) operationStress(event contracts.StressEvent) (contracts.Stress
 		)
 	}
 
-	slog.Info("compile_start", "phase", "target")
-	events.record("target_compile_start", "")
+	progress(contracts.StressProgress{Stage: contracts.StressProgressStageCompiling, Source: contracts.StressProgressSourceTarget})
 	targetProgram, err := s.compileAndGetProgram(
 		stressCtx,
 		normalized.TargetCode,
@@ -123,10 +99,8 @@ func (s stresser) operationStress(event contracts.StressEvent) (contracts.Stress
 	if err != nil {
 		return contracts.StressResult{}, err
 	}
-	events.record("target_compile_done", "")
 
-	slog.Info("compile_start", "phase", "correct")
-	events.record("correct_compile_start", "")
+	progress(contracts.StressProgress{Stage: contracts.StressProgressStageCompiling, Source: contracts.StressProgressSourceCorrect})
 	correctProgram, err := s.compileAndGetProgram(
 		stressCtx,
 		normalized.CorrectCode,
@@ -137,12 +111,10 @@ func (s stresser) operationStress(event contracts.StressEvent) (contracts.Stress
 	if err != nil {
 		return contracts.StressResult{}, err
 	}
-	events.record("correct_compile_done", "")
 
 	var checkerProgram *compiledProgram
 	if normalized.CheckerCode != "" {
-		slog.Info("compile_start", "phase", "checker")
-		events.record("checker_compile_start", "")
+		progress(contracts.StressProgress{Stage: contracts.StressProgressStageCompiling, Source: contracts.StressProgressSourceChecker})
 		checkerProgram, err = s.compileAndGetProgram(
 			stressCtx,
 			normalized.CheckerCode,
@@ -153,10 +125,9 @@ func (s stresser) operationStress(event contracts.StressEvent) (contracts.Stress
 		if err != nil {
 			return contracts.StressResult{}, err
 		}
-		events.record("checker_compile_done", "")
 	}
 
-	providers, err := s.compileCaseProviders(stressCtx, normalized.CaseProviders, events)
+	providers, err := s.compileCaseProviders(stressCtx, normalized.CaseProviders, progress)
 	if err != nil {
 		return contracts.StressResult{}, err
 	}
@@ -170,15 +141,15 @@ func (s stresser) operationStress(event contracts.StressEvent) (contracts.Stress
 		*correctProgram,
 		checkerProgram,
 		providers,
-		events,
+		progress,
 	)
+	progress(contracts.StressProgress{Stage: contracts.StressProgressStageFinalizing})
 	if err != nil {
 		return contracts.StressResult{}, err
 	}
 
 	response := buildStressResponse(wrongCases, executionFailedCases, correctCases, checkerProgram != nil)
 	response.RequestID = normalized.RequestID
-	response.Events = events.response()
 	return response, nil
 }
 
@@ -216,7 +187,7 @@ func normalizeStressEvent(event contracts.StressEvent) contracts.StressEvent {
 	return event
 }
 
-func (s stresser) compileCaseProviders(ctx context.Context, caseProviders []contracts.CaseProvider, events *eventRecorder) ([]compiledCaseProvider, error) {
+func (s stresser) compileCaseProviders(ctx context.Context, caseProviders []contracts.CaseProvider, progress func(contracts.StressProgress)) ([]compiledCaseProvider, error) {
 	out := make([]compiledCaseProvider, 0, len(caseProviders))
 	for _, provider := range caseProviders {
 		compiled := compiledCaseProvider{
@@ -225,7 +196,11 @@ func (s stresser) compileCaseProviders(ctx context.Context, caseProviders []cont
 		switch provider.Type {
 		case contracts.CaseProviderText:
 		case contracts.CaseProviderGenerator, contracts.CaseProviderSinglegen:
-			events.record(string(provider.Type)+"_compile_start", provider.ID)
+			source := contracts.StressProgressSourceGenerator
+			if provider.Type == contracts.CaseProviderSinglegen {
+				source = contracts.StressProgressSourceSinglegen
+			}
+			progress(contracts.StressProgress{Stage: contracts.StressProgressStageCompiling, Source: source, SourceID: provider.ID})
 			program, err := s.compileAndGetProgram(
 				ctx,
 				provider.Code,
@@ -237,7 +212,6 @@ func (s stresser) compileCaseProviders(ctx context.Context, caseProviders []cont
 				return nil, err
 			}
 			compiled.Program = program
-			events.record(string(provider.Type)+"_compile_done", provider.ID)
 		default:
 			return nil, NewResponseError(
 				contracts.ErrorTypeInternalServerError,
@@ -292,7 +266,7 @@ func (s stresser) runStressLoop(
 	correctCode compiledProgram,
 	checkerCode *compiledProgram,
 	caseProviders []compiledCaseProvider,
-	events *eventRecorder,
+	progress func(contracts.StressProgress),
 ) ([]stressIteration, []stressIteration, []stressIteration, error) {
 	oneShotQueue := []compiledCaseProvider{}
 	generators := []compiledCaseProvider{}
@@ -314,13 +288,13 @@ func (s stresser) runStressLoop(
 	correctCases := []stressIteration{}
 	generatorExecutionErrors := []error{}
 	wallTimeLimit := time.Duration(totalRuntimeLimitSeconds) * time.Second
+	progress(contracts.StressProgress{Stage: contracts.StressProgressStageRunning, CompletedIterations: intPtr(0)})
 
 	for iteration := 0; iteration < iterations; iteration++ {
 		if ctx.Err() != nil || time.Since(startTime) >= wallTimeLimit {
 			slog.Info("stress_loop_exit", "reason", "wall_time_limit", "iteration", iteration, "max_wall_time_seconds", totalRuntimeLimitSeconds)
 			break
 		}
-		events.record("iteration_start", itoa(iteration))
 		if iteration > 0 && iteration%10 == 0 && len(correctCases) < iteration/10 {
 			slog.Info("stress_loop_exit", "reason", "correct_rate_too_low", "iteration", iteration, "correct_cases", len(correctCases))
 			break
@@ -354,6 +328,7 @@ func (s stresser) runStressLoop(
 				if selectedGeneratorIndex >= 0 {
 					generatorWeights[selectedGeneratorIndex] *= 0.1
 				}
+				progress(contracts.StressProgress{Stage: contracts.StressProgressStageRunning, CompletedIterations: intPtr(iteration + 1)})
 				continue
 			}
 			return nil, nil, nil, err
@@ -384,6 +359,7 @@ func (s stresser) runStressLoop(
 				}
 			}
 		}
+		progress(contracts.StressProgress{Stage: contracts.StressProgressStageRunning, CompletedIterations: intPtr(iteration + 1)})
 	}
 
 	return wrongCases, executionFailedCases, correctCases, nil

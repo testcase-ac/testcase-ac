@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/testcase-ac/testcase-ac/backend/api/stresser"
 	"github.com/testcase-ac/testcase-ac/backend/internal/authorindex"
 )
 
@@ -53,7 +54,7 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
-	stresser, err := MakeStresserClient(context.Background(), settings)
+	stressClient, err := makeStresserClient(context.Background(), settings)
 	if err != nil {
 		fatal(err)
 	}
@@ -69,7 +70,7 @@ func main() {
 		"heap_alloc_mb", float64(mem.Alloc)/1024.0/1024.0,
 	)
 
-	app := NewAppWithTypeMetadata(settings, catalog, typeMetadata, stresser)
+	app := NewAppWithTypeMetadata(settings, catalog, typeMetadata, stressClient)
 	if app.stats != nil {
 		defer app.stats.Close()
 	}
@@ -83,6 +84,20 @@ func main() {
 	slog.Info("listening", "addr", settings.HTTPAddr)
 	if err := runServer(server); err != nil {
 		fatal(err)
+	}
+}
+
+func makeStresserClient(ctx context.Context, settings Settings) (stresser.Client, error) {
+	switch settings.StresserMode {
+	case "local_docker":
+		return stresser.NewDockerClient(settings.StresserLocalEndpoint), nil
+	case "lambda":
+		if strings.TrimSpace(settings.StresserLambdaFunctionName) == "" {
+			return nil, fmt.Errorf("STRESSER_LAMBDA_FUNCTION_NAME must be set for lambda mode")
+		}
+		return stresser.NewLambdaClient(ctx, settings.StresserLambdaFunctionName, settings.AWSRegion)
+	default:
+		return nil, fmt.Errorf("unknown STRESSER_MODE: %s", settings.StresserMode)
 	}
 }
 

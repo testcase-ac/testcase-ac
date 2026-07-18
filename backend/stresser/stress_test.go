@@ -56,7 +56,8 @@ func TestOperationStressSmoke(t *testing.T) {
 		CaseProviders: []contracts.CaseProvider{
 			singlegenProvider("sg-1", "case:1 2"),
 		},
-	})
+	}, nil)
+
 	if err != nil {
 		t.Fatalf("operationStress() error = %v", err)
 	}
@@ -77,6 +78,71 @@ func TestOperationStressSmoke(t *testing.T) {
 	}
 }
 
+func TestOperationStressReportsProgress(t *testing.T) {
+	var got []contracts.StressProgress
+	result, err := fakeStresser(newFakeRuntime()).operationStress(contracts.StressEvent{
+		Operation:          contracts.OperationStress,
+		TargetCode:         "sum",
+		TargetCodeLang:     contracts.LanguageCpp23,
+		CorrectCode:        "sum",
+		CorrectCodeLang:    contracts.LanguageCpp23,
+		TargetTimeLimit:    2,
+		TargetMemoryLimit:  256,
+		CorrectTimeLimit:   2,
+		CorrectMemoryLimit: 256,
+		Iterations:         1,
+		CaseProviders: []contracts.CaseProvider{
+			singlegenProvider("sg-1", "case:1 2"),
+		},
+	}, func(progress contracts.StressProgress) {
+		got = append(got, progress)
+	})
+
+	if err != nil || result.Error {
+		t.Fatalf("operationStress() result = %+v, error = %v", result, err)
+	}
+
+	want := []contracts.StressProgress{
+		{Stage: contracts.StressProgressStageCompiling, Source: contracts.StressProgressSourceTarget},
+		{Stage: contracts.StressProgressStageCompiling, Source: contracts.StressProgressSourceCorrect},
+		{Stage: contracts.StressProgressStageCompiling, Source: contracts.StressProgressSourceSinglegen, SourceID: "sg-1"},
+		{Stage: contracts.StressProgressStageRunning, CompletedIterations: intPtr(0)},
+		{Stage: contracts.StressProgressStageRunning, CompletedIterations: intPtr(1)},
+		{Stage: contracts.StressProgressStageFinalizing},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("progress = %#v, want %#v", got, want)
+	}
+}
+
+func TestOperationStressReportsFinalizingAfterStressError(t *testing.T) {
+	var got []contracts.StressProgress
+	_, err := fakeStresser(newFakeRuntime()).operationStress(contracts.StressEvent{
+		Operation:          contracts.OperationStress,
+		TargetCode:         "sum",
+		TargetCodeLang:     contracts.LanguageCpp23,
+		CorrectCode:        "rte",
+		CorrectCodeLang:    contracts.LanguageCpp23,
+		TargetTimeLimit:    2,
+		TargetMemoryLimit:  256,
+		CorrectTimeLimit:   2,
+		CorrectMemoryLimit: 256,
+		Iterations:         1,
+		CaseProviders: []contracts.CaseProvider{
+			generatorProvider("gen", "case:1 1"),
+		},
+	}, func(progress contracts.StressProgress) {
+		got = append(got, progress)
+	})
+
+	if err == nil {
+		t.Fatal("operationStress() error = nil, want correct execution failure")
+	}
+	if len(got) == 0 || got[len(got)-1].Stage != contracts.StressProgressStageFinalizing {
+		t.Fatalf("last progress = %#v, want finalizing", got)
+	}
+}
+
 func TestOperationStressPreservesTextProviderBytes(t *testing.T) {
 	fake := newFakeRuntime()
 	result, err := fakeStresser(fake).operationStress(contracts.StressEvent{
@@ -91,7 +157,8 @@ func TestOperationStressPreservesTextProviderBytes(t *testing.T) {
 		CorrectMemoryLimit: 256,
 		Iterations:         1,
 		CaseProviders:      []contracts.CaseProvider{textProvider("tc-raw", "1 2 \n")},
-	})
+	}, nil)
+
 	if err != nil || result.Error {
 		t.Fatalf("operationStress() result = %+v, error = %v", result, err)
 	}
@@ -115,7 +182,8 @@ func TestOperationStressPreservesGeneratorStdoutBytes(t *testing.T) {
 		CorrectMemoryLimit: 256,
 		Iterations:         1,
 		CaseProviders:      []contracts.CaseProvider{generatorProvider("gen-raw", "case:1 2 ")},
-	})
+	}, nil)
+
 	if err != nil || result.Error {
 		t.Fatalf("operationStress() result = %+v, error = %v", result, err)
 	}
@@ -210,7 +278,8 @@ func TestOperationStressStopsAtTotalRuntimeLimit(t *testing.T) {
 		CaseProviders: []contracts.CaseProvider{
 			generatorProvider("gen-slow", "case:1 2"),
 		},
-	})
+	}, nil)
+
 	if err != nil {
 		t.Fatalf("operationStress() error = %v", err)
 	}
@@ -243,7 +312,8 @@ func TestOperationStressFindsCounterexample(t *testing.T) {
 			textProvider("tc-3", "3 7"),
 			textProvider("tc-4", "10 9"),
 		},
-	})
+	}, nil)
+
 	if err != nil {
 		t.Fatalf("operationStress() error = %v", err)
 	}
@@ -276,7 +346,8 @@ func TestOperationStressSurfaceRuntimeErrorVerdict(t *testing.T) {
 		CaseProviders: []contracts.CaseProvider{
 			generatorProvider("gen-rte", "case:1 2"),
 		},
-	})
+	}, nil)
+
 	if err != nil {
 		t.Fatalf("operationStress() error = %v", err)
 	}
@@ -321,7 +392,8 @@ func TestOperationStressCheckerMismatch(t *testing.T) {
 		CaseProviders: []contracts.CaseProvider{
 			generatorProvider("gen-checker", "case:3 7"),
 		},
-	})
+	}, nil)
+
 	if err != nil {
 		t.Fatalf("operationStress() error = %v", err)
 	}
@@ -364,7 +436,8 @@ func TestOperationStressDetectsNullCharacterDifference(t *testing.T) {
 		CaseProviders: []contracts.CaseProvider{
 			generatorProvider("gen-null", "case:3 7"),
 		},
-	})
+	}, nil)
+
 	if err != nil {
 		t.Fatalf("operationStress() error = %v", err)
 	}
@@ -400,7 +473,8 @@ func TestOperationStressUsesMultipleGenerators(t *testing.T) {
 			generatorProvider("gen-1", "case:1 1"),
 			generatorProvider("gen-2", "case:2 2"),
 		},
-	})
+	}, nil)
+
 	if err != nil {
 		t.Fatalf("operationStress() error = %v", err)
 	}
@@ -434,7 +508,8 @@ func TestOperationStressSkipsFailingGenerator(t *testing.T) {
 			generatorProvider("gen-bad", "fail-generator"),
 			generatorProvider("gen-good", "case:2 2"),
 		},
-	})
+	}, nil)
+
 	if err != nil {
 		t.Fatalf("operationStress() error = %v", err)
 	}

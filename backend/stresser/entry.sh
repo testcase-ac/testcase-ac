@@ -7,8 +7,4 @@ if [[ ! -e "${dotnet_home}/.nuget" ]]; then
   ln -s /var/task/dotnet-cache/.nuget "${dotnet_home}/.nuget"
 fi
 
-if [[ -z "${AWS_LAMBDA_RUNTIME_API:-}" ]]; then
-  exec /usr/local/bin/aws-lambda-rie /var/task/bootstrap
-fi
-
 exec /var/task/bootstrap

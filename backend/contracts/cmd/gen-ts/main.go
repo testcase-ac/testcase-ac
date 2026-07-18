@@ -27,18 +27,20 @@ var enumTypes = []string{
 	"Verdict",
 	"TruncationKind",
 	"StressStatus",
+	"StressProgressStage",
+	"StressProgressSource",
 }
 
 var structTypes = []reflect.Type{
 	reflect.TypeOf(contracts.CaseProvider{}),
 	reflect.TypeOf(contracts.StressEvent{}),
+	reflect.TypeOf(contracts.StressProgress{}),
 	reflect.TypeOf(contracts.OutputTextMetadata{}),
 	reflect.TypeOf(contracts.TextWithMetadata{}),
 	reflect.TypeOf(contracts.GeneratedBy{}),
 	reflect.TypeOf(contracts.Counterexample{}),
 	reflect.TypeOf(contracts.ExecutionFailedCase{}),
 	reflect.TypeOf(contracts.CorrectCase{}),
-	reflect.TypeOf(contracts.EventRecord{}),
 	reflect.TypeOf(contracts.StressResult{}),
 }
 

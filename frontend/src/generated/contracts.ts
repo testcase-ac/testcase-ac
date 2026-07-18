@@ -151,13 +151,6 @@ export interface CorrectCase {
   generatedBy: GeneratedBy;
 }
 
-export interface EventRecord {
-  id: number;
-  type: string;
-  value: string;
-  elapsedSeconds: number;
-}
-
 export interface StressResult {
   requestId?: string;
   runtimeSeconds: number;
@@ -171,6 +164,5 @@ export interface StressResult {
   wrongCasesCount?: number;
   executionFailedCasesCount?: number;
   correctCasesCount?: number;
-  events?: EventRecord[];
 }
 

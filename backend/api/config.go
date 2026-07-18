@@ -34,7 +34,7 @@ func LoadSettings() (Settings, error) {
 		TestcaseLocalPath:          getEnv("TESTCASE_LOCAL_PATH", ""),
 		AuthorIndexPath:            getEnv("AUTHOR_INDEX_PATH", ""),
 		StresserMode:               getEnv("STRESSER_MODE", "local_docker"),
-		StresserLocalEndpoint:      getEnv("STRESSER_LOCAL_ENDPOINT", "http://localhost:9000/2015-03-31/functions/function/invocations"),
+		StresserLocalEndpoint:      getEnv("STRESSER_LOCAL_ENDPOINT", "http://localhost:9000/stress"),
 		StresserLambdaFunctionName: getEnv("STRESSER_LAMBDA_FUNCTION_NAME", "testcase-ac-stresser"),
 		AWSRegion:                  getEnv("AWS_REGION", "ap-northeast-2"),
 		RateLimitMax:               getEnvInt("RATE_LIMIT_MAX", 5),

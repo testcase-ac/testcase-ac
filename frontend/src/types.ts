@@ -13,7 +13,6 @@ export type {
   Counterexample,
   CorrectCase,
   ErrorType,
-  EventRecord,
   ExecutionFailedCase,
   GeneratedBy,
   Language,

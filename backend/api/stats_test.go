@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/testcase-ac/testcase-ac/backend/api/stresser"
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 )
 
@@ -247,11 +248,11 @@ func TestStatsInitializationFailureDoesNotBreakAPI(t *testing.T) {
 func TestProblemStressCountsCompletedCanceledAndInvokeFailed(t *testing.T) {
 	for _, test := range []struct {
 		name     string
-		stresser StresserClient
+		stresser stresser.Client
 	}{
 		{name: "completed", stresser: okStresserClient{}},
 		{name: "canceled", stresser: errorStresserClient{err: context.Canceled}},
-		{name: "invoke failed", stresser: errorStresserClient{err: &StresserInvokeError{StatusCode: http.StatusServiceUnavailable, Detail: "unavailable"}}},
+		{name: "invoke failed", stresser: errorStresserClient{err: &stresser.InvokeError{StatusCode: http.StatusServiceUnavailable, Detail: "unavailable"}}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			store := newTestStatsStore(t)
@@ -311,7 +312,7 @@ func TestProblemStatsEventsAreLoggedWithoutSQLite(t *testing.T) {
 	_, _, _, ok := runProblemStress(
 		context.Background(), basicStressProblem(),
 		StressRequest{TargetCode: "target", TargetCodeLang: contracts.LanguageCpp23},
-		"req-log", okStresserClient{}, nil,
+		"req-log", okStresserClient{}, nil, nil,
 	)
 	if !ok {
 		t.Fatal("runProblemStress() failed")

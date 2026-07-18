@@ -1,5 +1,8 @@
 package main
 
+// This file translates API stress requests into stresser events, records
+// execution statistics, and maps stresser results back into API responses.
+
 import (
 	"context"
 	"encoding/json"
@@ -11,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/testcase-ac/testcase-ac/backend/api/stresser"
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 	"github.com/testcase-ac/testcase-ac/backend/internal/executionlimits"
 )
@@ -36,16 +40,12 @@ const (
 	clientClosedRequestDetail = "Client closed request."
 )
 
-func isRequestContextCanceled(ctx context.Context, err error) bool {
-	return errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled)
-}
-
 type caseProviderPlan struct {
 	Providers  []contracts.CaseProvider
 	Iterations int
 }
 
-func BuildStresserEvent(problem Problem, request StressRequest, requestID string) (contracts.StressEvent, int, string, bool) {
+func buildProblemStressEvent(problem Problem, request StressRequest, requestID string) (contracts.StressEvent, int, string, bool) {
 	if problem.OutputOnly && hasOutputOnlyProviderInput(request) {
 		return contracts.StressEvent{}, http.StatusBadRequest, "Output-only problems do not accept testcase, generator, or single generator selections", false
 	}
@@ -123,7 +123,7 @@ func hasOutputOnlyProviderInput(request StressRequest) bool {
 		len(request.TextTestcases) > 0
 }
 
-func BuildCustomStresserEvent(request StressRequest, requestID string) (contracts.StressEvent, int, string, bool) {
+func buildCustomStressEvent(request StressRequest, requestID string) (contracts.StressEvent, int, string, bool) {
 	if request.CorrectCode == "" {
 		return contracts.StressEvent{}, http.StatusUnprocessableEntity, "correctCode is required for custom invocation", false
 	}
@@ -291,8 +291,8 @@ func buildSinglegenProviders(inputs []CodeFile) []contracts.CaseProvider {
 	return out
 }
 
-func runProblemStress(ctx context.Context, problem Problem, request StressRequest, requestID string, stresser StresserClient, stats *StatsStore) (StressResponse, int, string, bool) {
-	event, statusCode, detail, ok := BuildStresserEvent(problem, request, requestID)
+func runProblemStress(ctx context.Context, problem Problem, request StressRequest, requestID string, client stresser.Client, stats *StatsStore, progress stresser.ProgressCallback) (StressResponse, int, string, bool) {
+	event, statusCode, detail, ok := buildProblemStressEvent(problem, request, requestID)
 	if !ok {
 		return StressResponse{}, statusCode, detail, false
 	}
@@ -300,39 +300,40 @@ func runProblemStress(ctx context.Context, problem Problem, request StressReques
 	return invokeStressEvent(
 		ctx,
 		event,
-		requestID,
-		stresser,
+		client,
 		stats,
 		&dispatch,
-		"problem_type", problem.ProblemType,
-		"external_id", problem.ExternalID,
+		progress,
 	)
 }
 
-func RunCustomStress(ctx context.Context, request StressRequest, requestID string, stresser StresserClient) (StressResponse, int, string, bool) {
-	event, statusCode, detail, ok := BuildCustomStresserEvent(request, requestID)
+func RunCustomStress(ctx context.Context, request StressRequest, requestID string, client stresser.Client) (StressResponse, int, string, bool) {
+	event, statusCode, detail, ok := buildCustomStressEvent(request, requestID)
 	if !ok {
 		return StressResponse{}, statusCode, detail, false
 	}
-	return invokeStressEvent(ctx, event, requestID, stresser, nil, nil, "custom_invocation", true)
+	return invokeStressEvent(ctx, event, client, nil, nil, nil)
 }
 
-func invokeStressEvent(ctx context.Context, event contracts.StressEvent, requestID string, stresser StresserClient, stats *StatsStore, dispatch *StatsDispatch, attrs ...any) (StressResponse, int, string, bool) {
+func invokeStressEvent(ctx context.Context, event contracts.StressEvent, client stresser.Client, stats *StatsStore, dispatch *StatsDispatch, progress stresser.ProgressCallback) (StressResponse, int, string, bool) {
 	logAttrs := []any{
-		"request_id", requestID,
+		"request_id", event.RequestID,
 		"case_providers", len(event.CaseProviders),
 		"iterations", event.Iterations,
 		"total_runtime_limit_seconds", event.TotalRuntimeLimitSeconds,
 	}
-	logAttrs = append(logAttrs, attrs...)
 	if dispatch != nil {
 		logAttrs = append(logAttrs,
+			"problem_type", dispatch.ProblemType,
+			"external_id", dispatch.ExternalID,
 			"target_language", *dispatch.TargetLanguage,
 			"text_provider_count", *dispatch.TextProviderCount,
 			"generator_provider_count", *dispatch.GeneratorProviderCount,
 			"singlegen_provider_count", *dispatch.SinglegenProviderCount,
 			"checker_used", *dispatch.CheckerUsed,
 		)
+	} else {
+		logAttrs = append(logAttrs, "custom_invocation", true)
 	}
 	slog.Info(
 		"stress_dispatch",
@@ -341,32 +342,33 @@ func invokeStressEvent(ctx context.Context, event contracts.StressEvent, request
 	if stats != nil && dispatch != nil {
 		statsWrite(func(writeCtx context.Context) error { return stats.RecordDispatch(writeCtx, *dispatch) })
 	}
-	stresserResp, err := stresser.Invoke(ctx, event)
+	event.StreamProgress = progress != nil
+	stresserResp, err := client.Invoke(ctx, event, progress)
 	if err != nil {
-		if isRequestContextCanceled(ctx, err) {
-			slog.Info("stress_request_canceled", "request_id", requestID)
+		if errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
+			slog.Info("stress_request_canceled", "request_id", event.RequestID)
 			if dispatch != nil {
-				recordStatsTerminal(stats, StatsTerminal{RequestID: requestID, TerminalAt: time.Now().UTC(), Outcome: "canceled"})
+				recordStatsTerminal(stats, StatsTerminal{RequestID: event.RequestID, TerminalAt: time.Now().UTC(), Outcome: "canceled"})
 			}
 			return StressResponse{}, statusClientClosedRequest, clientClosedRequestDetail, false
 		}
 		if dispatch != nil {
-			recordStatsTerminal(stats, StatsTerminal{RequestID: requestID, TerminalAt: time.Now().UTC(), Outcome: "invoke_failed"})
+			recordStatsTerminal(stats, StatsTerminal{RequestID: event.RequestID, TerminalAt: time.Now().UTC(), Outcome: "invoke_failed"})
 		}
-		var invokeErr *StresserInvokeError
+		var invokeErr *stresser.InvokeError
 		if ok := errors.As(err, &invokeErr); ok {
 			return StressResponse{}, invokeErr.StatusCode, invokeErr.Detail, false
 		}
 		return StressResponse{}, http.StatusServiceUnavailable, "Stresser is unavailable, try again shortly.", false
 	}
-	response := transformStresserResponse(stresserResp, requestID)
+	response := transformStresserResponse(stresserResp, event.RequestID)
 	status := string(response.Status)
 	runtimeSeconds := stresserResp.RuntimeSeconds
 	totalCases := stresserResp.TotalCases
 	wrongCases := stresserResp.WrongCasesCount
 	executionFailedCases := stresserResp.ExecutionFailedCasesCount
 	terminal := StatsTerminal{
-		RequestID: requestID, TerminalAt: time.Now().UTC(), Outcome: "completed",
+		RequestID: event.RequestID, TerminalAt: time.Now().UTC(), Outcome: "completed",
 		StressStatus: &status, RuntimeSeconds: &runtimeSeconds, TotalCases: &totalCases,
 		WrongCases: &wrongCases, ExecutionFailedCases: &executionFailedCases,
 	}
@@ -432,76 +434,48 @@ func statsWrite(write func(context.Context) error) {
 }
 
 func transformStresserResponse(stresserResp contracts.StressResult, requestID string) StressResponse {
-	if stresserResp.Error {
-		status := errorTypeToStatus[stresserResp.ErrorType]
-		if status == "" {
-			status = contracts.StressStatusInternalError
-		}
-		errText := extractErrorText(stresserResp.Message)
-		return StressResponse{
-			RequestID:                 requestID,
-			RuntimeSeconds:            stresserResp.RuntimeSeconds,
-			Status:                    status,
-			WrongCases:                []Counterexample{},
-			ExecutionFailedCases:      []ExecutionFailedCase{},
-			Counterexamples:           []Counterexample{},
-			ErrorMessage:              new(errText),
-			AttemptedCases:            []AttemptedCase{},
-			TotalCases:                0,
-			TotalAttempted:            0,
-			WrongCasesCount:           0,
-			ExecutionFailedCasesCount: 0,
-			CorrectCasesCount:         0,
-		}
+	response := StressResponse{
+		RequestID:            requestID,
+		RuntimeSeconds:       stresserResp.RuntimeSeconds,
+		WrongCases:           []Counterexample{},
+		ExecutionFailedCases: []ExecutionFailedCase{},
+		Counterexamples:      []Counterexample{},
+		AttemptedCases:       []AttemptedCase{},
 	}
 
-	attemptedCases := make([]AttemptedCase, 0, len(stresserResp.CorrectCases))
+	if stresserResp.Error {
+		response.Status = errorTypeToStatus[stresserResp.ErrorType]
+		if response.Status == "" {
+			response.Status = contracts.StressStatusInternalError
+		}
+		errText := extractErrorText(stresserResp.Message)
+		response.ErrorMessage = &errText
+		return response
+	}
+
+	response.AttemptedCases = make([]AttemptedCase, 0, len(stresserResp.CorrectCases))
 	for _, correctCase := range stresserResp.CorrectCases {
-		attemptedCases = append(attemptedCases, correctCase.GeneratedBy)
+		response.AttemptedCases = append(response.AttemptedCases, correctCase.GeneratedBy)
 	}
-	totalCases := stresserResp.TotalCases
-	correctCasesCount := stresserResp.CorrectCasesCount
-	wrongCases := slices.Clone(stresserResp.WrongCases)
-	executionFailedCases := slices.Clone(stresserResp.ExecutionFailedCases)
-	if len(wrongCases) > 0 || len(executionFailedCases) > 0 {
-		counterexamples := slices.Clone(wrongCases)
-		var first *Counterexample
-		if len(counterexamples) > 0 {
-			first = &counterexamples[0]
+	response.TotalCases = stresserResp.TotalCases
+	response.TotalAttempted = stresserResp.CorrectCasesCount
+	response.WrongCasesCount = stresserResp.WrongCasesCount
+	response.ExecutionFailedCasesCount = stresserResp.ExecutionFailedCasesCount
+	response.CorrectCasesCount = stresserResp.CorrectCasesCount
+
+	if len(stresserResp.WrongCases) > 0 || len(stresserResp.ExecutionFailedCases) > 0 {
+		response.Status = contracts.StressStatusFound
+		response.WrongCases = slices.Clone(stresserResp.WrongCases)
+		response.ExecutionFailedCases = slices.Clone(stresserResp.ExecutionFailedCases)
+		response.Counterexamples = slices.Clone(response.WrongCases)
+		if len(response.Counterexamples) > 0 {
+			response.Counterexample = &response.Counterexamples[0]
 		}
-		return StressResponse{
-			RequestID:                 requestID,
-			RuntimeSeconds:            stresserResp.RuntimeSeconds,
-			Status:                    contracts.StressStatusFound,
-			WrongCases:                wrongCases,
-			ExecutionFailedCases:      executionFailedCases,
-			Counterexamples:           counterexamples,
-			Counterexample:            first,
-			ErrorMessage:              nil,
-			AttemptedCases:            attemptedCases,
-			TotalCases:                totalCases,
-			TotalAttempted:            correctCasesCount,
-			WrongCasesCount:           stresserResp.WrongCasesCount,
-			ExecutionFailedCasesCount: stresserResp.ExecutionFailedCasesCount,
-			CorrectCasesCount:         correctCasesCount,
-		}
+		return response
 	}
-	return StressResponse{
-		RequestID:                 requestID,
-		RuntimeSeconds:            stresserResp.RuntimeSeconds,
-		Status:                    contracts.StressStatusNotFound,
-		WrongCases:                []Counterexample{},
-		ExecutionFailedCases:      []ExecutionFailedCase{},
-		Counterexamples:           []Counterexample{},
-		Counterexample:            nil,
-		ErrorMessage:              nil,
-		AttemptedCases:            attemptedCases,
-		TotalCases:                totalCases,
-		TotalAttempted:            correctCasesCount,
-		WrongCasesCount:           stresserResp.WrongCasesCount,
-		ExecutionFailedCasesCount: stresserResp.ExecutionFailedCasesCount,
-		CorrectCasesCount:         correctCasesCount,
-	}
+
+	response.Status = contracts.StressStatusNotFound
+	return response
 }
 
 func selectSingleCode(available []CodeFile, requestedName *string, kindLabel string) (CodeFile, bool, string) {

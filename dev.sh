@@ -82,7 +82,7 @@ start_frontend() {
 }
 
 start_backend() {
-  local stresser_endpoint="http://127.0.0.1:${STRESSER_PORT}/2015-03-31/functions/function/invocations"
+  local stresser_endpoint="http://127.0.0.1:${STRESSER_PORT}/stress"
   echo "[dev] starting backend on :$BACKEND_PORT"
   (
     cd backend
@@ -107,7 +107,7 @@ start_stresser() {
   echo "[dev] starting stresser on :$STRESSER_PORT"
   docker run -d --rm --name "$STRESSER_NAME" \
     --platform "$(runtime_platform)" \
-    -p "$STRESSER_PORT:8080" "$STRESSER_IMAGE" >/dev/null
+    -p "127.0.0.1:$STRESSER_PORT:8080" "$STRESSER_IMAGE" >/dev/null
 }
 
 cleanup() {

@@ -122,6 +122,24 @@ const (
 	StressStatusInternalError  StressStatus = "internal_error"
 )
 
+type StressProgressStage string
+
+const (
+	StressProgressStageCompiling  StressProgressStage = "compiling"
+	StressProgressStageRunning    StressProgressStage = "stress_running"
+	StressProgressStageFinalizing StressProgressStage = "finalizing"
+)
+
+type StressProgressSource string
+
+const (
+	StressProgressSourceTarget    StressProgressSource = "target"
+	StressProgressSourceCorrect   StressProgressSource = "correct"
+	StressProgressSourceChecker   StressProgressSource = "checker"
+	StressProgressSourceGenerator StressProgressSource = "generator"
+	StressProgressSourceSinglegen StressProgressSource = "singlegen"
+)
+
 type CaseProvider struct {
 	Type     CaseProviderType `json:"type"`
 	ID       string           `json:"id"`
@@ -145,6 +163,14 @@ type StressEvent struct {
 	Iterations               int            `json:"iterations"`
 	TotalRuntimeLimitSeconds int            `json:"totalRuntimeLimitSeconds,omitempty"`
 	CaseProviders            []CaseProvider `json:"caseProviders"`
+	StreamProgress           bool           `json:"streamProgress,omitempty"`
+}
+
+type StressProgress struct {
+	Stage               StressProgressStage  `json:"stage"`
+	Source              StressProgressSource `json:"source,omitempty"`
+	SourceID            string               `json:"sourceId,omitempty"`
+	CompletedIterations *int                 `json:"completedIterations,omitempty"`
 }
 
 type OutputTextMetadata struct {
@@ -190,13 +216,6 @@ type CorrectCase struct {
 	GeneratedBy GeneratedBy `json:"generatedBy"`
 }
 
-type EventRecord struct {
-	ID             int     `json:"id"`
-	Type           string  `json:"type"`
-	Value          string  `json:"value"`
-	ElapsedSeconds float64 `json:"elapsedSeconds"`
-}
-
 type StressResult struct {
 	RequestID                 string                `json:"requestId,omitempty"`
 	RuntimeSeconds            float64               `json:"runtimeSeconds"`
@@ -210,5 +229,10 @@ type StressResult struct {
 	WrongCasesCount           int                   `json:"wrongCasesCount,omitempty"`
 	ExecutionFailedCasesCount int                   `json:"executionFailedCasesCount,omitempty"`
 	CorrectCasesCount         int                   `json:"correctCasesCount,omitempty"`
-	Events                    []EventRecord         `json:"events,omitempty"`
+}
+
+type StressStreamRecord struct {
+	Type     string          `json:"type"`
+	Progress *StressProgress `json:"progress,omitempty"`
+	Result   *StressResult   `json:"result,omitempty"`
 }

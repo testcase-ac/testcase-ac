@@ -39,7 +39,7 @@ jobs:
 
       - name: Test API packages
         working-directory: backend
-        run: go test ./api ./contracts ./internal/loader
+        run: go test ./api/... ./contracts ./internal/loader
 
       # Exchange GitHub's OIDC token for short-lived credentials scoped to the API deployer role.
       - name: Configure AWS credentials

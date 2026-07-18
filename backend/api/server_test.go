@@ -4,16 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/testcase-ac/testcase-ac/backend/api/stresser"
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 )
 
-func newTestApp(settings Settings, catalog map[[2]string]Problem, stresser StresserClient) *App {
-	return NewAppWithTypeMetadata(settings, catalog, nil, stresser)
+func newTestApp(settings Settings, catalog map[[2]string]Problem, client stresser.Client) *App {
+	return NewAppWithTypeMetadata(settings, catalog, nil, client)
 }
 
 type fakeStresserClient struct {
@@ -23,7 +25,7 @@ type fakeStresserClient struct {
 	wantCaseLang contracts.Language
 }
 
-func (c *fakeStresserClient) Invoke(_ context.Context, event contracts.StressEvent) (contracts.StressResult, error) {
+func (c *fakeStresserClient) Invoke(_ context.Context, event contracts.StressEvent, _ stresser.ProgressCallback) (contracts.StressResult, error) {
 	if event.TargetCodeLang != c.wantTarget {
 		c.t.Fatalf("TargetCodeLang = %q, want %q", event.TargetCodeLang, c.wantTarget)
 	}
@@ -48,10 +50,32 @@ func (c *fakeStresserClient) Invoke(_ context.Context, event contracts.StressEve
 
 type okStresserClient struct{}
 
-func (c okStresserClient) Invoke(_ context.Context, event contracts.StressEvent) (contracts.StressResult, error) {
+func (c okStresserClient) Invoke(_ context.Context, event contracts.StressEvent, _ stresser.ProgressCallback) (contracts.StressResult, error) {
 	return contracts.StressResult{
 		RequestID:         event.RequestID,
 		Error:             false,
+		TotalCases:        1,
+		CorrectCasesCount: 1,
+	}, nil
+}
+
+type progressStresserClient struct {
+	t *testing.T
+}
+
+func (c progressStresserClient) Invoke(_ context.Context, event contracts.StressEvent, progress stresser.ProgressCallback) (contracts.StressResult, error) {
+	c.t.Helper()
+	if !event.StreamProgress || progress == nil {
+		c.t.Fatal("streaming request did not enable progress")
+	}
+	if err := progress(contracts.StressProgress{Stage: contracts.StressProgressStageCompiling, Source: contracts.StressProgressSourceTarget}); err != nil {
+		return contracts.StressResult{}, err
+	}
+	if err := progress(contracts.StressProgress{Stage: contracts.StressProgressStageFinalizing}); err != nil {
+		return contracts.StressResult{}, err
+	}
+	return contracts.StressResult{
+		RequestID:         event.RequestID,
 		TotalCases:        1,
 		CorrectCasesCount: 1,
 	}, nil
@@ -61,15 +85,27 @@ type errorStresserClient struct {
 	err error
 }
 
-func (c errorStresserClient) Invoke(_ context.Context, _ contracts.StressEvent) (contracts.StressResult, error) {
+func (c errorStresserClient) Invoke(_ context.Context, _ contracts.StressEvent, _ stresser.ProgressCallback) (contracts.StressResult, error) {
 	return contracts.StressResult{}, c.err
+}
+
+type progressThenErrorStresserClient struct{}
+
+func (progressThenErrorStresserClient) Invoke(_ context.Context, _ contracts.StressEvent, progress stresser.ProgressCallback) (contracts.StressResult, error) {
+	if err := progress(contracts.StressProgress{Stage: contracts.StressProgressStageCompiling, Source: contracts.StressProgressSourceTarget}); err != nil {
+		return contracts.StressResult{}, err
+	}
+	return contracts.StressResult{}, &stresser.InvokeError{
+		StatusCode: http.StatusServiceUnavailable,
+		Detail:     "Stresser returned an invalid response, try again shortly.",
+	}
 }
 
 type outputOnlyStresserClient struct {
 	t *testing.T
 }
 
-func (c outputOnlyStresserClient) Invoke(_ context.Context, event contracts.StressEvent) (contracts.StressResult, error) {
+func (c outputOnlyStresserClient) Invoke(_ context.Context, event contracts.StressEvent, _ stresser.ProgressCallback) (contracts.StressResult, error) {
 	c.t.Helper()
 	if event.Iterations != 1 {
 		c.t.Fatalf("Iterations = %d, want 1", event.Iterations)
@@ -118,6 +154,117 @@ func basicStressRequestBody(t *testing.T) []byte {
 		t.Fatalf("json.Marshal() error = %v", err)
 	}
 	return body
+}
+
+func TestHandleStressStreamsProgressAndFinalResult(t *testing.T) {
+	app := newTestApp(
+		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
+		map[[2]string]Problem{{"boj", "1000"}: basicStressProblem()},
+		progressStresserClient{t: t},
+	)
+	req := httptest.NewRequest(http.MethodPost, "/api/problems/boj/1000/stress", bytes.NewReader(basicStressRequestBody(t)))
+	req.Header.Set("Accept", "application/x-ndjson")
+	rec := httptest.NewRecorder()
+
+	app.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("Content-Type"); got != "application/x-ndjson" {
+		t.Fatalf("Content-Type = %q", got)
+	}
+	if got := strings.Join(rec.Header().Values("Vary"), ","); !strings.Contains(got, "Accept") {
+		t.Fatalf("Vary = %q, want Accept", got)
+	}
+
+	decoder := json.NewDecoder(rec.Body)
+	var records []struct {
+		Type     string                    `json:"type"`
+		Progress *contracts.StressProgress `json:"progress"`
+		Result   *StressResponse           `json:"result"`
+	}
+	for decoder.More() {
+		var record struct {
+			Type     string                    `json:"type"`
+			Progress *contracts.StressProgress `json:"progress"`
+			Result   *StressResponse           `json:"result"`
+		}
+		if err := decoder.Decode(&record); err != nil {
+			t.Fatalf("Decode() error = %v", err)
+		}
+		records = append(records, record)
+	}
+	if len(records) != 3 {
+		t.Fatalf("records = %#v, want two progress records and one result", records)
+	}
+	if records[0].Type != "progress" || records[0].Progress == nil || records[0].Progress.Source != contracts.StressProgressSourceTarget {
+		t.Fatalf("first record = %#v", records[0])
+	}
+	if records[1].Type != "progress" || records[1].Progress == nil || records[1].Progress.Stage != contracts.StressProgressStageFinalizing {
+		t.Fatalf("second record = %#v", records[1])
+	}
+	if records[2].Type != "result" || records[2].Result == nil || records[2].Result.CorrectCasesCount != 1 {
+		t.Fatalf("final record = %#v", records[2])
+	}
+}
+
+func TestHandleStressStreamKeepsErrorJSONBeforeProgressStarts(t *testing.T) {
+	app := newTestApp(
+		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
+		map[[2]string]Problem{{"boj", "1000"}: basicStressProblem()},
+		errorStresserClient{err: &stresser.InvokeError{
+			StatusCode: http.StatusServiceUnavailable,
+			Detail:     "Stresser is unavailable, try again shortly.",
+		}},
+	)
+	req := httptest.NewRequest(http.MethodPost, "/api/problems/boj/1000/stress", bytes.NewReader(basicStressRequestBody(t)))
+	req.Header.Set("Accept", stressStreamContentType)
+	rec := httptest.NewRecorder()
+
+	app.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("Content-Type"); got != "application/json" {
+		t.Fatalf("Content-Type = %q, want application/json", got)
+	}
+	var response errorResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if response.Detail != "Stresser is unavailable, try again shortly." {
+		t.Fatalf("response.Detail = %q", response.Detail)
+	}
+}
+
+func TestHandleStressStreamEndsWithoutFalseResultAfterProgressFailure(t *testing.T) {
+	app := newTestApp(
+		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
+		map[[2]string]Problem{{"boj", "1000"}: basicStressProblem()},
+		progressThenErrorStresserClient{},
+	)
+	req := httptest.NewRequest(http.MethodPost, "/api/problems/boj/1000/stress", bytes.NewReader(basicStressRequestBody(t)))
+	req.Header.Set("Accept", stressStreamContentType)
+	rec := httptest.NewRecorder()
+
+	app.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var record stressHTTPStreamRecord
+	decoder := json.NewDecoder(rec.Body)
+	if err := decoder.Decode(&record); err != nil {
+		t.Fatalf("Decode(progress) error = %v", err)
+	}
+	if record.Type != "progress" || record.Progress == nil {
+		t.Fatalf("record = %#v", record)
+	}
+	if err := decoder.Decode(&record); err != io.EOF {
+		t.Fatalf("Decode(after progress) error = %v, want EOF", err)
+	}
 }
 
 func TestHandleStressOutputOnlyRunsEmptyStdin(t *testing.T) {
@@ -284,7 +431,7 @@ func TestHandleStressKeepsStresserInvokeErrorWhenRequestContextActive(t *testing
 	app := newTestApp(
 		Settings{RateLimitMax: 100, RateLimitWindowS: 10},
 		map[[2]string]Problem{{"boj", "1000"}: problem},
-		errorStresserClient{err: &StresserInvokeError{
+		errorStresserClient{err: &stresser.InvokeError{
 			StatusCode: http.StatusServiceUnavailable,
 			Detail:     "Stresser is unavailable, try again shortly.",
 		}},
@@ -475,7 +622,7 @@ type inlineMaterialsStresserClient struct {
 	t *testing.T
 }
 
-func (c *inlineMaterialsStresserClient) Invoke(_ context.Context, event contracts.StressEvent) (contracts.StressResult, error) {
+func (c *inlineMaterialsStresserClient) Invoke(_ context.Context, event contracts.StressEvent, _ stresser.ProgressCallback) (contracts.StressResult, error) {
 	if event.CorrectCode != "inline-correct" {
 		c.t.Fatalf("CorrectCode = %q, want inline-correct", event.CorrectCode)
 	}
@@ -547,7 +694,7 @@ type customInvocationStresserClient struct {
 	t *testing.T
 }
 
-func (c *customInvocationStresserClient) Invoke(_ context.Context, event contracts.StressEvent) (contracts.StressResult, error) {
+func (c *customInvocationStresserClient) Invoke(_ context.Context, event contracts.StressEvent, _ stresser.ProgressCallback) (contracts.StressResult, error) {
 	if event.TargetTimeLimit != 2.5 {
 		c.t.Fatalf("TargetTimeLimit = %.3f, want 2.5", event.TargetTimeLimit)
 	}

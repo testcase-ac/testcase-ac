@@ -3,9 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -16,14 +14,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
-	"github.com/testcase-ac/testcase-ac/backend/contracts"
+	"github.com/testcase-ac/testcase-ac/backend/api/stresser"
 )
 
-const (
-	requestIDHeader              = "X-Request-Id"
-	maxStressRequestBodyBytes    = 2 << 20
-	maxStressRequestBodyBytesMsg = "Request body must be at most 2 MiB"
-)
+const requestIDHeader = "X-Request-Id"
 
 type contextKey string
 
@@ -33,18 +27,18 @@ type App struct {
 	settings     Settings
 	catalog      map[[2]string]Problem
 	typeMetadata map[string]TypeMetadata
-	stresser     StresserClient
+	stresser     stresser.Client
 	rateLimiter  *RateLimiter
 	validate     *validator.Validate
 	stats        *StatsStore
 }
 
-func NewAppWithTypeMetadata(settings Settings, catalog map[[2]string]Problem, typeMetadata map[string]TypeMetadata, stresser StresserClient) *App {
+func NewAppWithTypeMetadata(settings Settings, catalog map[[2]string]Problem, typeMetadata map[string]TypeMetadata, stressClient stresser.Client) *App {
 	app := &App{
 		settings:     settings,
 		catalog:      catalog,
 		typeMetadata: typeMetadata,
-		stresser:     stresser,
+		stresser:     stressClient,
 		rateLimiter:  NewRateLimiter(settings.RateLimitMax, settings.RateLimitWindowS),
 		validate:     validator.New(validator.WithRequiredStructEnabled()),
 	}
@@ -211,93 +205,6 @@ func (a *App) handleStats(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (a *App) handleStress(w http.ResponseWriter, r *http.Request) {
-	problem, ok := a.lookupProblem(w, r)
-	if !ok {
-		return
-	}
-
-	if !a.checkRateLimit(w, r) {
-		return
-	}
-
-	payload, ok := a.decodeStressRequest(w, r)
-	if !ok {
-		return
-	}
-
-	requestID := requestIDFromContext(r.Context())
-	response, statusCode, detail, ok := runProblemStress(r.Context(), problem, payload, requestID, a.stresser, a.stats)
-	if !ok {
-		writeError(w, statusCode, detail)
-		return
-	}
-	writeJSON(w, http.StatusOK, response)
-}
-
-func (a *App) handleCustomStress(w http.ResponseWriter, r *http.Request) {
-	if !a.checkRateLimit(w, r) {
-		return
-	}
-
-	payload, ok := a.decodeStressRequest(w, r)
-	if !ok {
-		return
-	}
-
-	requestID := requestIDFromContext(r.Context())
-	response, statusCode, detail, ok := RunCustomStress(r.Context(), payload, requestID, a.stresser)
-	if !ok {
-		writeError(w, statusCode, detail)
-		return
-	}
-	writeJSON(w, http.StatusOK, response)
-}
-
-func (a *App) checkRateLimit(w http.ResponseWriter, r *http.Request) bool {
-	clientKey := rateLimitClientKey(r)
-	if !a.rateLimiter.Check(clientKey) {
-		writeError(w, http.StatusTooManyRequests, fmt.Sprintf("Rate limit exceeded: %d submissions per %gs", a.rateLimiter.maxRequests, a.settings.RateLimitWindowS))
-		return false
-	}
-	return true
-}
-
-func (a *App) decodeStressRequest(w http.ResponseWriter, r *http.Request) (StressRequest, bool) {
-	var payload StressRequest
-	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxStressRequestBodyBytes))
-	if err := decoder.Decode(&payload); err != nil {
-		if isRequestBodyTooLarge(err) {
-			writeError(w, http.StatusRequestEntityTooLarge, maxStressRequestBodyBytesMsg)
-			return StressRequest{}, false
-		}
-		writeError(w, http.StatusBadRequest, "Invalid JSON body")
-		return StressRequest{}, false
-	}
-	if err := a.validate.Struct(payload); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, validationDetail(err))
-		return StressRequest{}, false
-	}
-	if len(payload.TargetCode) > contracts.MaxSubmittedCodeBytes {
-		writeError(w, http.StatusUnprocessableEntity, fmt.Sprintf("targetCode must be at most %d bytes", contracts.MaxSubmittedCodeBytes))
-		return StressRequest{}, false
-	}
-	if err := decoder.Decode(&struct{}{}); err != io.EOF {
-		if isRequestBodyTooLarge(err) {
-			writeError(w, http.StatusRequestEntityTooLarge, maxStressRequestBodyBytesMsg)
-			return StressRequest{}, false
-		}
-		writeError(w, http.StatusBadRequest, "Invalid JSON body")
-		return StressRequest{}, false
-	}
-	return payload, true
-}
-
-func isRequestBodyTooLarge(err error) bool {
-	var maxBytesErr *http.MaxBytesError
-	return errors.As(err, &maxBytesErr)
-}
-
 func (a *App) lookupProblem(w http.ResponseWriter, r *http.Request) (Problem, bool) {
 	problemType := chi.URLParam(r, "problemType")
 	externalID, err := url.PathUnescape(chi.URLParam(r, "externalId"))
@@ -311,44 +218,6 @@ func (a *App) lookupProblem(w http.ResponseWriter, r *http.Request) (Problem, bo
 		return Problem{}, false
 	}
 	return problem, true
-}
-
-func validationDetail(err error) string {
-	validationErrs, ok := err.(validator.ValidationErrors)
-	if !ok || len(validationErrs) == 0 {
-		return "Invalid request body"
-	}
-
-	fieldErr := validationErrs[0]
-	fieldName := fieldErr.Field()
-	namespace := fieldErr.Namespace()
-
-	switch {
-	case fieldName == "TargetCode":
-		return "targetCode is required"
-	case fieldName == "CorrectCode":
-		return "correctCode must not be empty"
-	case fieldName == "TimeLimitMS":
-		return fmt.Sprintf("timeLimitMs must be between %d and %d", minCustomTimeLimitMS, maxCustomTimeLimitMS)
-	case fieldName == "MemoryLimitMB":
-		return fmt.Sprintf("memoryLimitMb must be between %d and %d", minCustomMemoryLimitMB, maxCustomMemoryLimitMB)
-	case fieldName == "Iterations":
-		return "iterations must be between 1 and 500"
-	case fieldName == "TotalRuntimeLimitSeconds":
-		return fmt.Sprintf("totalRuntimeLimitSeconds must be between %d and %d", contracts.MinTotalRuntimeLimitSeconds, contracts.MaxTotalRuntimeLimitSeconds)
-	case fieldName == "TargetCodeLang":
-		return supportedTargetCodeLangDetail
-	case fieldName == "CorrectCodeLang":
-		return supportedCorrectCodeLangDetail
-	case strings.Contains(namespace, "GeneratorFilenames"):
-		return "generatorFilenames must not contain empty filenames"
-	case strings.Contains(namespace, "SinglegenFilenames"):
-		return "singlegenFilenames must not contain empty filenames"
-	case strings.Contains(namespace, "TestcaseFilenames"):
-		return "testcaseFilenames must not contain empty filenames"
-	default:
-		return "Invalid request body"
-	}
 }
 
 func buildProblemDetail(problem Problem) ProblemDetail {
@@ -460,7 +329,9 @@ func (a *App) recoverMiddleware(next http.Handler) http.Handler {
 					"path", r.URL.Path,
 					"panic", recovered,
 				)
-				writeError(w, http.StatusInternalServerError, "Internal server error")
+				if !responseStarted(w) {
+					writeError(w, http.StatusInternalServerError, "Internal server error")
+				}
 			}
 		}()
 		next.ServeHTTP(w, r)
@@ -470,11 +341,40 @@ func (a *App) recoverMiddleware(next http.Handler) http.Handler {
 type responseRecorder struct {
 	http.ResponseWriter
 	statusCode int
+	// started reports whether the response status and headers have been sent.
+	started bool
 }
 
 func (r *responseRecorder) WriteHeader(statusCode int) {
+	if r.started {
+		return
+	}
+	r.started = true
 	r.statusCode = statusCode
 	r.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (r *responseRecorder) Write(payload []byte) (int, error) {
+	if !r.started {
+		r.WriteHeader(http.StatusOK)
+	}
+	return r.ResponseWriter.Write(payload)
+}
+
+func (r *responseRecorder) Unwrap() http.ResponseWriter {
+	return r.ResponseWriter
+}
+
+func (r *responseRecorder) Started() bool {
+	return r.started
+}
+
+func responseStarted(w http.ResponseWriter) bool {
+	type startedResponse interface {
+		Started() bool
+	}
+	state, ok := w.(startedResponse)
+	return ok && state.Started()
 }
 
 func writeJSON(w http.ResponseWriter, statusCode int, payload any) {

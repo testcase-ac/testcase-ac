@@ -7,10 +7,10 @@ import (
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 )
 
-func TestBuildStresserEventAppliesAdjustedLimitsPerLanguage(t *testing.T) {
+func TestBuildProblemStressEventAppliesAdjustedLimitsPerLanguage(t *testing.T) {
 	iterations := 1
 	totalRuntimeLimitSeconds := 17
-	event, statusCode, detail, ok := BuildStresserEvent(
+	event, statusCode, detail, ok := buildProblemStressEvent(
 		Problem{
 			ProblemType:   "boj",
 			ExternalID:    "1000",
@@ -34,7 +34,7 @@ func TestBuildStresserEventAppliesAdjustedLimitsPerLanguage(t *testing.T) {
 		"req-test",
 	)
 	if !ok {
-		t.Fatalf("BuildStresserEvent() failed: status=%d detail=%q", statusCode, detail)
+		t.Fatalf("buildProblemStressEvent() failed: status=%d detail=%q", statusCode, detail)
 	}
 	if event.TargetTimeLimit != 8 {
 		t.Fatalf("TargetTimeLimit = %.3f, want 8", event.TargetTimeLimit)
@@ -53,10 +53,10 @@ func TestBuildStresserEventAppliesAdjustedLimitsPerLanguage(t *testing.T) {
 	}
 }
 
-func TestBuildStresserEventUsesInlineMaterialsWhenProvided(t *testing.T) {
+func TestBuildProblemStressEventUsesInlineMaterialsWhenProvided(t *testing.T) {
 	iterations := 7
 	checkerCode := "#include <bits/stdc++.h>\nint main() { return 0; }\n"
-	event, statusCode, detail, ok := BuildStresserEvent(
+	event, statusCode, detail, ok := buildProblemStressEvent(
 		Problem{
 			ProblemType:   "boj",
 			ExternalID:    "1000",
@@ -96,7 +96,7 @@ func TestBuildStresserEventUsesInlineMaterialsWhenProvided(t *testing.T) {
 		"req-inline",
 	)
 	if !ok {
-		t.Fatalf("BuildStresserEvent() failed: status=%d detail=%q", statusCode, detail)
+		t.Fatalf("buildProblemStressEvent() failed: status=%d detail=%q", statusCode, detail)
 	}
 	if event.CorrectCode != "inline-correct" {
 		t.Fatalf("CorrectCode = %q, want inline-correct", event.CorrectCode)
@@ -127,9 +127,9 @@ func TestBuildStresserEventUsesInlineMaterialsWhenProvided(t *testing.T) {
 	}
 }
 
-func TestBuildStresserEventOutputOnlyInjectsEmptyTextProvider(t *testing.T) {
+func TestBuildProblemStressEventOutputOnlyInjectsEmptyTextProvider(t *testing.T) {
 	iterations := 37
-	event, statusCode, detail, ok := BuildStresserEvent(
+	event, statusCode, detail, ok := buildProblemStressEvent(
 		Problem{
 			ProblemType:   "boj",
 			ExternalID:    "2557",
@@ -153,7 +153,7 @@ func TestBuildStresserEventOutputOnlyInjectsEmptyTextProvider(t *testing.T) {
 		"req-output-only",
 	)
 	if !ok {
-		t.Fatalf("BuildStresserEvent() failed: status=%d detail=%q", statusCode, detail)
+		t.Fatalf("buildProblemStressEvent() failed: status=%d detail=%q", statusCode, detail)
 	}
 	if event.Iterations != 1 {
 		t.Fatalf("Iterations = %d, want 1", event.Iterations)
@@ -167,7 +167,7 @@ func TestBuildStresserEventOutputOnlyInjectsEmptyTextProvider(t *testing.T) {
 	}
 }
 
-func TestBuildStresserEventOutputOnlyRejectsNonEmptyProviderInputs(t *testing.T) {
+func TestBuildProblemStressEventOutputOnlyRejectsNonEmptyProviderInputs(t *testing.T) {
 	nonEmptyGeneratorSource := []InlineCodeInput{{ID: "generator_inline.py", Code: "print(0)", Language: contracts.LanguagePython3}}
 	nonEmptyTextTestcase := []InlineTextcaseInput{{ID: "sample.txt", Content: "1\n"}}
 	tests := []struct {
@@ -200,7 +200,7 @@ func TestBuildStresserEventOutputOnlyRejectsNonEmptyProviderInputs(t *testing.T)
 		t.Run(tt.name, func(t *testing.T) {
 			tt.request.TargetCode = "target"
 			tt.request.TargetCodeLang = "cpp23"
-			_, statusCode, detail, ok := BuildStresserEvent(
+			_, statusCode, detail, ok := buildProblemStressEvent(
 				Problem{
 					ProblemType:   "boj",
 					ExternalID:    "2557",
@@ -215,7 +215,7 @@ func TestBuildStresserEventOutputOnlyRejectsNonEmptyProviderInputs(t *testing.T)
 				"req-output-only",
 			)
 			if ok {
-				t.Fatal("BuildStresserEvent() succeeded, want failure")
+				t.Fatal("buildProblemStressEvent() succeeded, want failure")
 			}
 			if statusCode != http.StatusBadRequest {
 				t.Fatalf("statusCode = %d, want %d; detail=%q", statusCode, http.StatusBadRequest, detail)
@@ -224,14 +224,14 @@ func TestBuildStresserEventOutputOnlyRejectsNonEmptyProviderInputs(t *testing.T)
 	}
 }
 
-func TestBuildCustomStresserEventUsesExplicitLimits(t *testing.T) {
+func TestBuildCustomStressEventUsesExplicitLimits(t *testing.T) {
 	timeLimitMS := 3500
 	memoryLimitMB := 768
 	iterations := 9
 	totalRuntimeLimitSeconds := 12
 	checkerCode := "#include <bits/stdc++.h>\nint main(){return 0;}\n"
 
-	event, statusCode, detail, ok := BuildCustomStresserEvent(
+	event, statusCode, detail, ok := buildCustomStressEvent(
 		StressRequest{
 			TargetCode:               "target",
 			TargetCodeLang:           "golang",
@@ -252,7 +252,7 @@ func TestBuildCustomStresserEventUsesExplicitLimits(t *testing.T) {
 		"req-custom",
 	)
 	if !ok {
-		t.Fatalf("BuildCustomStresserEvent() failed: status=%d detail=%q", statusCode, detail)
+		t.Fatalf("buildCustomStressEvent() failed: status=%d detail=%q", statusCode, detail)
 	}
 	if event.TargetTimeLimit != 3.5 {
 		t.Fatalf("TargetTimeLimit = %.3f, want 3.5", event.TargetTimeLimit)
