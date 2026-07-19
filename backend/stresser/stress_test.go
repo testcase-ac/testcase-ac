@@ -106,8 +106,8 @@ func TestOperationStressReportsProgress(t *testing.T) {
 		{Stage: contracts.StressProgressStageCompiling, Source: contracts.StressProgressSourceTarget},
 		{Stage: contracts.StressProgressStageCompiling, Source: contracts.StressProgressSourceCorrect},
 		{Stage: contracts.StressProgressStageCompiling, Source: contracts.StressProgressSourceSinglegen, SourceID: "sg-1"},
-		{Stage: contracts.StressProgressStageRunning, CompletedIterations: intPtr(0)},
-		{Stage: contracts.StressProgressStageRunning, CompletedIterations: intPtr(1)},
+		{Stage: contracts.StressProgressStageRunning, CompletedIterations: new(0)},
+		{Stage: contracts.StressProgressStageRunning, CompletedIterations: new(1)},
 		{Stage: contracts.StressProgressStageFinalizing},
 	}
 	if !reflect.DeepEqual(got, want) {

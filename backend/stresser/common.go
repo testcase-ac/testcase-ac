@@ -50,7 +50,7 @@ func intInFirstLine(s string) []int {
 		s = s[:newline]
 	}
 	out := []int{}
-	for _, field := range strings.Fields(s) {
+	for field := range strings.FieldsSeq(s) {
 		if n, err := strconv.Atoi(field); err == nil {
 			out = append(out, n)
 		}
@@ -108,11 +108,11 @@ func textWithMetadata(s string, maxLength int, maxLine int) contracts.TextWithMe
 	truncatedAtLine := (*int)(nil)
 	if lineCut >= 0 && lineCut <= truncatedAt {
 		truncatedBy = contracts.TruncationKindLine
-		truncatedAtLine = intPtr(maxLine)
+		truncatedAtLine = new(maxLine)
 	}
 	metadata.Truncated = true
-	metadata.TruncatedBy = truncationKindPtr(truncatedBy)
-	metadata.TruncatedAtCharacter = intPtr(truncatedAt)
+	metadata.TruncatedBy = new(truncatedBy)
+	metadata.TruncatedAtCharacter = new(truncatedAt)
 	metadata.TruncatedAtLine = truncatedAtLine
 
 	return contracts.TextWithMetadata{
@@ -130,10 +130,6 @@ func countOutputLines(s string) int {
 		lineCount--
 	}
 	return lineCount
-}
-
-func truncationKindPtr(value contracts.TruncationKind) *contracts.TruncationKind {
-	return &value
 }
 
 func checkAndCleanTmp() error {
@@ -189,14 +185,6 @@ func mustJSON(value any) string {
 		return "{}"
 	}
 	return string(data)
-}
-
-func intPtr(value int) *int {
-	return &value
-}
-
-func stringPtr(value string) *string {
-	return &value
 }
 
 func minPositive(values ...int) int {

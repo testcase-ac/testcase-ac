@@ -239,7 +239,7 @@ func (s stresser) generateCaseProvider(ctx context.Context, p compiledCaseProvid
 		if p.Type == contracts.CaseProviderGenerator {
 			seed := itoa(randomSeed)
 			args = []string{seed}
-			generatedBy.Seed = stringPtr(seed)
+			generatedBy.Seed = new(seed)
 		}
 		execution := s.run(ctx, p.Program.Program, "", args, p.Program.Limits)
 		if ctx.Err() != nil {
@@ -288,9 +288,9 @@ func (s stresser) runStressLoop(
 	correctCases := []stressIteration{}
 	generatorExecutionErrors := []error{}
 	wallTimeLimit := time.Duration(totalRuntimeLimitSeconds) * time.Second
-	progress(contracts.StressProgress{Stage: contracts.StressProgressStageRunning, CompletedIterations: intPtr(0)})
+	progress(contracts.StressProgress{Stage: contracts.StressProgressStageRunning, CompletedIterations: new(0)})
 
-	for iteration := 0; iteration < iterations; iteration++ {
+	for iteration := range iterations {
 		if ctx.Err() != nil || time.Since(startTime) >= wallTimeLimit {
 			slog.Info("stress_loop_exit", "reason", "wall_time_limit", "iteration", iteration, "max_wall_time_seconds", totalRuntimeLimitSeconds)
 			break
@@ -328,7 +328,7 @@ func (s stresser) runStressLoop(
 				if selectedGeneratorIndex >= 0 {
 					generatorWeights[selectedGeneratorIndex] *= 0.1
 				}
-				progress(contracts.StressProgress{Stage: contracts.StressProgressStageRunning, CompletedIterations: intPtr(iteration + 1)})
+				progress(contracts.StressProgress{Stage: contracts.StressProgressStageRunning, CompletedIterations: new(iteration + 1)})
 				continue
 			}
 			return nil, nil, nil, err
@@ -359,7 +359,7 @@ func (s stresser) runStressLoop(
 				}
 			}
 		}
-		progress(contracts.StressProgress{Stage: contracts.StressProgressStageRunning, CompletedIterations: intPtr(iteration + 1)})
+		progress(contracts.StressProgress{Stage: contracts.StressProgressStageRunning, CompletedIterations: new(iteration + 1)})
 	}
 
 	return wrongCases, executionFailedCases, correctCases, nil
@@ -396,7 +396,7 @@ func buildStressResponse(wrongCases, executionFailedCases, correctCases []stress
 			GeneratedBy:   item.GeneratedBy,
 			TargetOutput:  stdoutTextWithMetadata(item.TargetRun.TargetOutput),
 			CorrectOutput: stdoutTextWithMetadata(item.CorrectOutput),
-			Verdict:       verdictPtr(item.TargetRun.Verdict),
+			Verdict:       new(item.TargetRun.Verdict),
 			Stderr:        textWithMetadataPtr(item.TargetRun.Stderr),
 		}
 		if useChecker {
@@ -490,10 +490,6 @@ func stdoutTextWithMetadataPtr(s string) *contracts.TextWithMetadata {
 		return nil
 	}
 	value := textWithMetadata(cleaned, 1000, 40)
-	return &value
-}
-
-func verdictPtr(value contracts.Verdict) *contracts.Verdict {
 	return &value
 }
 

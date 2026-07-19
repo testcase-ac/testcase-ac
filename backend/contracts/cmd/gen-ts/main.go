@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -32,16 +33,16 @@ var enumTypes = []string{
 }
 
 var structTypes = []reflect.Type{
-	reflect.TypeOf(contracts.CaseProvider{}),
-	reflect.TypeOf(contracts.StressEvent{}),
-	reflect.TypeOf(contracts.StressProgress{}),
-	reflect.TypeOf(contracts.OutputTextMetadata{}),
-	reflect.TypeOf(contracts.TextWithMetadata{}),
-	reflect.TypeOf(contracts.GeneratedBy{}),
-	reflect.TypeOf(contracts.Counterexample{}),
-	reflect.TypeOf(contracts.ExecutionFailedCase{}),
-	reflect.TypeOf(contracts.CorrectCase{}),
-	reflect.TypeOf(contracts.StressResult{}),
+	reflect.TypeFor[contracts.CaseProvider](),
+	reflect.TypeFor[contracts.StressEvent](),
+	reflect.TypeFor[contracts.StressProgress](),
+	reflect.TypeFor[contracts.OutputTextMetadata](),
+	reflect.TypeFor[contracts.TextWithMetadata](),
+	reflect.TypeFor[contracts.GeneratedBy](),
+	reflect.TypeFor[contracts.Counterexample](),
+	reflect.TypeFor[contracts.ExecutionFailedCase](),
+	reflect.TypeFor[contracts.CorrectCase](),
+	reflect.TypeFor[contracts.StressResult](),
 }
 
 func main() {
@@ -152,8 +153,7 @@ func writeEnum(out *bytes.Buffer, typeName string, values []string) {
 
 func writeInterface(out *bytes.Buffer, typ reflect.Type) {
 	fmt.Fprintf(out, "export interface %s {\n", typ.Name())
-	for i := 0; i < typ.NumField(); i++ {
-		field := typ.Field(i)
+	for field := range typ.Fields() {
 		name, optional, skip := jsonField(field)
 		if skip {
 			continue
@@ -183,13 +183,7 @@ func jsonField(field reflect.StructField) (string, bool, bool) {
 	if name == "" {
 		name = lowerFirst(field.Name)
 	}
-	optional := false
-	for _, part := range parts[1:] {
-		if part == "omitempty" {
-			optional = true
-			break
-		}
-	}
+	optional := slices.Contains(parts[1:], "omitempty")
 	return name, optional, false
 }
 
@@ -200,7 +194,7 @@ func tsType(typ reflect.Type) string {
 	case reflect.Slice, reflect.Array:
 		return tsType(typ.Elem()) + "[]"
 	}
-	if typ.PkgPath() == reflect.TypeOf(contracts.StressEvent{}).PkgPath() && typ.Name() != "" {
+	if typ.PkgPath() == reflect.TypeFor[contracts.StressEvent]().PkgPath() && typ.Name() != "" {
 		return typ.Name()
 	}
 	switch typ.Kind() {
