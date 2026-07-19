@@ -56,15 +56,19 @@ jobs:
 
       - name: Test host-safe backend packages
         working-directory: backend
-        run: go test ./api/... ./contracts ./internal/loader ./cmd/verify
+        run: |
+          module="$(go list -m)"
+          go list ./... |
+            grep -vxF -e "$module/internal/executor" |
+            xargs go test
 
       - name: Build runtime image
         run: docker build -f deploy/stresser.Dockerfile -t testcase-ac-dockertest .
 
-      - name: Test runtime backend packages
+      - name: Test runtime backend package
         env:
           DOCKERTEST_SKIP_BUILD: "1"
-        run: ./tests/dockertest/run_test.sh ./stresser ./internal/executor ./internal/verify
+        run: ./tests/dockertest/run_test.sh ./internal/executor
 
       - name: Use runner Chrome
         run: |
