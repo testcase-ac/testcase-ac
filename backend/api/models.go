@@ -123,10 +123,12 @@ type TestcaseInfo struct {
 }
 
 type ProblemSummary struct {
-	ProblemType string  `json:"problemType"`
-	ExternalID  string  `json:"externalId"`
-	Title       *string `json:"title"`
-	Runnable    bool    `json:"runnable"`
+	ProblemType  string  `json:"problemType"`
+	ExternalID   string  `json:"externalId"`
+	Title        *string `json:"title"`
+	Runnable     bool    `json:"runnable"`
+	HasGenerator bool    `json:"hasGenerator"`
+	OutputOnly   bool    `json:"outputOnly"`
 }
 
 type ProblemTypeSummary struct {

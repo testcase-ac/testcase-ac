@@ -113,10 +113,12 @@ func (a *App) handleListProblems(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		items = append(items, ProblemSummary{
-			ProblemType: problem.ProblemType,
-			ExternalID:  problem.ExternalID,
-			Title:       nilIfEmpty(problem.Title),
-			Runnable:    problem.Runnable,
+			ProblemType:  problem.ProblemType,
+			ExternalID:   problem.ExternalID,
+			Title:        nilIfEmpty(problem.Title),
+			Runnable:     problem.Runnable,
+			HasGenerator: len(problem.Generators) > 0,
+			OutputOnly:   problem.OutputOnly,
 		})
 	}
 	sortProblemSummaries(items)

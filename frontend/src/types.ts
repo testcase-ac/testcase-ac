@@ -59,6 +59,8 @@ export interface ProblemSummary {
   externalId: string;
   title: string | null;
   runnable: boolean;
+  hasGenerator: boolean;
+  outputOnly: boolean;
 }
 
 export interface ProblemTypeSummary {

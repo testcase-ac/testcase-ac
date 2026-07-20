@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { listProblems } from "../api";
-import ProblemRunnableBadge from "../components/ProblemRunnableBadge";
+import ProblemStatusBadge from "../components/ProblemStatusBadge";
 import { useI18n } from "../lib/i18n";
 import { problemHref } from "../lib/problemLinks";
 
@@ -131,7 +131,6 @@ export default function HomePage() {
           <li key={`${p.problemType}/${p.externalId}`}>
             <Link
               to={problemHref(p)}
-              aria-label={`${p.problemType} ${p.externalId} ${p.title ?? t("home.untitled")}${p.runnable ? "" : ` ${t("home.runnable.no")}`}`}
               className="grid grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-2 rounded-md border bg-card p-3 text-card-foreground transition-colors hover:border-primary hover:no-underline sm:grid-cols-[84px_96px_minmax(0,1fr)] sm:p-4"
             >
               <Badge variant="secondary" className="w-fit lowercase">
@@ -140,7 +139,11 @@ export default function HomePage() {
               <span className="font-mono text-sm text-muted-foreground">{p.externalId}</span>
               <span className="flex min-w-0 items-center justify-between gap-1.5">
                 <span className="min-w-0 truncate font-medium">{p.title ?? t("home.untitled")}</span>
-                <ProblemRunnableBadge runnable={p.runnable} />
+                <ProblemStatusBadge
+                  runnable={p.runnable}
+                  hasGenerator={p.hasGenerator}
+                  outputOnly={p.outputOnly}
+                />
               </span>
             </Link>
           </li>

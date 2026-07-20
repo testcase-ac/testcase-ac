@@ -5,7 +5,7 @@ import { Link, useParams } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { listProblems } from "../api";
-import ProblemRunnableBadge from "../components/ProblemRunnableBadge";
+import ProblemStatusBadge from "../components/ProblemStatusBadge";
 import { useI18n } from "../lib/i18n";
 import { problemHref } from "../lib/problemLinks";
 import {
@@ -133,7 +133,11 @@ function ProblemTypeBrowser({ problemType, currentPath }: { problemType: string;
                       <span className="min-w-0 truncate font-medium">
                         {problem.title ?? t("home.untitled")}
                       </span>
-                      <ProblemRunnableBadge runnable={problem.runnable} />
+                      <ProblemStatusBadge
+                        runnable={problem.runnable}
+                        hasGenerator={problem.hasGenerator}
+                        outputOnly={problem.outputOnly}
+                      />
                     </span>
                   </Link>
                 </li>

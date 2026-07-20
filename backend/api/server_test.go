@@ -601,8 +601,44 @@ func TestListProblemsIncludesTypeMetadataWhenFiltered(t *testing.T) {
 	if response.ProblemTypes[0].ProblemType != "koi" || response.ProblemTypes[0].Label == nil || *response.ProblemTypes[0].Label != "KOI" || response.ProblemTypes[0].Total != 1 || response.ProblemTypes[0].Runnable != 1 {
 		t.Fatalf("ProblemTypes[0] = %#v, want KOI summary", response.ProblemTypes[0])
 	}
-	if len(response.Problems) != 1 || !response.Problems[0].Runnable {
-		t.Fatalf("Problems = %#v, want runnable problem summary", response.Problems)
+	if len(response.Problems) != 1 || !response.Problems[0].Runnable || !response.Problems[0].HasGenerator {
+		t.Fatalf("Problems = %#v, want runnable problem summary with generator", response.Problems)
+	}
+}
+
+func TestListProblemsReportsGeneratorAndOutputOnlyStatus(t *testing.T) {
+	problem := Problem{
+		ProblemType:  "koi",
+		ExternalID:   "2026/1/elem/1",
+		CorrectCodes: []CodeFile{{Filename: "correct.cpp", Language: contracts.LanguageCpp23}},
+		Testcases:    []TestcaseFile{{Filename: "sample_1.in"}},
+		Runnable:     true,
+	}
+	outputOnlyProblem := Problem{
+		ProblemType: "koi",
+		ExternalID:  "2026/1/elem/2",
+		OutputOnly:  true,
+		Runnable:    true,
+	}
+	app := newTestApp(
+		Settings{RateLimitMax: 1, RateLimitWindowS: 60},
+		map[[2]string]Problem{
+			{"koi", problem.ExternalID}:           problem,
+			{"koi", outputOnlyProblem.ExternalID}: outputOnlyProblem,
+		},
+		okStresserClient{},
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/problems?problemType=koi", nil)
+	rec := httptest.NewRecorder()
+	app.Handler().ServeHTTP(rec, req)
+
+	var response ProblemList
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if len(response.Problems) != 2 || response.Problems[0].HasGenerator || response.Problems[0].OutputOnly || !response.Problems[1].OutputOnly {
+		t.Fatalf("Problems = %#v, want generator and output-only status in summaries", response.Problems)
 	}
 }
 
