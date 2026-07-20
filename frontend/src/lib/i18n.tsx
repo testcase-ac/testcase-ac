@@ -109,7 +109,7 @@ const translations = {
     "problem.advanced.hide": "Hide stress test settings",
     "problem.iterations.label": "Iterations",
     "problem.iterations.hint":
-      "How many cases to run in total ({min}–{max}). Fixed testcases and single generators always run first.",
+      "How many cases to run in total ({min}–{max}). Single generators and fixed testcases always run first.",
     "problem.totalRuntimeLimit.label": "Total runtime limit (s)",
     "problem.totalRuntimeLimit.hint":
       "Enter the maximum time to use for finding a counterexample. Includes both compilation time and execution time. (Max {max}s)",
@@ -132,7 +132,7 @@ const translations = {
     "problem.providers.noneSelected":
       "At least one testcase or generator source must be selected.",
     "problem.reference.validatorHint":
-      "Reference only. Not sent to the stresser.",
+      "Used to validate the format of testcases. Not used for finding counterexamples.",
     "problem.reference.checkerHint":
       "Used to compare output of correct code and submitted code.",
     "problem.correct.cannotDeselect":
@@ -314,7 +314,7 @@ const translations = {
     "problem.advanced.hide": "스트레스 테스트 설정 숨기기",
     "problem.iterations.label": "시도 횟수",
     "problem.iterations.hint":
-      "총 몇 개의 케이스를 시도할지 정합니다 ({min}–{max}). 고정 테스트케이스와 단일 제너레이터가 항상 먼저 실행됩니다.",
+      "총 몇 개의 케이스를 시도할지 정합니다 ({min}–{max}). 단일 제너레이터와 고정 테스트케이스가 항상 먼저 실행됩니다.",
     "problem.totalRuntimeLimit.label": "총 실행 시간 제한 (초)",
     "problem.totalRuntimeLimit.hint":
       "반례를 찾기 위해 사용할 최대 시간을 입력합니다. 컴파일 시간과 실행 시간을 모두 포함합니다. (최대 {max}초)",
@@ -335,9 +335,9 @@ const translations = {
     "problem.providers.checker": "체커",
     "problem.providers.none": "이 그룹에는 선택 가능한 항목이 없습니다.",
     "problem.providers.noneSelected":
-      "테스트케이스 또는 제너레이터 계열 입력은 최소 하나가 선택되어 있어야 합니다.",
+      "테스트케이스 또는 제너레이터 중 최소 하나가 선택되어 있어야 합니다.",
     "problem.reference.validatorHint":
-      "참고용입니다. 스트레서에는 전달되지 않습니다.",
+      "테스트케이스 형식 검사에 사용됩니다. 반례 찾기에는 사용되지 않습니다.",
     "problem.reference.checkerHint":
       "정답 코드와 제출된 코드의 출력 비교에 사용됩니다.",
     "problem.correct.cannotDeselect":
