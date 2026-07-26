@@ -11,8 +11,7 @@ int main(int argc, char* argv[]) {
     string A(la, '9');
     string B(lb, '9');
 
-    println(A);
-    println(B);
+    println(A, B);
 
     return 0;
 }
