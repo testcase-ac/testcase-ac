@@ -1,0 +1,1 @@
+../../koi/2024/1/mid/2/correct_reference.cpp

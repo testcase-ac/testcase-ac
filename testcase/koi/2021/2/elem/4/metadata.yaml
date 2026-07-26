@@ -4,5 +4,5 @@ timeLimitMs: 2000
 memoryLimitMb: 1024
 isSpecialJudge: true
 authors:
-  correct_reference.cpp: "한국정보올림피아드"
   checker.cpp: "한국정보올림피아드"
+  rejected_official.cpp: "한국정보올림피아드"

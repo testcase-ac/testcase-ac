@@ -1,0 +1,1 @@
+../../../../../boj/25401/generator_sample.cpp

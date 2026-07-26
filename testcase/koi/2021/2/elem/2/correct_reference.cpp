@@ -13,8 +13,9 @@ int main()
 	cin>>m>>n;
 	for(i=1;i<=m;++i)
 	{
-	    cin>>line+1;
-	    for(j=1;j<=n;++j)d[i][j]=line[j]-'0';
+	    // C++20 removed extraction into char pointers; read into the bounded array instead.
+	    cin>>line;
+	    for(j=1;j<=n;++j)d[i][j]=line[j-1]-'0';
 	}
 	for(j=2;j<=n;++j)
 	{

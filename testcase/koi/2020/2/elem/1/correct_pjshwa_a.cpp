@@ -1,0 +1,1 @@
+../../../../../boj/20186/correct_pjshwa_a.cpp

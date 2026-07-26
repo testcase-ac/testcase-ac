@@ -1,0 +1,1 @@
+../../../../../boj/20193/generator_sample.cpp

@@ -1,0 +1,1 @@
+../../koi/2020/1/elem/2/correct_reference.cpp

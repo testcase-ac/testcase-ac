@@ -5,4 +5,6 @@ memoryLimitMb: 1024
 authors:
   correct_reference.cpp: "한국정보올림피아드"
   sample_1.in: "한국정보올림피아드"
+  sample_1.out: "한국정보올림피아드"
   sample_2.in: "한국정보올림피아드"
+  sample_2.out: "한국정보올림피아드"

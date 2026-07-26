@@ -1,24 +1,27 @@
 #include "testlib.h"
-#include <vector>
 using namespace std;
 
 int main(int argc, char* argv[]) {
     registerValidation(argc, argv);
 
-    // Read N and s
-    int N = inf.readInt(1, 200000, "N");
+    int n = inf.readInt(1, 200000, "N");
     inf.readSpace();
-    int s = inf.readInt(-1000000000, 1000000000, "s");
+    long long s = inf.readLong(-1000000000LL, 1000000000LL, "s");
+    (void)s;
     inf.readEoln();
 
-    // Read A_1 ... A_N
-    vector<int> A = inf.readInts(N, -1000000000, 1000000000, "A_i");
-    inf.readEoln();
-
-    // Check non-decreasing order
-    for (int i = 1; i < N; ++i) {
-        ensuref(A[i-1] <= A[i], "A[%d]=%d > A[%d]=%d: Mirror positions must be non-decreasing", i, A[i-1], i+1, A[i]);
+    long long prev = -1000000000LL;
+    for (int i = 1; i <= n; ++i) {
+        long long a = inf.readLong(-1000000000LL, 1000000000LL, "A_i");
+        ensuref(i == 1 || prev <= a, "A_%d=%lld is smaller than A_%d=%lld", i, a, i - 1, prev);
+        prev = a;
+        if (i < n) {
+            inf.readSpace();
+        } else {
+            inf.readEoln();
+        }
     }
 
     inf.readEof();
+    return 0;
 }
