@@ -30,11 +30,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            base="${{ github.event.pull_request.base.sha }}"
-          else
-            base="HEAD^"
-          fi
+          base="HEAD^1"
           echo "Diff base: ${base}"
           go -C backend run ./cmd/changed-problems \
             --repo-root "${GITHUB_WORKSPACE}" \
