@@ -21,7 +21,7 @@ default_cors_allow_origins() {
   for port in 5173 5174 5175 5176 5177 5178 5179; do
     origins+=("http://localhost:${port}" "http://127.0.0.1:${port}")
   done
-  origins+=("https://testcase-ac.github.io" "https://next.testcase.ac" "https://testcase.ac")
+  origins+=("https://testcase-ac.github.io" "https://testcase.ac")
   printf '%s' "${origins[*]}"
 }
 
