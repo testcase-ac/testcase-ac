@@ -4,7 +4,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-const siteConfigPath = path.resolve(__dirname, "site-config.json");
+const siteConfigPath = path.resolve(import.meta.dirname, "site-config.json");
 
 // `base` is read at build time so GH Pages deployments can set it to
 // "/testcase-ac/" without code changes.
@@ -13,7 +13,7 @@ export default defineConfig({
   base: process.env.VITE_BASE_PATH ?? "/",
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
   server: {
