@@ -7,6 +7,8 @@
 
 ## 로컬 개발
 
+Node.js 26을 사용합니다. 아래 명령을 실행하기 전에 저장소 루트에서 `nvm use`를 실행하세요.
+
 ```bash
 cp .env.example .env
 npm install

@@ -7,6 +7,8 @@ backend stresser API.
 
 ## Local Development
 
+Use Node.js 26. Run `nvm use` from the repository root before the commands below.
+
 ```bash
 cp .env.example .env
 npm install
