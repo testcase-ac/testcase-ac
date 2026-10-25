@@ -16,9 +16,17 @@ import (
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	// prod: AWS_LAMBDA_RUNTIME_API is set by AWS Lambda runtime.
-	// setup default HTTP transport to support streaming response in a way recognized by AWS Lambda runtime.
-	if os.Getenv("AWS_LAMBDA_RUNTIME_API") != "" {
-		installStreamingTransport()
+	if runtimeAPI := os.Getenv("AWS_LAMBDA_RUNTIME_API"); runtimeAPI != "" {
+		address, closeProxy, err := startRuntimeAPIProxy(runtimeAPI)
+		if err != nil {
+			slog.Error("runtime_api_proxy_start_failed", "err", err)
+			os.Exit(1)
+		}
+		defer closeProxy()
+		if err := os.Setenv("AWS_LAMBDA_RUNTIME_API", address); err != nil {
+			slog.Error("runtime_api_proxy_config_failed", "err", err)
+			os.Exit(1)
+		}
 		lambda.Start(lambdaHandler)
 		return
 	}

@@ -10,9 +10,13 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/testcase-ac/testcase-ac/backend/contracts"
 )
@@ -93,8 +97,33 @@ func (t streamingTransport) RoundTrip(request *http.Request) (*http.Response, er
 	return t.base.RoundTrip(streamRequest)
 }
 
-func installStreamingTransport() {
-	http.DefaultTransport = streamingTransport{base: http.DefaultTransport}
+// Keep streaming adaptation outside the SDK client, which clones the default
+// *http.Transport when it starts the Runtime API loop.
+func startRuntimeAPIProxy(address string) (string, func(), error) {
+	base := http.DefaultTransport.(*http.Transport).Clone()
+	base.Proxy = nil
+	target := &url.URL{Scheme: "http", Host: address}
+	proxy := &httputil.ReverseProxy{
+		Rewrite: func(request *httputil.ProxyRequest) {
+			request.SetURL(target)
+		},
+		Transport:     streamingTransport{base: base},
+		FlushInterval: -1,
+	}
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return "", nil, err
+	}
+	server := &http.Server{Handler: proxy, ReadHeaderTimeout: 5 * time.Second}
+	go func() {
+		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("runtime_api_proxy_failed", "err", err)
+		}
+	}()
+	return listener.Addr().String(), func() {
+		_ = server.Close()
+		base.CloseIdleConnections()
+	}, nil
 }
 
 type flushWriter struct {
