@@ -12,7 +12,7 @@ import (
 	"strings"
 	"syscall"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 // dependencies isolates Build's I/O adapters so buildWithDependencies can be

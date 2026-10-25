@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.113.3
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-playground/validator/v10 v10.30.5
-	gopkg.in/yaml.v3 v3.0.1
+	go.yaml.in/yaml/v3 v3.0.5
 	modernc.org/sqlite v1.61.0
 )
 

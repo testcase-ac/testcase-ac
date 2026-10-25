@@ -40,7 +40,7 @@ jobs:
       STRESSER_FUNCTION_NAME: ${{ vars.STRESSER_LAMBDA_FUNCTION_NAME }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build and test stresser image
         env:
