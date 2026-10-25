@@ -114,8 +114,7 @@ func lambdaInvocationError(ctx context.Context, err error, logger *slog.Logger, 
 		logger.Info("stresser_invoke_canceled", "err", err, "elapsed_ms", time.Since(start).Milliseconds())
 		return err
 	}
-	var capacityError *lambdatypes.TooManyRequestsException
-	if errors.As(err, &capacityError) {
+	if _, ok := errors.AsType[*lambdatypes.TooManyRequestsException](err); ok {
 		logger.Warn("stresser_invoke_failed", "err", err, "status", http.StatusTooManyRequests, "elapsed_ms", time.Since(start).Milliseconds())
 		return &InvokeError{StatusCode: http.StatusTooManyRequests, Detail: "Stresser is at capacity, try again shortly."}
 	}
