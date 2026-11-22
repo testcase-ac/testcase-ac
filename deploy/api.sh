@@ -36,6 +36,7 @@ RATE_LIMIT_MAX=${DEPLOY_RATE_LIMIT_MAX}
 RATE_LIMIT_WINDOW_S=${DEPLOY_RATE_LIMIT_WINDOW_S}
 CORS_ALLOW_ORIGINS=${DEPLOY_CORS_ALLOW_ORIGINS}
 STATS_DB_PATH=${DEPLOY_STATS_DB_PATH}
+TESTCASE_REVISION=${DEPLOY_TESTCASE_REVISION}
 EOF
 }
 
@@ -248,6 +249,7 @@ require_command ssh
 require_command rsync
 require_command mktemp
 require_command go
+require_command git
 
 # REGULAR DEPLOY CONFIGURATION
 # The production host layout is fixed; only connection and AWS identifiers vary.
@@ -263,6 +265,10 @@ DEPLOY_BLUE_PORT="8000"
 DEPLOY_GREEN_PORT="8001"
 DEPLOY_SHUTDOWN_TIMEOUT_SEC="190s"
 DEPLOY_STATS_DB_PATH="/var/lib/testcase-ac/execution-stats.db"
+DEPLOY_TESTCASE_REVISION="$(git -C "${REPO_ROOT}" rev-parse HEAD)"
+if [[ -n "$(git -C "${REPO_ROOT}" status --porcelain -- testcase/)" ]]; then
+  DEPLOY_TESTCASE_REVISION+="+dirty"
+fi
 DEPLOY_STATS_RECONCILE_SERVICE="testcase-ac-stats-reconcile.service"
 DEPLOY_STATS_RECONCILE_TIMER="testcase-ac-stats-reconcile.timer"
 DEPLOY_AWS_REGION="${DEPLOY_AWS_REGION:-ap-northeast-2}"

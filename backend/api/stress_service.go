@@ -41,8 +41,9 @@ const (
 )
 
 type stressService struct {
-	client stresser.Client
-	stats  *StatsStore
+	client           stresser.Client
+	stats            *StatsStore
+	testcaseRevision string
 }
 
 type caseProviderPlan struct {
@@ -66,7 +67,7 @@ func buildProblemStressEvent(problem Problem, request StressRequest, requestID s
 		return contracts.StressEvent{}, http.StatusUnprocessableEntity, fmt.Sprintf("Problem %s/%s has no correct solution", problem.ProblemType, problem.ExternalID), false
 	}
 
-	referenceCode, referenceLang, ok, detail := resolveCorrectCode(problem, request)
+	reference, ok, detail := resolveCorrectCode(problem, request)
 	if !ok {
 		return contracts.StressEvent{}, http.StatusUnprocessableEntity, detail, false
 	}
@@ -81,14 +82,15 @@ func buildProblemStressEvent(problem Problem, request StressRequest, requestID s
 
 	targetLang := request.targetLangValue()
 	targetTimeLimitS, targetMemoryLimitMB := executionlimits.Adjusted(problem.ProblemType, targetLang, problem.TimeLimitMS, problem.MemoryLimitMB)
-	correctTimeLimitS, correctMemoryLimitMB := executionlimits.Adjusted(problem.ProblemType, referenceLang, problem.TimeLimitMS, problem.MemoryLimitMB)
+	correctTimeLimitS, correctMemoryLimitMB := executionlimits.Adjusted(problem.ProblemType, reference.Language, problem.TimeLimitMS, problem.MemoryLimitMB)
 	return contracts.StressEvent{
 		Operation:                contracts.OperationStress,
 		RequestID:                requestID,
 		TargetCode:               request.TargetCode,
 		TargetCodeLang:           targetLang,
-		CorrectCode:              referenceCode,
-		CorrectCodeLang:          referenceLang,
+		CorrectCode:              reference.Content,
+		CorrectCodeLang:          reference.Language,
+		CorrectCodeFilename:      reference.Filename,
 		CheckerCode:              checkerCode,
 		TargetTimeLimit:          targetTimeLimitS,
 		TargetMemoryLimit:        targetMemoryLimitMB,
@@ -189,15 +191,11 @@ func buildCustomStressEvent(request StressRequest, requestID string) (contracts.
 	}, 0, "", true
 }
 
-func resolveCorrectCode(problem Problem, request StressRequest) (string, contracts.Language, bool, string) {
+func resolveCorrectCode(problem Problem, request StressRequest) (CodeFile, bool, string) {
 	if request.CorrectCode != "" {
-		return request.CorrectCode, request.correctLangValue(), true, ""
+		return CodeFile{Content: request.CorrectCode, Language: request.correctLangValue()}, true, ""
 	}
-	reference, ok, detail := selectSingleCode(problem.CorrectCodes, request.CorrectCodeFilename, "correct code")
-	if !ok {
-		return "", "", false, detail
-	}
-	return reference.Content, reference.Language, true, ""
+	return selectSingleCode(problem.CorrectCodes, request.CorrectCodeFilename, "correct code")
 }
 
 func resolveCaseProviders(problem Problem, request StressRequest) ([]contracts.CaseProvider, bool, string) {
@@ -312,8 +310,9 @@ func (s *stressService) runProblem(ctx context.Context, problem Problem, request
 	dispatch := statsDispatchForEvent(problem, event, time.Now().UTC())
 	s.recordDispatch(&dispatch, event)
 	result := s.invoke(ctx, event, progress)
-
-	s.recordCompletion(result.terminal)
+	usesRepositoryMaterials := event.CorrectCodeFilename != "" &&
+		request.CheckerCode == nil && len(request.TextTestcases) == 0 && len(request.GeneratorSources) == 0
+	s.recordCompletion(dispatch, event, result, usesRepositoryMaterials)
 	return result.response, result.statusCode, result.detail, result.ok
 }
 
@@ -410,7 +409,8 @@ func (s *stressService) recordDispatch(dispatch *StatsDispatch, event contracts.
 	}
 }
 
-func (s *stressService) recordCompletion(terminal StatsTerminal) {
+func (s *stressService) recordCompletion(dispatch StatsDispatch, event contracts.StressEvent, result stressInvocationResult, usesRepositoryMaterials bool) {
+	terminal := result.terminal
 	attrs := []any{"request_id", terminal.RequestID, "outcome", terminal.Outcome}
 	if terminal.StressStatus != nil {
 		attrs = append(attrs,
@@ -429,6 +429,15 @@ func (s *stressService) recordCompletion(terminal StatsTerminal) {
 		return
 	}
 	statsWrite(func(writeCtx context.Context) error { return s.stats.RecordTerminal(writeCtx, terminal) })
+	status := result.response.Status
+	if usesRepositoryMaterials &&
+		(status == contracts.StressStatusFound || status == contracts.StressStatusNotFound || status == contracts.StressStatusCompileError) {
+		writeCtx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		defer cancel()
+		if err := s.stats.RecordSubmission(writeCtx, dispatch, event, result.response, s.testcaseRevision); err != nil {
+			slog.Warn("submission_audit_write_failed", "request_id", terminal.RequestID, "err", err)
+		}
+	}
 }
 
 func statsWrite(write func(context.Context) error) {

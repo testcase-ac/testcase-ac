@@ -50,8 +50,9 @@ func NewAppWithTypeMetadata(settings Settings, catalog map[[2]string]Problem, ty
 		validate:     validator.New(validator.WithRequiredStructEnabled()),
 		stats:        stats,
 		stress: stressService{
-			client: stressClient,
-			stats:  stats,
+			client:           stressClient,
+			stats:            stats,
+			testcaseRevision: settings.TestcaseRevision,
 		},
 	}
 }

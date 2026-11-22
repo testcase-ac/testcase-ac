@@ -36,6 +36,9 @@ func TestBuildProblemStressEventAppliesAdjustedLimitsPerLanguage(t *testing.T) {
 	if !ok {
 		t.Fatalf("buildProblemStressEvent() failed: status=%d detail=%q", statusCode, detail)
 	}
+	if event.CorrectCodeFilename != "correct.py" {
+		t.Fatalf("CorrectCodeFilename = %q, want correct.py", event.CorrectCodeFilename)
+	}
 	if event.TargetTimeLimit != 8 {
 		t.Fatalf("TargetTimeLimit = %.3f, want 8", event.TargetTimeLimit)
 	}
@@ -103,6 +106,9 @@ func TestBuildProblemStressEventUsesInlineMaterialsWhenProvided(t *testing.T) {
 	}
 	if event.CorrectCodeLang != "nodejs" {
 		t.Fatalf("CorrectCodeLang = %q, want nodejs", event.CorrectCodeLang)
+	}
+	if event.CorrectCodeFilename != "" {
+		t.Fatalf("CorrectCodeFilename = %q, want empty for inline reference", event.CorrectCodeFilename)
 	}
 	if event.CheckerCode != checkerCode {
 		t.Fatalf("CheckerCode = %q, want inline override", event.CheckerCode)

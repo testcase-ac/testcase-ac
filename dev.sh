@@ -32,6 +32,7 @@ Useful overrides:
   RUNTIME_IMAGE=testcase-ac-runtime:local
   RUNTIME_PLATFORM=linux/amd64     Match production instead of native Docker arch
   TESTCASE_LOCAL_PATH=/absolute/path/to/repo-or-fixture
+  TESTCASE_REVISION=<git-commit>   Optional revision for local audit rows
   REMOTE_API_BASE_URL=https://api.testcase.ac
   REBUILD_STRESSER_IMAGE=1       Force rebuild stresser image even if sources are unchanged
 EOF

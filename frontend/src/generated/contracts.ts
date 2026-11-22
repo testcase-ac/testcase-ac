@@ -116,6 +116,7 @@ export interface StressEvent {
   targetCodeLang: Language;
   correctCode: string;
   correctCodeLang: Language;
+  correctCodeFilename?: string;
   checkerCode?: string;
   targetTimeLimit: number;
   targetMemoryLimit: number;

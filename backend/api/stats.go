@@ -20,7 +20,7 @@ const statsTimeLayout = "2006-01-02T15:04:05.000000000Z"
 
 var errStatsDBPathRequired = errors.New("STATS_DB_PATH must be set")
 
-// StatsStore keeps the durable dispatch ledger used by public statistics.
+// StatsStore keeps the execution ledger and submission audit in one database.
 type StatsStore struct {
 	db *sql.DB
 }
@@ -91,10 +91,10 @@ func (s *StatsStore) initialize(ctx context.Context) error {
 	if err := s.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return err
 	}
-	if version == 1 {
+	if version == 2 {
 		return nil
 	}
-	if version != 0 {
+	if version != 0 && version != 1 {
 		return fmt.Errorf("unsupported statistics schema version %d", version)
 	}
 
@@ -105,6 +105,8 @@ func (s *StatsStore) initialize(ctx context.Context) error {
 	defer tx.Rollback()
 
 	for _, statement := range []string{
+		// Acquire the write lock before reading the schema so SQLite honors the busy timeout.
+		`PRAGMA user_version = 2`,
 		`CREATE TABLE IF NOT EXISTS executions (
             request_id TEXT PRIMARY KEY,
             problem_type TEXT NOT NULL,
@@ -132,7 +134,24 @@ func (s *StatsStore) initialize(ctx context.Context) error {
             journal_cursor TEXT,
             last_reconciled_at_utc TEXT
         )`,
-		`PRAGMA user_version = 1`,
+		`CREATE TABLE IF NOT EXISTS submissions (
+            request_id TEXT PRIMARY KEY NOT NULL,
+            submitted_at_utc TEXT NOT NULL,
+            problem_type TEXT NOT NULL,
+            external_id TEXT NOT NULL,
+            testcase_revision TEXT NOT NULL,
+            target_language TEXT NOT NULL,
+            target_source TEXT NOT NULL,
+            reference_filename TEXT NOT NULL,
+            providers_json TEXT NOT NULL,
+            iterations INTEGER NOT NULL,
+            runtime_limit_seconds INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            total_cases INTEGER NOT NULL,
+            failure_samples_json TEXT NOT NULL
+        )`,
+		`CREATE INDEX IF NOT EXISTS submissions_submitted_at_idx ON submissions(submitted_at_utc)`,
+		`CREATE INDEX IF NOT EXISTS submissions_problem_status_idx ON submissions(problem_type, external_id, status)`,
 	} {
 		if _, err := tx.ExecContext(ctx, statement); err != nil {
 			return err

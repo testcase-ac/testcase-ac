@@ -155,6 +155,7 @@ type StressEvent struct {
 	TargetCodeLang           Language       `json:"targetCodeLang"`
 	CorrectCode              string         `json:"correctCode"`
 	CorrectCodeLang          Language       `json:"correctCodeLang"`
+	CorrectCodeFilename      string         `json:"correctCodeFilename,omitempty"`
 	CheckerCode              string         `json:"checkerCode,omitempty"`
 	TargetTimeLimit          float64        `json:"targetTimeLimit"`
 	TargetMemoryLimit        int            `json:"targetMemoryLimit"`

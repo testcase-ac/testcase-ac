@@ -68,6 +68,40 @@ func TestOpenStatsStoreDoesNotWriteAnExistingSchema(t *testing.T) {
 	defer second.Close()
 }
 
+func TestStatsSchemaUpgradeWaitsForWriter(t *testing.T) {
+	store := newTestStatsStore(t)
+	if _, err := store.db.Exec("DROP TABLE submissions; PRAGMA user_version = 1"); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := t.Context()
+	writer, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Rollback()
+	if _, err := writer.ExecContext(ctx, "UPDATE executions SET outcome = 'completed'"); err != nil {
+		t.Fatal(err)
+	}
+	released := make(chan error, 1)
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		released <- writer.Rollback()
+	}()
+
+	upgradeErr := store.initialize(ctx)
+	if err := <-released; err != nil {
+		t.Fatal(err)
+	}
+	if upgradeErr != nil {
+		t.Fatal(upgradeErr)
+	}
+	var version int
+	if err := store.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil || version != 2 {
+		t.Fatalf("schema version = %d, want 2: %v", version, err)
+	}
+}
+
 func TestStatsStoreDispatchIsIdempotentAndTerminalDoesNotChangeCount(t *testing.T) {
 	store := newTestStatsStore(t)
 	ctx := context.Background()
