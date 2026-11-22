@@ -46,7 +46,7 @@ func (a *App) handleStress(w http.ResponseWriter, r *http.Request) {
 		a.handleStressStream(w, r, problem, payload, requestID)
 		return
 	}
-	response, statusCode, detail, ok := runProblemStress(r.Context(), problem, payload, requestID, a.stresser, a.stats, nil)
+	response, statusCode, detail, ok := a.stress.runProblem(r.Context(), problem, payload, requestID, nil)
 	if !ok {
 		writeError(w, statusCode, detail)
 		return
@@ -68,13 +68,11 @@ func (a *App) handleStressStream(w http.ResponseWriter, r *http.Request, problem
 		return http.NewResponseController(w).Flush()
 	}
 
-	response, statusCode, detail, ok := runProblemStress(
+	response, statusCode, detail, ok := a.stress.runProblem(
 		r.Context(),
 		problem,
 		payload,
 		requestID,
-		a.stresser,
-		a.stats,
 		func(progress contracts.StressProgress) error {
 			return writeRecord(stressHTTPStreamRecord{Type: "progress", Progress: &progress})
 		},
@@ -102,7 +100,7 @@ func (a *App) handleCustomStress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	requestID := requestIDFromContext(r.Context())
-	response, statusCode, detail, ok := RunCustomStress(r.Context(), payload, requestID, a.stresser)
+	response, statusCode, detail, ok := a.stress.runCustom(r.Context(), payload, requestID)
 	if !ok {
 		writeError(w, statusCode, detail)
 		return

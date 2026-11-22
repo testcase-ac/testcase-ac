@@ -40,9 +40,22 @@ const (
 	clientClosedRequestDetail = "Client closed request."
 )
 
+type stressService struct {
+	client stresser.Client
+	stats  *StatsStore
+}
+
 type caseProviderPlan struct {
 	Providers  []contracts.CaseProvider
 	Iterations int
+}
+
+type stressInvocationResult struct {
+	response   StressResponse
+	terminal   StatsTerminal
+	statusCode int
+	detail     string
+	ok         bool
 }
 
 func buildProblemStressEvent(problem Problem, request StressRequest, requestID string) (contracts.StressEvent, int, string, bool) {
@@ -291,75 +304,44 @@ func buildSinglegenProviders(inputs []CodeFile) []contracts.CaseProvider {
 	return out
 }
 
-func runProblemStress(ctx context.Context, problem Problem, request StressRequest, requestID string, client stresser.Client, stats *StatsStore, progress stresser.ProgressCallback) (StressResponse, int, string, bool) {
+func (s *stressService) runProblem(ctx context.Context, problem Problem, request StressRequest, requestID string, progress stresser.ProgressCallback) (StressResponse, int, string, bool) {
 	event, statusCode, detail, ok := buildProblemStressEvent(problem, request, requestID)
 	if !ok {
 		return StressResponse{}, statusCode, detail, false
 	}
 	dispatch := statsDispatchForEvent(problem, event, time.Now().UTC())
-	return invokeStressEvent(
-		ctx,
-		event,
-		client,
-		stats,
-		&dispatch,
-		progress,
-	)
+	s.recordDispatch(&dispatch, event)
+	result := s.invoke(ctx, event, progress)
+
+	s.recordCompletion(result.terminal)
+	return result.response, result.statusCode, result.detail, result.ok
 }
 
-func RunCustomStress(ctx context.Context, request StressRequest, requestID string, client stresser.Client) (StressResponse, int, string, bool) {
+func (s *stressService) runCustom(ctx context.Context, request StressRequest, requestID string) (StressResponse, int, string, bool) {
 	event, statusCode, detail, ok := buildCustomStressEvent(request, requestID)
 	if !ok {
 		return StressResponse{}, statusCode, detail, false
 	}
-	return invokeStressEvent(ctx, event, client, nil, nil, nil)
+	s.recordDispatch(nil, event)
+	result := s.invoke(ctx, event, nil)
+	return result.response, result.statusCode, result.detail, result.ok
 }
 
-func invokeStressEvent(ctx context.Context, event contracts.StressEvent, client stresser.Client, stats *StatsStore, dispatch *StatsDispatch, progress stresser.ProgressCallback) (StressResponse, int, string, bool) {
-	logAttrs := []any{
-		"request_id", event.RequestID,
-		"case_providers", len(event.CaseProviders),
-		"iterations", event.Iterations,
-		"total_runtime_limit_seconds", event.TotalRuntimeLimitSeconds,
-	}
-	if dispatch != nil {
-		logAttrs = append(logAttrs,
-			"problem_type", dispatch.ProblemType,
-			"external_id", dispatch.ExternalID,
-			"target_language", *dispatch.TargetLanguage,
-			"text_provider_count", *dispatch.TextProviderCount,
-			"generator_provider_count", *dispatch.GeneratorProviderCount,
-			"singlegen_provider_count", *dispatch.SinglegenProviderCount,
-			"checker_used", *dispatch.CheckerUsed,
-		)
-	} else {
-		logAttrs = append(logAttrs, "custom_invocation", true)
-	}
-	slog.Info(
-		"stress_dispatch",
-		logAttrs...,
-	)
-	if stats != nil && dispatch != nil {
-		statsWrite(func(writeCtx context.Context) error { return stats.RecordDispatch(writeCtx, *dispatch) })
-	}
+func (s *stressService) invoke(ctx context.Context, event contracts.StressEvent, progress stresser.ProgressCallback) stressInvocationResult {
 	event.StreamProgress = progress != nil
-	stresserResp, err := client.Invoke(ctx, event, progress)
+	stresserResp, err := s.client.Invoke(ctx, event, progress)
 	if err != nil {
+		terminal := StatsTerminal{RequestID: event.RequestID, TerminalAt: time.Now().UTC(), Outcome: "invoke_failed"}
 		if errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
 			slog.Info("stress_request_canceled", "request_id", event.RequestID)
-			if dispatch != nil {
-				recordStatsTerminal(stats, StatsTerminal{RequestID: event.RequestID, TerminalAt: time.Now().UTC(), Outcome: "canceled"})
-			}
-			return StressResponse{}, statusClientClosedRequest, clientClosedRequestDetail, false
-		}
-		if dispatch != nil {
-			recordStatsTerminal(stats, StatsTerminal{RequestID: event.RequestID, TerminalAt: time.Now().UTC(), Outcome: "invoke_failed"})
+			terminal.Outcome = "canceled"
+			return stressInvocationResult{terminal: terminal, statusCode: statusClientClosedRequest, detail: clientClosedRequestDetail}
 		}
 		var invokeErr *stresser.InvokeError
-		if ok := errors.As(err, &invokeErr); ok {
-			return StressResponse{}, invokeErr.StatusCode, invokeErr.Detail, false
+		if errors.As(err, &invokeErr) {
+			return stressInvocationResult{terminal: terminal, statusCode: invokeErr.StatusCode, detail: invokeErr.Detail}
 		}
-		return StressResponse{}, http.StatusServiceUnavailable, "Stresser is unavailable, try again shortly.", false
+		return stressInvocationResult{terminal: terminal, statusCode: http.StatusServiceUnavailable, detail: "Stresser is unavailable, try again shortly."}
 	}
 	response := transformStresserResponse(stresserResp, event.RequestID)
 	status := string(response.Status)
@@ -376,10 +358,7 @@ func invokeStressEvent(ctx context.Context, event contracts.StressEvent, client 
 		errorType := string(stresserResp.ErrorType)
 		terminal.ErrorType = &errorType
 	}
-	if dispatch != nil {
-		recordStatsTerminal(stats, terminal)
-	}
-	return response, 0, "", true
+	return stressInvocationResult{response: response, terminal: terminal, ok: true}
 }
 
 func statsDispatchForEvent(problem Problem, event contracts.StressEvent, at time.Time) StatsDispatch {
@@ -405,7 +384,33 @@ func statsDispatchForEvent(problem Problem, event contracts.StressEvent, at time
 	}
 }
 
-func recordStatsTerminal(stats *StatsStore, terminal StatsTerminal) {
+func (s *stressService) recordDispatch(dispatch *StatsDispatch, event contracts.StressEvent) {
+	attrs := []any{
+		"request_id", event.RequestID,
+		"case_providers", len(event.CaseProviders),
+		"iterations", event.Iterations,
+		"total_runtime_limit_seconds", event.TotalRuntimeLimitSeconds,
+	}
+	if dispatch != nil {
+		attrs = append(attrs,
+			"problem_type", dispatch.ProblemType,
+			"external_id", dispatch.ExternalID,
+			"target_language", *dispatch.TargetLanguage,
+			"text_provider_count", *dispatch.TextProviderCount,
+			"generator_provider_count", *dispatch.GeneratorProviderCount,
+			"singlegen_provider_count", *dispatch.SinglegenProviderCount,
+			"checker_used", *dispatch.CheckerUsed,
+		)
+	} else {
+		attrs = append(attrs, "custom_invocation", true)
+	}
+	slog.Info("stress_dispatch", attrs...)
+	if s.stats != nil && dispatch != nil {
+		statsWrite(func(writeCtx context.Context) error { return s.stats.RecordDispatch(writeCtx, *dispatch) })
+	}
+}
+
+func (s *stressService) recordCompletion(terminal StatsTerminal) {
 	attrs := []any{"request_id", terminal.RequestID, "outcome", terminal.Outcome}
 	if terminal.StressStatus != nil {
 		attrs = append(attrs,
@@ -420,9 +425,10 @@ func recordStatsTerminal(stats *StatsStore, terminal StatsTerminal) {
 		attrs = append(attrs, "error_type", *terminal.ErrorType)
 	}
 	slog.Info("stress_terminal", attrs...)
-	if stats != nil {
-		statsWrite(func(writeCtx context.Context) error { return stats.RecordTerminal(writeCtx, terminal) })
+	if s.stats == nil {
+		return
 	}
+	statsWrite(func(writeCtx context.Context) error { return s.stats.RecordTerminal(writeCtx, terminal) })
 }
 
 func statsWrite(write func(context.Context) error) {

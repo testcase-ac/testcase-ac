@@ -27,30 +27,33 @@ type App struct {
 	settings     Settings
 	catalog      map[[2]string]Problem
 	typeMetadata map[string]TypeMetadata
-	stresser     stresser.Client
+	stress       stressService
 	rateLimiter  *RateLimiter
 	validate     *validator.Validate
 	stats        *StatsStore
 }
 
 func NewAppWithTypeMetadata(settings Settings, catalog map[[2]string]Problem, typeMetadata map[string]TypeMetadata, stressClient stresser.Client) *App {
-	app := &App{
+	var stats *StatsStore
+	if settings.StatsDBPath != "" {
+		var err error
+		stats, err = OpenStatsStore(settings.StatsDBPath)
+		if err != nil {
+			slog.Error("stats_disabled", "err", err)
+		}
+	}
+	return &App{
 		settings:     settings,
 		catalog:      catalog,
 		typeMetadata: typeMetadata,
-		stresser:     stressClient,
 		rateLimiter:  NewRateLimiter(settings.RateLimitMax, settings.RateLimitWindowS),
 		validate:     validator.New(validator.WithRequiredStructEnabled()),
+		stats:        stats,
+		stress: stressService{
+			client: stressClient,
+			stats:  stats,
+		},
 	}
-	if settings.StatsDBPath != "" {
-		stats, err := OpenStatsStore(settings.StatsDBPath)
-		if err != nil {
-			slog.Error("stats_disabled", "err", err)
-		} else {
-			app.stats = stats
-		}
-	}
-	return app
 }
 
 func (a *App) Handler() http.Handler {

@@ -29,6 +29,19 @@ func newTestStatsStore(t *testing.T) *StatsStore {
 	return store
 }
 
+func newTestAppWithStats(t *testing.T, catalog map[[2]string]Problem, client stresser.Client) *App {
+	t.Helper()
+	app := newTestApp(
+		Settings{RateLimitMax: 100, RateLimitWindowS: 10, StatsDBPath: filepath.Join(t.TempDir(), "stats.db")},
+		catalog, client,
+	)
+	if app.stats == nil {
+		t.Fatal("stats store did not open")
+	}
+	t.Cleanup(func() { _ = app.stats.Close() })
+	return app
+}
+
 func TestOpenStatsStoreDoesNotWriteAnExistingSchema(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "stats.db")
 	store, err := OpenStatsStore(path)
@@ -245,42 +258,44 @@ func TestStatsInitializationFailureDoesNotBreakAPI(t *testing.T) {
 	}
 }
 
-func TestProblemStressCountsCompletedCanceledAndInvokeFailed(t *testing.T) {
+func TestProblemStressRecordsCompletedCanceledAndInvokeFailed(t *testing.T) {
 	for _, test := range []struct {
-		name     string
+		outcome  string
 		stresser stresser.Client
 	}{
-		{name: "completed", stresser: okStresserClient{}},
-		{name: "canceled", stresser: errorStresserClient{err: context.Canceled}},
-		{name: "invoke failed", stresser: errorStresserClient{err: &stresser.InvokeError{StatusCode: http.StatusServiceUnavailable, Detail: "unavailable"}}},
+		{outcome: "completed", stresser: okStresserClient{}},
+		{outcome: "canceled", stresser: errorStresserClient{err: context.Canceled}},
+		{outcome: "invoke_failed", stresser: errorStresserClient{err: &stresser.InvokeError{StatusCode: http.StatusServiceUnavailable, Detail: "unavailable"}}},
 	} {
-		t.Run(test.name, func(t *testing.T) {
-			store := newTestStatsStore(t)
-			app := newTestApp(
-				Settings{RateLimitMax: 100, RateLimitWindowS: 10},
+		t.Run(test.outcome, func(t *testing.T) {
+			app := newTestAppWithStats(t,
 				map[[2]string]Problem{{"boj", "1000"}: basicStressProblem()},
 				test.stresser,
 			)
-			app.stats = store
+			handler := app.Handler()
 			req := httptest.NewRequest(http.MethodPost, "/api/problems/boj/1000/stress", bytes.NewReader(basicStressRequestBody(t)))
 			rec := httptest.NewRecorder()
-			app.Handler().ServeHTTP(rec, req)
+			handler.ServeHTTP(rec, req)
 
-			total, err := store.ProblemTotal(context.Background(), "boj", "1000")
-			if err != nil {
-				t.Fatal(err)
+			statsRec := httptest.NewRecorder()
+			handler.ServeHTTP(statsRec, httptest.NewRequest(http.MethodGet, "/api/stats", nil))
+			var snapshot StatsResponse
+			err := json.Unmarshal(statsRec.Body.Bytes(), &snapshot)
+			if err != nil || statsRec.Code != http.StatusOK || snapshot.Total != 1 {
+				t.Fatalf("stats response = %d %s, want one execution: %v", statsRec.Code, statsRec.Body.String(), err)
 			}
-			if total != 1 {
-				t.Fatalf("total = %d, want 1; status = %d", total, rec.Code)
+			var outcome string
+			err = app.stats.db.QueryRowContext(t.Context(), "SELECT outcome FROM executions WHERE request_id = ?",
+				rec.Header().Get(requestIDHeader)).Scan(&outcome)
+			if err != nil || outcome != test.outcome {
+				t.Fatalf("recorded outcome = %q, want %q: %v", outcome, test.outcome, err)
 			}
 		})
 	}
 }
 
 func TestCustomStressDoesNotCount(t *testing.T) {
-	store := newTestStatsStore(t)
-	app := newTestApp(Settings{RateLimitMax: 100, RateLimitWindowS: 10}, nil, okStresserClient{})
-	app.stats = store
+	app := newTestAppWithStats(t, nil, okStresserClient{})
 	timeLimit, memoryLimit, iterations := 1000, 128, 1
 	body, err := json.Marshal(StressRequest{
 		TargetCode: "target", TargetCodeLang: contracts.LanguageCpp23,
@@ -297,7 +312,7 @@ func TestCustomStressDoesNotCount(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
-	snapshot, err := store.Snapshot(context.Background(), time.Now().UTC())
+	snapshot, err := app.stats.Snapshot(context.Background(), time.Now().UTC())
 	if err != nil || snapshot.Total != 0 {
 		t.Fatalf("snapshot total = %d, err = %v, want 0", snapshot.Total, err)
 	}
@@ -309,13 +324,14 @@ func TestProblemStatsEventsAreLoggedWithoutSQLite(t *testing.T) {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(&output, nil)))
 	t.Cleanup(func() { slog.SetDefault(original) })
 
-	_, _, _, ok := runProblemStress(
+	service := stressService{client: okStresserClient{}}
+	_, _, _, ok := service.runProblem(
 		context.Background(), basicStressProblem(),
 		StressRequest{TargetCode: "target", TargetCodeLang: contracts.LanguageCpp23},
-		"req-log", okStresserClient{}, nil, nil,
+		"req-log", nil,
 	)
 	if !ok {
-		t.Fatal("runProblemStress() failed")
+		t.Fatal("runProblem() failed")
 	}
 	logs := output.String()
 	for _, want := range []string{
@@ -332,22 +348,20 @@ func TestProblemStatsEventsAreLoggedWithoutSQLite(t *testing.T) {
 }
 
 func TestStatsEndpointFiltersMissingProblemsAndOrdersTies(t *testing.T) {
-	store := newTestStatsStore(t)
+	app := newTestAppWithStats(t, map[[2]string]Problem{
+		{"boj", "1000"}: {ProblemType: "boj", ExternalID: "1000", Title: "A+B"},
+		{"boj", "2000"}: {ProblemType: "boj", ExternalID: "2000", Title: "A-B"},
+	}, okStresserClient{})
 	now := time.Now().UTC()
 	for _, dispatch := range []StatsDispatch{
 		{RequestID: "1", ProblemType: "boj", ExternalID: "1000", DispatchedAt: now},
 		{RequestID: "2", ProblemType: "boj", ExternalID: "2000", DispatchedAt: now},
 		{RequestID: "3", ProblemType: "removed", ExternalID: "1", DispatchedAt: now},
 	} {
-		if err := store.RecordDispatch(context.Background(), dispatch); err != nil {
+		if err := app.stats.RecordDispatch(context.Background(), dispatch); err != nil {
 			t.Fatal(err)
 		}
 	}
-	app := newTestApp(Settings{RateLimitMax: 100, RateLimitWindowS: 10}, map[[2]string]Problem{
-		{"boj", "1000"}: {ProblemType: "boj", ExternalID: "1000", Title: "A+B"},
-		{"boj", "2000"}: {ProblemType: "boj", ExternalID: "2000", Title: "A-B"},
-	}, okStresserClient{})
-	app.stats = store
 	req := httptest.NewRequest(http.MethodGet, "/api/stats", nil)
 	rec := httptest.NewRecorder()
 	app.Handler().ServeHTTP(rec, req)
