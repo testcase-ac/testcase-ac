@@ -45,7 +45,7 @@ jobs:
       - name: Build and test stresser image
         env:
           DOCKERTEST_FORCE_BUILD: "1"
-        run: ./tests/dockertest/run_test.sh ./stresser ./internal/executor ./internal/verify
+        run: ./tests/dockertest/run_test.sh -p=1 ./stresser ./internal/executor ./internal/verify
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
