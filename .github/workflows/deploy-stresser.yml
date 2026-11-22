@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     environment: testcase-ac-prod
     permissions:
       contents: read
@@ -45,7 +45,9 @@ jobs:
       - name: Build and test stresser image
         env:
           DOCKERTEST_FORCE_BUILD: "1"
-        run: ./tests/dockertest/run_test.sh -p=1 ./stresser ./internal/executor ./internal/verify
+          # Keep the tested Lambda image in a single-platform manifest.
+          BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
+        run: ./tests/dockertest/run_test.sh ./stresser ./internal/executor ./internal/verify
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
