@@ -27,6 +27,12 @@ When `validator.cpp` exists, treat it as the executable mirror of the statement 
 
 Correct solutions, fixed testcases, and existing generators can reveal useful conflicts, but they do not override the statement or validator.
 
+## Choosing Testcases
+
+Prefer testcases with at least one expected output item. Include an input with an empty expected answer only when the statement, an official example, or evidence from judged submissions strongly suggests that such cases are intended. A numeric bound that includes the input is weak evidence on its own.
+
+By default, choose generator modes and parameter ranges that avoid inputs with empty expected answers. For example, if only some operations produce output, include at least one output-producing operation in each generated input.
+
 ## Compactness
 
 The overall input size should be small enough to manually read and verify. Sometimes generate medium-size testcases that are not very small but still compact enough to inspect by hand.
