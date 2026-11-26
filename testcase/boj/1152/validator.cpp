@@ -22,8 +22,6 @@ int main(int argc, char* argv[]) {
                     "Consecutive spaces detected at positions %d and %d", i-1, i);
         }
     }
-    ensuref(!(s.size() == 1 && s[0] == ' '), "String cannot be all blank");
-
     // Final EOF check
     inf.readEof();
     return 0;

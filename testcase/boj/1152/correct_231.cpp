@@ -1,29 +1,17 @@
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
 
-int main()
-{
-    char input[1000002] = {};
-    int count  = 0;
-    int len;
-    fgets(input, sizeof(input), stdin);
-
-    len = strlen(input);
-
-    for(int i = 0; i < len; i++)
-    {
-        if((input[i] == ' ') && (input[i - 1] != ' '))
-            count ++;
+int main() {
+    char input[1000002];
+    if (std::fgets(input, sizeof(input), stdin) == nullptr) {
+        return 0;
     }
 
-    if(input[0] == ' ')
-        count --;
-    if(input[len - 1] == '\n' && input[len - 2] != ' ')
-        count ++;
-    if(input[0] == '\n')
-        count = 0;
+    int count = 0;
+    for (int i = 0; input[i] != '\0' && input[i] != '\n'; ++i) {
+        if (input[i] != ' ' && (i == 0 || input[i - 1] == ' ')) {
+            ++count;
+        }
+    }
 
-    printf("%d\n", count);
-
-    return 0;
+    std::printf("%d\n", count);
 }
