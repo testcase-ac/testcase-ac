@@ -6,6 +6,27 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
     registerGen(argc, argv, 1);
+    if (rnd.next(12) == 0) {
+        // Both two-step routes visit just one of the two hazard cells.
+        int N = rnd.next(2, 5);
+        int M = rnd.next(2, 5);
+        int top = rnd.next(0, N - 2);
+        int left = rnd.next(0, M - 2);
+        int d = rnd.next(1, 9);
+        int K = rnd.next(d, 2 * d - 1);
+        int schoolRow = rnd.next(0, 1);
+        int schoolCol = rnd.next(0, 1);
+        vector<string> grid(N, string(M, 'X'));
+        grid[top].replace(left, 2, 2, char('0' + d));
+        grid[top + 1].replace(left, 2, 2, char('0' + d));
+        grid[top + schoolRow][left + schoolCol] = 'S';
+        grid[top + 1 - schoolRow][left + 1 - schoolCol] = 'H';
+
+        println(N, M, K);
+        for (const auto& row : grid) println(row);
+        return 0;
+    }
+
     // grid size small for manual verification
     int N = rnd.next(4, 9);
     int M = rnd.next(4, 9);
