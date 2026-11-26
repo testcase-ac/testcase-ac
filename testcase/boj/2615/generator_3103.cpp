@@ -3,10 +3,11 @@
 #include <algorithm>
 using namespace std;
 
-static bool hasFiveOrMore(const vector<vector<int>>& b) {
-    int n = 19;
+static int countRuns(const vector<vector<int>>& b, int maxLength) {
+    int n = static_cast<int>(b.size()) - 1;
     int dx[4] = {0, 1, 1, -1};
     int dy[4] = {1, 0, 1, 1};
+    int runs = 0;
     for (int i = 1; i <= n; i++) {
         for (int j = 1; j <= n; j++) {
             int col = b[i][j];
@@ -22,11 +23,11 @@ static bool hasFiveOrMore(const vector<vector<int>>& b) {
                     x += dx[d];
                     y += dy[d];
                 }
-                if (cnt >= 5) return true;
+                if (cnt >= 5 && cnt <= maxLength) runs++;
             }
         }
     }
-    return false;
+    return runs;
 }
 
 int main(int argc, char* argv[]) {
@@ -95,7 +96,7 @@ int main(int argc, char* argv[]) {
         if (isReserved) continue;
         int col = rnd.any(vector<int>{1,2});
         board[r][c] = col;
-        if (hasFiveOrMore(board)) {
+        if (countRuns(board, N) > 0) {
             board[r][c] = 0; // undo if it creates any five-or-more
         } else {
             filled++;
@@ -106,6 +107,13 @@ int main(int argc, char* argv[]) {
     if (wantWin) {
         for (auto &p : reserved) {
             board[p.first][p.second] = winColor;
+        }
+        // The reserved stones can complete another winning line with the filler stones.
+        if (countRuns(board, 5) > 1) {
+            board.assign(N + 1, vector<int>(N + 1, 0));
+            for (auto &p : reserved) {
+                board[p.first][p.second] = winColor;
+            }
         }
     }
 
